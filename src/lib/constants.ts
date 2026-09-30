@@ -20,13 +20,32 @@ export const PLAY_ROLE_LABELS: Record<PlayRole, string> = {
   sprinter: 'スプリンター',
 };
 
-export const PURPOSES = ['tournament', 'rank', 'enjoy', 'custom'] as const;
+// 表示順 (チップの並び)。DBの値は変えない
+export const PURPOSES = ['rank', 'enjoy', 'tournament', 'custom'] as const;
 export type Purpose = (typeof PURPOSES)[number];
 export const PURPOSE_LABELS: Record<Purpose, string> = {
-  tournament: '大会',
   rank: 'ランク',
   enjoy: 'エンジョイ',
+  tournament: '大会練習',
   custom: 'カスタム',
+};
+
+/** 募集条件「S4〜」のような短い下限表記 */
+export const RANK_MIN_LABELS: Record<RankBand, string> = {
+  fc: 'F〜',
+  ba: 'B〜',
+  s1_3: 'S1〜',
+  s4_6: 'S4〜',
+  s7_9: 'S7〜',
+  s10p: 'S10〜',
+};
+
+// 参加方式: 早い者勝ち(即参加) / 承認制
+export const JOIN_MODES = ['instant', 'approval'] as const;
+export type JoinMode = (typeof JOIN_MODES)[number];
+export const JOIN_MODE_LABELS: Record<JoinMode, string> = {
+  instant: '早い者勝ち',
+  approval: '承認制',
 };
 
 // 雰囲気タグ (性別による募集・絞り込みの代替)
@@ -65,14 +84,15 @@ export const RECRUIT_STATUS_LABELS = {
 } as const;
 export type RecruitStatus = keyof typeof RECRUIT_STATUS_LABELS;
 
-export const DURATION_OPTIONS_MIN = [30, 60, 90, 120, 180, 240, 360] as const;
+/** 終了時刻は入力させず、開始 + この時間で自動設定する */
+export const DEFAULT_DURATION_MIN = 60;
 
 export const LIMITS = {
   displayName: 20,
   bio: 200,
   characterName: 20,
   maxCharacters: 3,
-  title: 40,
+  title: 40, // 「ひとこと」(タイトル)
   note: 200,
   message: 300,
   reportReason: 500,
@@ -80,7 +100,7 @@ export const LIMITS = {
   roomCode: 16,
   minCapacity: 2,
   maxCapacity: 6,
-  maxDurationMin: 360,
+  maxPartyCapacity: 3, // カスタム以外は3人パーティまで
   maxStartAheadDays: 7,
   startGraceMin: 30,
 } as const;
@@ -100,6 +120,7 @@ export const TERMS_VERSION = '2026-09-30';
 
 export const NOTIFICATION_LABELS: Record<string, string> = {
   join_request: '参加申請が届きました',
+  joined: 'あなたの募集に参加者が入りました',
   approved: '参加が承認されました',
   rejected: '参加申請が見送られました',
   removed: '募集の参加者から外されました',

@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Avatar } from '@/components/Avatar';
 import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
@@ -7,7 +9,6 @@ import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
 import { blockUserAction } from '@/app/actions';
 import type { Profile } from '@/lib/types';
-import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,12 +28,15 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-4">
-      <section className="card space-y-3">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold">{p.display_name}</h1>
-          <span className="chip">{RANK_LABELS[p.rank_band]}</span>
+      <section className="card space-y-4">
+        <div className="flex items-center gap-4">
+          <Avatar name={p.display_name} seed={p.id} size="lg" />
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-extrabold">{p.display_name}</h1>
+            <span className="chip mt-1">{RANK_LABELS[p.rank_band]}</span>
+          </div>
         </div>
-        <dl className="grid grid-cols-[6em_1fr] gap-y-1 text-sm">
+        <dl className="grid grid-cols-[6em_1fr] gap-y-2 text-sm">
           <dt className="text-muted">得意ロール</dt>
           <dd>{p.play_roles.map((r) => PLAY_ROLE_LABELS[r]).join('・') || '―'}</dd>
           <dt className="text-muted">よく使う</dt>
@@ -47,7 +51,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             {p.tags.map((t) => <span key={t} className="chip">#{MOOD_TAG_LABELS[t]}</span>)}
           </div>
         )}
-        {p.bio && <p className="whitespace-pre-wrap break-words text-sm">{p.bio}</p>}
+        {p.bio && <p className="rounded-xl bg-surface-2 p-3 text-sm whitespace-pre-wrap break-words">{p.bio}</p>}
         <p className="text-xs text-muted">連絡先は、募集で参加が承認された相手にだけ表示されます。</p>
       </section>
       {isMe ? (

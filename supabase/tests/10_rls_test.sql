@@ -187,4 +187,78 @@ select public.save_my_profile('新人', 'fc', '{tank}', '{}', '{enjoy}', 'no', '
 reset role;
 select pg_temp.assert((select signup_src from public.profiles where id = '00000000-0000-4000-8000-000000000006') = 'yt', 'signup src stored');
 
+-- 14. v2: 参加方式 (join_mode)
+select pg_temp.assert((select column_default from information_schema.columns
+  where table_schema = 'public' and table_name = 'recruitments' and column_name = 'join_mode') like '''instant''%', 'join_mode defaults to instant');
+select pg_temp.assert((select join_mode from public.recruitments where id = :R1) = 'approval', 'seeded approval recruitment kept');
+select pg_temp.expect_error($$insert into public.recruitments (owner_id, title, purpose, starts_at, ends_at, capacity, join_mode)
+  values ('00000000-0000-4000-8000-000000000005', 'x', 'enjoy', now(), now() + interval '1 hour', 3, 'auto')$$, 'join_mode check constraint');
+
+-- 未ログインでは作成できない
+select pg_temp.as_user(null);
+select pg_temp.expect_error($$select public.create_recruitment('x', 'enjoy', now(), now() + interval '1 hour', 3, null, 'any', '{}', '', null)$$, 'anon cannot create');
+reset role;
+
+select pg_temp.as_user(:U5);
+-- カスタム以外は3人まで / カスタムは6人まで / 不正な参加方式は拒否
+select pg_temp.expect_error($$select public.create_recruitment('x', 'enjoy', now(), now() + interval '1 hour', 4, null, 'any', '{}', '', null)$$, 'party capacity max 3');
+select pg_temp.expect_error($$select public.create_recruitment('x', 'rank', now(), now() + interval '1 hour', 3, null, 'any', '{}', '', null, null, 'auto')$$, 'bad join mode');
+select public.create_recruitment('カスタム 6人', 'custom', now(), now() + interval '1 hour', 6, null, 'any', '{}', '', null, null, 'approval');
+-- 引数を省略すると早い者勝ち
+select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's4_6', 'on', '{serious}', '', '777', 'x');
+reset role;
+\set RI '(select id from public.recruitments where title = ''ランク S4〜 あと2人'')'
+\set RA '(select id from public.recruitments where title = ''カスタム 6人'')'
+select pg_temp.assert((select join_mode from public.recruitments where id = :RI) = 'instant', 'default instant via rpc');
+select pg_temp.assert((select join_mode from public.recruitments where id = :RA) = 'approval', 'approval via rpc');
+select pg_temp.assert((select src from public.recruitments where id = :RI) = 'x', 'recruitment src stored');
+
+-- 早い者勝ち: 申請なしで即参加、募集者に joined 通知、部屋番号が見える
+select pg_temp.as_user(:U2);
+select public.request_join(:RI, 'x');
+select pg_temp.assert((select status from public.participations where recruitment_id = :RI and user_id = :U2) = 'approved', 'instant join approved');
+select pg_temp.assert(public.get_room_code(:RI) = '777', 'instant member sees room code');
+select public.request_join(:RI, null);
+reset role;
+select pg_temp.assert((select approved_count from public.recruitments where id = :RI) = 1, 'instant count 1 (idempotent)');
+select pg_temp.assert((select count(*) from public.notifications where user_id = :U5 and recruitment_id = :RI and kind = 'joined') = 1, 'owner notified joined');
+select pg_temp.assert((select decided_at is not null from public.participations where recruitment_id = :RI and user_id = :U2), 'instant decided_at set');
+
+insert into auth.users (id) values ('00000000-0000-4000-8000-000000000007');
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version)
+  values ('00000000-0000-4000-8000-000000000007', 'テスト7', 's4_6', now(), 't');
+select pg_temp.as_user('00000000-0000-4000-8000-000000000006');
+select public.request_join(:RI, null);
+reset role;
+select pg_temp.assert((select status from public.recruitments where id = :RI) = 'full', 'instant fills to full');
+select pg_temp.assert((select filled_at is not null from public.recruitments where id = :RI), 'filled_at set');
+select pg_temp.as_user('00000000-0000-4000-8000-000000000007');
+select pg_temp.expect_error($$select public.request_join((select id from public.recruitments where title = 'ランク S4〜 あと2人'), null)$$, 'instant full rejects');
+reset role;
+
+-- 参加者が抜けると再び参加可能。募集者は外せる(外された人は再参加不可)
+select pg_temp.as_user(:U2); select public.cancel_participation(:RI); reset role;
+select pg_temp.assert((select status from public.recruitments where id = :RI) = 'open', 'open after cancel');
+select pg_temp.as_user('00000000-0000-4000-8000-000000000007');
+select public.request_join(:RI, null);
+reset role;
+select pg_temp.assert((select approved_count from public.recruitments where id = :RI) = 2, 'rejoin fills');
+select pg_temp.as_user(:U5);
+select public.decide_participation((select id from public.participations where recruitment_id = :RI and user_id = '00000000-0000-4000-8000-000000000007'), 'rejected');
+reset role;
+select pg_temp.assert((select approved_count from public.recruitments where id = :RI) = 1, 'owner removed participant');
+select pg_temp.assert((select count(*) from public.notifications where user_id = '00000000-0000-4000-8000-000000000007' and kind = 'removed') = 1, 'removed notified');
+select pg_temp.as_user('00000000-0000-4000-8000-000000000007');
+select pg_temp.expect_error($$select public.request_join((select id from public.recruitments where title = 'ランク S4〜 あと2人'), null)$$, 'removed cannot rejoin');
+select pg_temp.assert(public.get_room_code(:RI) is null, 'removed loses room code');
+reset role;
+
+-- 承認制: pending のまま。募集者に join_request 通知
+select pg_temp.as_user('00000000-0000-4000-8000-000000000007');
+select public.request_join(:RA, null);
+reset role;
+select pg_temp.assert((select status from public.participations where recruitment_id = :RA) = 'pending', 'approval stays pending');
+select pg_temp.assert((select approved_count from public.recruitments where id = :RA) = 0, 'approval count unchanged');
+select pg_temp.assert((select count(*) from public.notifications where user_id = :U5 and recruitment_id = :RA and kind = 'join_request') = 1, 'owner notified request');
+
 select 'ALL RLS TESTS PASSED' as result;

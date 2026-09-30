@@ -27,12 +27,12 @@ export async function getViewer(): Promise<Viewer | null> {
   };
 }
 
-/** ログイン必須のページ用。プロフィール未作成なら作成画面へ */
+/** ログイン必須のページ用。プロフィール未作成なら初回登録(1画面)へ */
 export async function requireViewer(next: string, opts: { allowNoProfile?: boolean } = {}): Promise<Viewer> {
   // 未設定時はログイン画面へ (ログイン画面に設定不足の案内が出る)
   const viewer = isSupabaseConfigured() ? await getViewer() : null;
   if (!viewer) redirect(`/login?next=${encodeURIComponent(next)}`);
-  if (!viewer.profile && !opts.allowNoProfile) redirect(`/profile/edit?next=${encodeURIComponent(next)}`);
+  if (!viewer.profile && !opts.allowNoProfile) redirect(`/welcome?next=${encodeURIComponent(next)}`);
   return viewer;
 }
 
@@ -40,3 +40,11 @@ export function isRestricted(p: Profile | null): boolean {
   return Boolean(p && (p.banned_at || p.suspended_at || p.hidden_at));
 }
 
+
+/** 画面の出し分け用: 未ログイン / 初回登録前 / 利用停止中 / 利用可能 */
+export function authStateOf(viewer: Viewer | null): 'guest' | 'no-profile' | 'restricted' | 'ready' {
+  if (!viewer) return 'guest';
+  if (!viewer.profile) return 'no-profile';
+  if (isRestricted(viewer.profile)) return 'restricted';
+  return 'ready';
+}

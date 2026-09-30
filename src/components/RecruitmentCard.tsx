@@ -1,32 +1,91 @@
 import Link from 'next/link';
 import type { Recruitment } from '@/lib/types';
-import { effectiveStatus, seatLabel } from '@/lib/capacity';
-import { formatJstRange, relativeStart } from '@/lib/time';
-import { RANK_LABELS, RECRUIT_VC_LABELS } from '@/lib/constants';
-import { MoodTags, PurposeChip, StatusBadge } from './Tags';
+import { canRequestJoin, effectiveStatus, type JoinState } from '@/lib/capacity';
+import { RANK_LABELS, RANK_MIN_LABELS } from '@/lib/constants';
+import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from './Tags';
+import { SlotDots } from './SlotDots';
+import { Countdown } from './Countdown';
+import { Avatar } from './Avatar';
+import { JoinButton, type AuthState } from './JoinButton';
 
-export function RecruitmentCard({ r, now = new Date() }: { r: Recruitment; now?: Date }) {
+export function RecruitmentCard({
+  r,
+  now,
+  auth,
+  viewerId,
+  myState = 'none',
+  showJoin = true,
+}: {
+  r: Recruitment;
+  now: Date;
+  auth: AuthState;
+  viewerId?: string | null;
+  myState?: JoinState;
+  showJoin?: boolean;
+}) {
   const status = effectiveStatus(r.status, r.ends_at, now);
+  const isOwner = viewerId === r.owner_id;
+  const join = canRequestJoin({
+    status: r.status,
+    endsAt: r.ends_at,
+    capacity: r.capacity,
+    approvedCount: r.approved_count,
+    isOwner,
+    myState,
+    now,
+  });
+  const muted = status === 'ended' || status === 'cancelled';
+
   return (
-    <Link href={`/recruitments/${r.id}`} className="card block space-y-2 active:opacity-80">
-      <div className="flex items-center gap-2">
-        <PurposeChip purpose={r.purpose} />
-        <StatusBadge status={status} />
-        <span className="ml-auto text-xs font-bold text-muted">{relativeStart(r.starts_at, r.ends_at, now)}</span>
-      </div>
-      <h3 className="text-base font-bold leading-snug">{r.title}</h3>
-      <p className="text-sm">{formatJstRange(r.starts_at, r.ends_at)}</p>
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-        <span className="font-bold text-fg">{seatLabel(r.capacity, r.approved_count)}</span>
-        <span>・{RECRUIT_VC_LABELS[r.vc]}</span>
-        {r.min_rank && <span>・{RANK_LABELS[r.min_rank]}以上</span>}
-        {r.owner && <span>・{r.owner.display_name}</span>}
-      </div>
-      {r.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          <MoodTags tags={r.tags} />
+    <article
+      className={`tone-${r.purpose} relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface ${muted ? 'opacity-60' : ''}`}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1 bg-[var(--tone)] shadow-[0_0_14px_var(--tone)]"
+      />
+      <Link href={`/recruitments/${r.id}`} className="block space-y-3 p-4 pl-5 pb-3 active:bg-surface-2/60">
+        <div className="flex items-center justify-between gap-2">
+          <PurposeBadge purpose={r.purpose} />
+          <Countdown start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} />
+        </div>
+        <h3 className="text-[17px] leading-snug font-extrabold break-words">{r.title}</h3>
+        <div className="flex items-center justify-between gap-3">
+          <SlotDots capacity={r.capacity} approvedCount={r.approved_count} />
+          <div className="flex items-center gap-3">
+            <VcBadge vc={r.vc} />
+            <JoinModeBadge mode={r.join_mode} />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          {r.owner && <Avatar name={r.owner.display_name} seed={r.owner_id} size="sm" />}
+          <span className="min-w-0 truncate font-bold">{r.owner?.display_name ?? '―'}</span>
+          {r.owner && <span className="shrink-0 text-xs text-muted">{RANK_LABELS[r.owner.rank_band]}</span>}
+          {r.min_rank && (
+            <span className="ml-auto shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-xs font-bold text-muted">
+              条件 {RANK_MIN_LABELS[r.min_rank]}
+            </span>
+          )}
+        </div>
+        {r.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <MoodTags tags={r.tags} />
+          </div>
+        )}
+      </Link>
+      {showJoin && (
+        <div className="px-4 pb-4 pl-5">
+          <JoinButton
+            recruitmentId={r.id}
+            joinMode={r.join_mode}
+            auth={auth}
+            canJoin={join.ok}
+            reason={join.reason}
+            isOwner={isOwner}
+            joined={myState === 'approved'}
+          />
         </div>
       )}
-    </Link>
+    </article>
   );
 }

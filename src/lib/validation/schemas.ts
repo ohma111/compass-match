@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  JOIN_MODES,
   LIMITS,
   MOOD_TAGS,
   PLAY_ROLES,
@@ -7,11 +8,11 @@ import {
   PURPOSES,
   RANK_BANDS,
   RECRUIT_VC,
-  DURATION_OPTIONS_MIN,
 } from '../constants';
 import { containsUrl } from './url';
-import { parseJstLocalInput } from '../time';
 import { sanitizeSrc } from '../src-param';
+import { isValidCapacity } from '../capacity';
+import { autoEnd, autoTitle, resolveStart, START_KEYS } from '../recruit';
 
 const NO_URL = 'URLは入力できません';
 
@@ -80,40 +81,73 @@ export const profileSchema = z.object({
 export type ProfileInput = z.input<typeof profileSchema>;
 export type ProfileData = z.output<typeof profileSchema>;
 
+/** 初回登録(1画面)。その他の項目はマイページで後から追加する */
+export const onboardingSchema = z.object({
+  displayName: safeText(LIMITS.displayName, { min: 1, label: '表示名' }),
+  rankBand: z.enum(RANK_BANDS, { message: 'ランク帯を選んでください' }),
+  playRoles: uniqueArray(PLAY_ROLES),
+  agreeTerms: z.literal(true, { message: '利用規約とプライバシーポリシーへの同意が必要です' }),
+  src: z.unknown().transform(sanitizeSrc),
+});
+export type OnboardingInput = z.input<typeof onboardingSchema>;
+
+/** 募集作成(タップ式)の入力。開始時刻はチップのキーで受け取り、サーバーの現在時刻で解決する */
 export const recruitmentSchema = z
   .object({
-    title: safeText(LIMITS.title, { min: 1, label: 'タイトル' }),
     purpose: z.enum(PURPOSES, { message: '目的を選んでください' }),
-    startsAtLocal: z.string(),
-    durationMin: z.coerce
-      .number()
-      .int()
-      .refine((n) => (DURATION_OPTIONS_MIN as readonly number[]).includes(n), '終了予定を選んでください'),
-    capacity: z.coerce
-      .number()
-      .int()
-      .min(LIMITS.minCapacity, `募集人数は${LIMITS.minCapacity}〜${LIMITS.maxCapacity}人です`)
-      .max(LIMITS.maxCapacity, `募集人数は${LIMITS.minCapacity}〜${LIMITS.maxCapacity}人です`),
+    startKey: z.enum(START_KEYS, { message: '開始時刻を選んでください' }),
+    startTime: z.string().max(5).optional(),
+    capacity: z.coerce.number().int(),
+    joinMode: z.enum(JOIN_MODES, { message: '参加方式を選んでください' }),
     minRank: z
       .union([z.literal(''), z.enum(RANK_BANDS)])
       .optional()
       .transform((v) => (v ? v : null)),
-    vc: z.enum(RECRUIT_VC),
+    vc: z.enum(RECRUIT_VC).catch('any'),
     tags: uniqueArray(MOOD_TAGS),
-    note: safeText(LIMITS.note, { label: 'メモ' }),
+    title: safeText(LIMITS.title, { label: 'ひとこと' }),
     roomCode: optionalPattern(/^[0-9A-Za-z-]{1,16}$/, '部屋番号は半角英数字16文字以内です'),
     src: z.unknown().transform(sanitizeSrc),
   })
-  .transform((v, ctx) => {
-    const startsAt = parseJstLocalInput(v.startsAtLocal);
-    if (!startsAt) {
-      ctx.addIssue({ code: 'custom', message: '開始日時を正しく入力してください', path: ['startsAtLocal'] });
-      return z.NEVER;
+  .superRefine((v, ctx) => {
+    if (!isValidCapacity(v.purpose, v.capacity)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['capacity'],
+        message: v.purpose === 'custom' ? '人数は「あと1〜5人」から選んでください' : '人数は「あと1人」か「あと2人」から選んでください',
+      });
     }
-    const endsAt = new Date(startsAt.getTime() + v.durationMin * 60_000);
-    return { ...v, startsAt, endsAt };
   });
-export type RecruitmentData = z.output<typeof recruitmentSchema>;
+export type RecruitmentInput = z.input<typeof recruitmentSchema>;
+
+export interface RecruitmentData extends Omit<z.output<typeof recruitmentSchema>, 'startKey' | 'startTime'> {
+  startsAt: Date;
+  endsAt: Date;
+}
+
+/**
+ * 入力の検証 + 開始/終了時刻の解決 + タイトル自動生成。
+ * now を注入できるのでテスト可能。
+ */
+export function buildRecruitment(
+  input: unknown,
+  now: Date = new Date(),
+): { ok: true; data: RecruitmentData } | { ok: false; error: string } {
+  const parsed = recruitmentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { startKey, startTime, ...v } = parsed.data;
+  const startsAt = resolveStart(startKey, startTime, now);
+  if (!startsAt) {
+    return {
+      ok: false,
+      error: startKey === 'custom' ? '開始時刻を選んでください' : 'その時刻はすでに過ぎています。開始時刻を選び直してください',
+    };
+  }
+  const windowError = validateStartWindow(startsAt, now);
+  if (windowError) return { ok: false, error: windowError };
+  const title = v.title || autoTitle({ purpose: v.purpose, minRank: v.minRank, capacity: v.capacity });
+  return { ok: true, data: { ...v, title, startsAt, endsAt: autoEnd(startsAt) } };
+}
 
 /** 作成時の開始日時チェック (now を注入できるよう分離) */
 export function validateStartWindow(startsAt: Date, now: Date = new Date()): string | null {
@@ -186,8 +220,11 @@ export const adminResolveSchema = z.object({
 });
 
 export const listFilterSchema = z.object({
-  day: z.enum(['today', 'tomorrow', 'all']).catch('all'),
   purpose: z.union([z.enum(PURPOSES), z.literal('all')]).catch('all'),
+  soon: z
+    .unknown()
+    .optional()
+    .transform((v) => v === '1'),
 });
 
 /** zodのエラーを最初の1件の日本語メッセージにまとめる */

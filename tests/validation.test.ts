@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildRecruitment,
   feedbackSchema,
   firstError,
   listFilterSchema,
   messageSchema,
+  onboardingSchema,
   profileSchema,
-  recruitmentSchema,
   reportSchema,
   validateStartWindow,
 } from '@/lib/validation/schemas';
@@ -64,49 +65,99 @@ describe('profileSchema', () => {
   });
 });
 
+describe('onboardingSchema', () => {
+  const base = { displayName: ' こんぱす ', rankBand: 's1_3', playRoles: ['tank', 'tank'], agreeTerms: true, src: 'guild' };
+  it('accepts the one-screen signup', () => {
+    const r = onboardingSchema.parse(base);
+    expect(r.displayName).toBe('こんぱす');
+    expect(r.playRoles).toEqual(['tank']);
+    expect(r.src).toBe('guild');
+  });
+  it('roles are optional, rank and consent are required', () => {
+    expect(onboardingSchema.safeParse({ ...base, playRoles: [] }).success).toBe(true);
+    expect(onboardingSchema.safeParse({ ...base, rankBand: '' }).success).toBe(false);
+    const r = onboardingSchema.safeParse({ ...base, agreeTerms: false });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(firstError(r.error)).toMatch(/同意/);
+  });
+  it('rejects URLs in the display name', () => {
+    expect(onboardingSchema.safeParse({ ...base, displayName: 'x.com/me' }).success).toBe(false);
+  });
+});
+
+// JST 20:42
+const NOW = new Date('2026-10-01T11:42:00Z');
 const baseRecruit = {
-  title: '21時からまったり',
-  purpose: 'enjoy',
-  startsAtLocal: '2026-10-01T21:00',
-  durationMin: '120',
-  capacity: '3',
-  minRank: '',
-  vc: 'any',
-  tags: ['beginner_welcome'],
-  note: '',
+  purpose: 'rank',
+  startKey: 'h21',
+  capacity: '2',
+  joinMode: 'instant',
+  minRank: 's4_6',
+  vc: 'on',
+  tags: ['serious', 'serious'],
+  title: '',
   roomCode: '',
   src: 'guild',
 };
 
-describe('recruitmentSchema', () => {
-  it('parses JST local input into UTC and computes end', () => {
-    const r = recruitmentSchema.parse(baseRecruit);
-    expect(r.startsAt.toISOString()).toBe('2026-10-01T12:00:00.000Z');
-    expect(r.endsAt.toISOString()).toBe('2026-10-01T14:00:00.000Z');
-    expect(r.capacity).toBe(3);
-    expect(r.minRank).toBeNull();
-    expect(r.roomCode).toBeNull();
-    expect(r.src).toBe('guild');
+function build(over: Record<string, unknown> = {}, now = NOW) {
+  return buildRecruitment({ ...baseRecruit, ...over }, now);
+}
+
+describe('buildRecruitment (tap-based create)', () => {
+  it('resolves the start chip in JST, sets end = start + 1h and auto title', () => {
+    const r = build();
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.startsAt.toISOString()).toBe('2026-10-01T12:00:00.000Z');
+    expect(r.data.endsAt.toISOString()).toBe('2026-10-01T13:00:00.000Z');
+    expect(r.data.title).toBe('ランク S4〜 あと1人');
+    expect(r.data.capacity).toBe(2);
+    expect(r.data.joinMode).toBe('instant');
+    expect(r.data.tags).toEqual(['serious']);
+    expect(r.data.roomCode).toBeNull();
+    expect(r.data.src).toBe('guild');
   });
-  it('rejects capacity out of range', () => {
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, capacity: '1' }).success).toBe(false);
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, capacity: '7' }).success).toBe(false);
+  it('keeps a custom title (ひとこと)', () => {
+    const r = build({ title: '  1戦だけ!  ' });
+    expect(r.ok && r.data.title).toBe('1戦だけ!');
   });
-  it('rejects non-listed duration', () => {
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, durationMin: '999' }).success).toBe(false);
+  it('enforces capacity per purpose', () => {
+    expect(build({ capacity: '3' }).ok).toBe(true);
+    const bad = build({ capacity: '4' });
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.error).toMatch(/あと2人/);
+    expect(build({ purpose: 'custom', capacity: '6' }).ok).toBe(true);
+    expect(build({ purpose: 'custom', capacity: '7' }).ok).toBe(false);
+    expect(build({ capacity: '1' }).ok).toBe(false);
   });
-  it('rejects URL in title or note', () => {
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, title: 'discord.gg/xxx' }).success).toBe(false);
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, note: 'https://a.b' }).success).toBe(false);
+  it('validates join mode (instant / approval only)', () => {
+    expect(build({ joinMode: 'approval' }).ok).toBe(true);
+    expect(build({ joinMode: 'auto' }).ok).toBe(false);
+    expect(build({ joinMode: undefined }).ok).toBe(false);
   });
-  it('rejects bad dates and room codes', () => {
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, startsAtLocal: '2026-02-31T21:00' }).success).toBe(false);
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, startsAtLocal: 'tomorrow' }).success).toBe(false);
-    expect(recruitmentSchema.safeParse({ ...baseRecruit, roomCode: '12 34' }).success).toBe(false);
-    expect(recruitmentSchema.parse({ ...baseRecruit, roomCode: '12345' }).roomCode).toBe('12345');
+  it('rejects a fixed chip that has already passed (no rollover to tomorrow)', () => {
+    const r = build({ startKey: 'h21' }, new Date('2026-10-01T12:45:00Z')); // JST 21:45
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/過ぎています/);
   });
-  it('drops invalid src silently', () => {
-    expect(recruitmentSchema.parse({ ...baseRecruit, src: '<script>' }).src).toBeNull();
+  it('custom time rolls past times to the next day', () => {
+    const r = build({ startKey: 'custom', startTime: '00:30' });
+    expect(r.ok && r.data.startsAt.toISOString()).toBe('2026-10-01T15:30:00.000Z');
+    expect(build({ startKey: 'custom', startTime: '' }).ok).toBe(false);
+    expect(build({ startKey: 'tomorrow' }).ok).toBe(false);
+  });
+  it('rejects URLs in the title and bad room codes', () => {
+    expect(build({ title: 'discord.gg/xxx' }).ok).toBe(false);
+    expect(build({ title: 'あ'.repeat(41) }).ok).toBe(false);
+    expect(build({ roomCode: '12 34' }).ok).toBe(false);
+    const ok = build({ roomCode: '12345' });
+    expect(ok.ok && ok.data.roomCode).toBe('12345');
+  });
+  it('drops invalid src and unknown vc falls back to any', () => {
+    const r = build({ src: '<script>', vc: 'loud' });
+    expect(r.ok && r.data.src).toBeNull();
+    expect(r.ok && r.data.vc).toBe('any');
   });
 });
 
@@ -150,9 +201,10 @@ describe('report / feedback / filters', () => {
     expect(feedbackSchema.parse({ body: 'ok', page: 'https://evil' }).page).toBeNull();
     expect(feedbackSchema.parse({ body: 'ok', page: '/recruitments' }).page).toBe('/recruitments');
   });
-  it('list filters fall back to all', () => {
-    expect(listFilterSchema.parse({ day: 'yesterday', purpose: 'gender' })).toEqual({ day: 'all', purpose: 'all' });
-    expect(listFilterSchema.parse({ day: 'today', purpose: 'rank' })).toEqual({ day: 'today', purpose: 'rank' });
+  it('feed filters fall back to all', () => {
+    expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ purpose: 'all', soon: false });
+    expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ purpose: 'rank', soon: true });
+    expect(listFilterSchema.parse({})).toEqual({ purpose: 'all', soon: false });
   });
 });
 

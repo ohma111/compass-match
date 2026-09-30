@@ -1,4 +1,5 @@
-# コンパス遊び相手さがし (MVP)
+# コンパス遊び相手さがし (v2)
+
 
 「#コンパス」で、今この時間に一緒に遊べる人を見つけるための募集掲示板です(非公式のファンサービス)。
 Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Auth / Postgres / Realtime / RLS) で作っています。
@@ -7,6 +8,21 @@ Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Auth / Postgres / R
 - 実装内容・仕様との差分: `IMPLEMENTATION_NOTES.md`
 
 ---
+
+## v2 へのアップデート手順(すでに v1 を公開している場合)
+
+v1 の4つのマイグレーションは本番に適用済みなので、**追加のマイグレーション1ファイルだけ** を適用します。
+
+1. Supabase ダッシュボード → SQL Editor を開く
+2. `supabase/migrations/20261001000005_join_mode.sql` の中身をすべて貼り付けて「Run」
+   - 追加されるもの: 募集ごとの参加方式 `recruitments.join_mode`(早い者勝ち/承認制)、`create_recruitment` の `p_join_mode` 引数、早い者勝ちの即参加処理(`request_join`)、通知の種類 `joined`
+   - **既存の募集は「承認制」のまま** です(申請中の人がいるため)。新しく作る募集の初期値が「早い者勝ち」になります
+   - 誤って2回実行してもエラーにならないように書いてあります
+   - シードデータは含みません。v1 の4ファイルを再実行する必要はありません
+3. 続けてこのコードを Vercel にデプロイする(環境変数の追加・変更はありません)
+   - マイグレーションとデプロイの間は、v1 の画面から作った募集も「早い者勝ち」になります。間を空けずに行ってください
+
+以下は、新しく一から環境を作る場合の手順です。
 
 ## あなた(運営者)が手作業で行うこと
 
@@ -32,11 +48,12 @@ Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Auth / Postgres / R
 次のどちらかの方法で、`supabase/migrations/` の SQL を **ファイル名の順番どおりに** 実行します。
 
 - **方法A: ダッシュボードで実行(簡単)**
-  Supabase ダッシュボード → SQL Editor で、以下の4ファイルの中身を1つずつ貼り付けて「Run」します。
+  Supabase ダッシュボード → SQL Editor で、以下の5ファイルの中身を1つずつ貼り付けて「Run」します。
   1. `20260930000001_schema.sql`
   2. `20260930000002_functions.sql`
   3. `20260930000003_rls.sql`
   4. `20260930000004_settings_and_cron.sql`
+  5. `20261001000005_join_mode.sql`
 - **方法B: Supabase CLI**
   ```bash
   npx supabase login
@@ -81,7 +98,7 @@ cp .env.example .env.local
 # .env.local を開き、手順1で控えた値を入れる
 npm run dev
 ```
-http://localhost:3000 を開いて、ログイン → プロフィール作成 → 募集作成 ができれば OK です。
+http://localhost:3000 を開いて、ログイン → 初回登録(表示名・ランク帯・同意) → 募集作成 ができれば OK です。
 
 | 変数名 | 内容 | 例 |
 | --- | --- | --- |
@@ -100,13 +117,13 @@ http://localhost:3000 を開いて、ログイン → プロフィール作成 �
    - 💰 独自ドメインを使う場合はドメイン代がかかります(Vercel の `*.vercel.app` のままなら無料)。
 
 ### 8. 自分を管理者にする
-1. 本番サイトで一度ログインし、プロフィールを作成します。
+1. 本番サイトで一度ログインし、初回登録を済ませます。
 2. Supabase ダッシュボード → Authentication → Users で自分のユーザーの **UID** をコピーします。
 3. SQL Editor で次を実行します(`<UID>` を置き換える)。
    ```sql
    insert into public.user_roles (user_id, role) values ('<UID>', 'admin');
    ```
-4. サイトを再読み込みすると、フッターに「管理画面」リンクが出ます。
+4. サイトを再読み込みすると、マイページに「管理画面」リンクが出ます。
 
 ### 9. 公開前チェック
 - [ ] `/terms`(利用規約)と `/privacy`(プライバシーポリシー)は **雛形** です。自分で読んで修正してください(`src/app/terms/page.tsx`, `src/app/privacy/page.tsx`)。修正後、ページ上部の「雛形です」の赤い注意書きを消してください。
@@ -123,7 +140,7 @@ Vercel の環境変数 `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW` を `true` にして 
 ```bash
 npm run dev        # 開発サーバー
 npm run build      # 本番ビルド (Supabase 環境変数なしでも成功する)
-npm test           # Vitest (検証・URLブロック・通報の自動非表示・JST・定員ロジック)
+npm test           # Vitest (検証・URLブロック・通報・JST・開始チップ・定員・参加方式・自動タイトル)
 npm run typecheck  # 型チェック
 npm run db:verify  # ローカルの PostgreSQL 16 でマイグレーション + RLS テストを実行 (Supabaseには接続しない)
 ```

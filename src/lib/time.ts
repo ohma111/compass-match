@@ -48,34 +48,43 @@ export function jstDayRange(offsetDays: number, now: Date = new Date()): { start
   return { start: new Date(startUtcMs), end: new Date(startUtcMs + 24 * 60 * 60 * 1000) };
 }
 
-/** <input type="datetime-local"> の値 (JSTとして解釈) をUTCのDateに変換。不正ならnull */
-export function parseJstLocalInput(value: string): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(value);
-  if (!m) return null;
-  const [, y, mo, d, h, mi] = m.map(Number);
-  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59) return null;
-  const ms = Date.UTC(y, mo - 1, d, h, mi) - JST_OFFSET_MS;
-  const check = jstParts(new Date(ms));
-  if (check.month !== mo || check.day !== d) return null; // 2/31 などを弾く
-  return new Date(ms);
+/** JSTの「今日 + offsetDays」の hour:minute をUTCのDateで返す */
+export function jstAt(hour: number, minute: number, offsetDays: number, now: Date = new Date()): Date {
+  const { start } = jstDayRange(offsetDays, now);
+  return new Date(start.getTime() + (hour * 60 + minute) * 60_000);
 }
 
-/** UTCのDateを <input type="datetime-local"> 用のJST文字列に変換 */
-export function toJstLocalInput(d: Date | string): string {
-  const p = jstParts(d);
-  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+/** 同じJST日付か */
+export function isSameJstDay(a: Date | string, b: Date | string): boolean {
+  const x = jstParts(a);
+  const y = jstParts(b);
+  return x.year === y.year && x.month === y.month && x.day === y.day;
 }
 
-/** 開始時刻の相対表示 (例: 「あと25分」「開始済み」) */
-export function relativeStart(start: Date | string, end: Date | string, now: Date = new Date()): string {
+/**
+ * 募集カードのカウントダウン表示。
+ * 開催中 → 「開催中」、60分以内 → 「あと12分」、今日 → 「22:00〜」、明日 → 「明日 22:00〜」、それ以降 → 「10/3 22:00〜」
+ */
+export function countdownLabel(start: Date | string, end: Date | string, now: Date = new Date()): string {
   const s = toDate(start).getTime();
   const e = toDate(end).getTime();
   const n = now.getTime();
   if (n >= e) return '終了';
   if (n >= s) return '開催中';
-  const min = Math.round((s - n) / 60000);
-  if (min < 60) return `あと${min}分`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `あと${h}時間`;
-  return `あと${Math.floor(h / 24)}日`;
+  const min = Math.ceil((s - n) / 60000);
+  if (min <= 60) return `あと${min}分`;
+  const time = `${formatJstTime(start)}〜`;
+  if (isSameJstDay(start, now)) return time;
+  if (isSameJstDay(start, jstDayRange(1, now).start)) return `明日 ${time}`;
+  const p = jstParts(start);
+  return `${p.month}/${p.day} ${time}`;
+}
+
+/** カウントダウンの強調度: live=開催中, soon=30分以内, later */
+export function countdownTone(start: Date | string, end: Date | string, now: Date = new Date()): 'live' | 'soon' | 'later' {
+  const s = toDate(start).getTime();
+  const n = now.getTime();
+  if (n >= s && n < toDate(end).getTime()) return 'live';
+  if (s - n <= 30 * 60_000) return 'soon';
+  return 'later';
 }

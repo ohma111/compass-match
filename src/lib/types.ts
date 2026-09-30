@@ -1,4 +1,4 @@
-import type { MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
+import type { JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
 
 export interface Profile {
   id: string;
@@ -29,6 +29,7 @@ export interface Recruitment {
   tags: MoodTag[];
   note: string;
   status: RecruitStatus;
+  join_mode: JoinMode;
   approved_count: number;
   hidden_at: string | null;
   created_at: string;

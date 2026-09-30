@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!error && data.user) {
       const { data: profile } = await supabase.from('profiles').select('id').eq('id', data.user.id).maybeSingle();
       if (!profile) {
-        return NextResponse.redirect(`${origin}/profile/edit?next=${encodeURIComponent(next)}`);
+        return NextResponse.redirect(`${origin}/welcome?next=${encodeURIComponent(next)}`);
       }
       return NextResponse.redirect(`${origin}${next}`);
     }

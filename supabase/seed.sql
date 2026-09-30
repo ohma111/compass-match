@@ -23,16 +23,16 @@ values
   ('00000000-0000-4000-8000-000000000002', null, null, 'サンプルID')
 on conflict (user_id) do nothing;
 
-insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity, vc, tags, note, src)
+insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity, vc, tags, note, src, join_mode)
 values
   ('10000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001',
    '21時からまったりバトアリ', 'enjoy',
    date_trunc('hour', now()) + interval '2 hours', date_trunc('hour', now()) + interval '4 hours',
-   3, 'any', '{beginner_welcome,relaxed}', '初心者さん歓迎です', 'guild'),
+   3, 'any', '{beginner_welcome,relaxed}', '初心者さん歓迎です', 'guild', 'approval'),
   ('10000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003',
    '大会練習 カスタム', 'tournament',
    date_trunc('hour', now()) + interval '1 day', date_trunc('hour', now()) + interval '1 day 2 hours',
-   3, 'on', '{serious,practice}', '', 'x')
+   3, 'on', '{serious,practice}', '', 'x', 'instant')
 on conflict (id) do nothing;
 
 insert into public.recruitment_secrets (recruitment_id, room_code)

@@ -16,11 +16,11 @@ import {
   feedbackSchema,
   firstError,
   messageSchema,
+  onboardingSchema,
   profileSchema,
-  recruitmentSchema,
+  buildRecruitment,
   reportSchema,
   uuidSchema,
-  validateStartWindow,
 } from '@/lib/validation/schemas';
 
 async function srcFromCookie(explicit?: unknown): Promise<string | null> {
@@ -39,8 +39,48 @@ function formStrings(fd: FormData, key: string): string[] {
 }
 
 // ---------------------------------------------------------------------
-// プロフィール
+// 初回登録 (1画面) / プロフィール編集
 // ---------------------------------------------------------------------
+export async function onboardAction(_prev: ActionResult | null, fd: FormData): Promise<ActionResult> {
+  const parsed = onboardingSchema.safeParse({
+    displayName: fd.get('displayName') ?? '',
+    rankBand: fd.get('rankBand') ?? '',
+    playRoles: formStrings(fd, 'playRoles'),
+    agreeTerms: fd.get('agreeTerms') === 'on',
+    src: await srcFromCookie(),
+  });
+  if (!parsed.success) return fail(firstError(parsed.error));
+  const v = parsed.data;
+  const next = safeNext(fd.get('next') as string | null, '/');
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return fail('ログインが必要です');
+  // 登録済みなら上書きしない (マイページの編集を使う)
+  const { data: existing } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  if (!existing) {
+    const { error } = await supabase.rpc('save_my_profile', {
+      p_display_name: v.displayName,
+      p_rank_band: v.rankBand,
+      p_play_roles: v.playRoles,
+      p_characters: [],
+      p_purposes: [],
+      p_vc: 'listen',
+      p_tags: [],
+      p_bio: '',
+      p_contact_discord: null,
+      p_contact_x: null,
+      p_contact_ingame: null,
+      p_agree_terms: true,
+      p_terms_version: TERMS_VERSION,
+      p_src: v.src,
+    });
+    if (error) return fail(toUserMessage(error));
+  }
+  revalidatePath('/', 'layout');
+  redirect(next);
+}
+
 export async function saveProfileAction(_prev: ActionResult | null, fd: FormData): Promise<ActionResult> {
   const parsed = profileSchema.safeParse({
     displayName: fd.get('displayName') ?? '',
@@ -54,15 +94,18 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     contactDiscord: fd.get('contactDiscord') ?? '',
     contactX: fd.get('contactX') ?? '',
     contactIngame: fd.get('contactIngame') ?? '',
-    agreeTerms: fd.get('agreeTerms') === 'on',
-    src: await srcFromCookie(),
+    agreeTerms: false,
+    src: null,
   });
   if (!parsed.success) return fail(firstError(parsed.error));
   const v = parsed.data;
-  const isNew = fd.get('isNew') === '1';
-  if (isNew && !v.agreeTerms) return fail('利用規約とプライバシーポリシーへの同意が必要です');
 
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return fail('ログインが必要です');
+  const { data: existing } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  if (!existing) return fail('先に初回登録を完了してください');
+
   const { error } = await supabase.rpc('save_my_profile', {
     p_display_name: v.displayName,
     p_rank_band: v.rankBand,
@@ -75,14 +118,12 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     p_contact_discord: v.contactDiscord,
     p_contact_x: v.contactX,
     p_contact_ingame: v.contactIngame,
-    p_agree_terms: v.agreeTerms,
+    p_agree_terms: false,
     p_terms_version: TERMS_VERSION,
-    p_src: v.src,
+    p_src: null,
   });
   if (error) return fail(toUserMessage(error));
   revalidatePath('/', 'layout');
-  const next = safeNext(fd.get('next') as string | null, '');
-  if (next) redirect(next);
   return { ok: true, message: 'プロフィールを保存しました' };
 }
 
@@ -90,23 +131,21 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
 // 募集
 // ---------------------------------------------------------------------
 export async function createRecruitmentAction(_prev: ActionResult | null, fd: FormData): Promise<ActionResult> {
-  const parsed = recruitmentSchema.safeParse({
-    title: fd.get('title') ?? '',
+  const built = buildRecruitment({
     purpose: fd.get('purpose') ?? '',
-    startsAtLocal: fd.get('startsAtLocal') ?? '',
-    durationMin: fd.get('durationMin') ?? '',
+    startKey: fd.get('startKey') ?? '',
+    startTime: (fd.get('startTime') as string | null) ?? undefined,
     capacity: fd.get('capacity') ?? '',
+    joinMode: fd.get('joinMode') ?? '',
     minRank: fd.get('minRank') ?? '',
-    vc: fd.get('vc') ?? '',
+    vc: fd.get('vc') ?? 'any',
     tags: formStrings(fd, 'tags'),
-    note: fd.get('note') ?? '',
+    title: fd.get('title') ?? '',
     roomCode: fd.get('roomCode') ?? '',
     src: await srcFromCookie(fd.get('src')),
   });
-  if (!parsed.success) return fail(firstError(parsed.error));
-  const v = parsed.data;
-  const windowError = validateStartWindow(v.startsAt);
-  if (windowError) return fail(windowError);
+  if (!built.ok) return fail(built.error);
+  const v = built.data;
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('create_recruitment', {
@@ -118,13 +157,13 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     p_min_rank: v.minRank,
     p_vc: v.vc,
     p_tags: v.tags,
-    p_note: v.note,
+    p_note: '',
     p_room_code: v.roomCode,
     p_src: v.src,
+    p_join_mode: v.joinMode,
   });
   if (error) return fail(toUserMessage(error));
   revalidatePath('/');
-  revalidatePath('/recruitments');
   redirect(`/recruitments/${data as string}?created=1`);
 }
 
@@ -135,12 +174,13 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
   const { error } = await supabase.rpc('cancel_recruitment', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
   revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
   return { ok: true, message: '募集を取り消しました' };
 }
 
 export async function setRoomCodeAction(recruitmentId: string, roomCode: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
-  const code = roomCode.trim();
+  const code = typeof roomCode === 'string' ? roomCode.trim() : '';
   if (!id.success) return fail('不正なリクエストです');
   if (code && !/^[0-9A-Za-z-]{1,16}$/.test(code)) return fail('部屋番号は半角英数字16文字以内です');
   const supabase = await createClient();
@@ -153,17 +193,27 @@ export async function setRoomCodeAction(recruitmentId: string, roomCode: string)
 // ---------------------------------------------------------------------
 // 参加
 // ---------------------------------------------------------------------
-export async function requestJoinAction(recruitmentId: string, src?: string | null): Promise<ActionResult> {
+export async function requestJoinAction(
+  recruitmentId: string,
+  src?: string | null,
+): Promise<ActionResult<{ joined: boolean }>> {
   const id = uuidSchema.safeParse(recruitmentId);
   if (!id.success) return fail('不正なリクエストです');
   const supabase = await createClient();
-  const { error } = await supabase.rpc('request_join', {
+  const { data, error } = await supabase.rpc('request_join', {
     p_recruitment_id: id.data,
     p_src: await srcFromCookie(src),
   });
   if (error) return fail(toUserMessage(error));
+  const { data: row } = await supabase.from('participations').select('status').eq('id', data as string).maybeSingle();
+  const joined = (row as { status: string } | null)?.status === 'approved';
   revalidatePath(`/recruitments/${id.data}`);
-  return { ok: true, message: '参加申請を送りました。募集者の承認をお待ちください' };
+  revalidatePath('/');
+  return {
+    ok: true,
+    data: { joined },
+    message: joined ? '参加しました! 部屋番号とチャットが使えます' : '参加を申請しました。募集者の承認をお待ちください',
+  };
 }
 
 export async function cancelParticipationAction(recruitmentId: string): Promise<ActionResult> {
@@ -173,6 +223,7 @@ export async function cancelParticipationAction(recruitmentId: string): Promise<
   const { error } = await supabase.rpc('cancel_participation', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
   revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
   return { ok: true, message: '参加を取り消しました' };
 }
 
@@ -190,7 +241,7 @@ export async function decideParticipationAction(
   });
   if (error) return fail(toUserMessage(error));
   if (uuidSchema.safeParse(recruitmentId).success) revalidatePath(`/recruitments/${recruitmentId}`);
-  return { ok: true, message: decision === 'approved' ? '承認しました' : '見送りました' };
+  return { ok: true, message: decision === 'approved' ? '承認しました' : '更新しました' };
 }
 
 // ---------------------------------------------------------------------

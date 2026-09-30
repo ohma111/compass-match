@@ -1,5 +1,4 @@
 'use client';
-import Link from 'next/link';
 import { useActionState } from 'react';
 import { saveProfileAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
@@ -24,50 +23,41 @@ interface Contacts {
   contact_ingame: string | null;
 }
 
-export function ProfileForm({
-  isNew,
-  next,
-  profile,
-  contacts,
-}: {
-  isNew: boolean;
-  next: string;
-  profile: Profile | null;
-  contacts: Contacts | null;
-}) {
+/** マイページのプロフィール編集 (全項目。初回登録で聞かなかった項目もここで追加する) */
+export function ProfileForm({ profile, contacts }: { profile: Profile; contacts: Contacts | null }) {
   const [state, formAction, pending] = useActionState(saveProfileAction, null);
-  const chars = [...(profile?.characters ?? []), '', '', ''].slice(0, LIMITS.maxCharacters);
+  const chars = [...profile.characters, '', '', ''].slice(0, LIMITS.maxCharacters);
 
   return (
-    <form action={formAction} className="space-y-5">
-      <input type="hidden" name="isNew" value={isNew ? '1' : '0'} />
-      <input type="hidden" name="next" value={next} />
+    <form action={formAction} className="space-y-7">
       <div>
         <label className="label" htmlFor="displayName">表示名</label>
-        <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile?.display_name ?? ''} className="input" />
-      </div>
-      <div>
-        <label className="label" htmlFor="rankBand">ランク帯</label>
-        <select id="rankBand" name="rankBand" required defaultValue={profile?.rank_band ?? ''} className="input">
-          <option value="" disabled>選択してください</option>
-          {RANK_BANDS.map((r) => (
-            <option key={r} value={r}>{RANK_LABELS[r]}</option>
-          ))}
-        </select>
+        <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile.display_name} className="input" />
       </div>
       <fieldset>
-        <legend className="label">得意ロール (複数可)</legend>
-        <div className="flex flex-wrap gap-2">
+        <legend className="label">ランク帯</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {RANK_BANDS.map((r) => (
+            <label key={r} className="pick">
+              <input type="radio" name="rankBand" value={r} defaultChecked={profile.rank_band === r} required className="sr-only" />
+              {RANK_LABELS[r]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend className="label">得意ロール <span className="text-xs font-normal text-muted">(複数可)</span></legend>
+        <div className="grid grid-cols-2 gap-2">
           {PLAY_ROLES.map((r) => (
-            <label key={r} className="check-pill">
-              <input type="checkbox" name="playRoles" value={r} defaultChecked={profile?.play_roles.includes(r)} className="sr-only" />
+            <label key={r} className="pick">
+              <input type="checkbox" name="playRoles" value={r} defaultChecked={profile.play_roles.includes(r)} className="sr-only" />
               {PLAY_ROLE_LABELS[r]}
             </label>
           ))}
         </div>
       </fieldset>
       <fieldset>
-        <legend className="label">よく使うキャラ (最大3人・自由入力)</legend>
+        <legend className="label">よく使うキャラ <span className="text-xs font-normal text-muted">(3人まで・自由入力)</span></legend>
         <div className="grid grid-cols-3 gap-2">
           {chars.map((c, i) => (
             <input key={i} name="characters" defaultValue={c} maxLength={LIMITS.characterName} className="input" aria-label={`キャラ${i + 1}`} />
@@ -75,11 +65,11 @@ export function ProfileForm({
         </div>
       </fieldset>
       <fieldset>
-        <legend className="label">目的 (複数可)</legend>
-        <div className="flex flex-wrap gap-2">
+        <legend className="label">よく遊ぶ目的 <span className="text-xs font-normal text-muted">(複数可)</span></legend>
+        <div className="grid grid-cols-2 gap-2">
           {PURPOSES.map((p) => (
-            <label key={p} className="check-pill">
-              <input type="checkbox" name="purposes" value={p} defaultChecked={profile?.purposes.includes(p)} className="sr-only" />
+            <label key={p} className={`tone-${p} pick`}>
+              <input type="checkbox" name="purposes" value={p} defaultChecked={profile.purposes.includes(p)} className="sr-only" />
               {PURPOSE_LABELS[p]}
             </label>
           ))}
@@ -87,60 +77,52 @@ export function ProfileForm({
       </fieldset>
       <fieldset>
         <legend className="label">VC</legend>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {PROFILE_VC.map((v) => (
-            <label key={v} className="check-pill">
-              <input type="radio" name="vc" value={v} defaultChecked={(profile?.vc ?? 'listen') === v} className="sr-only" />
+            <label key={v} className="pick px-1 text-xs">
+              <input type="radio" name="vc" value={v} defaultChecked={profile.vc === v} className="sr-only" />
               {PROFILE_VC_LABELS[v]}
             </label>
           ))}
         </div>
       </fieldset>
       <fieldset>
-        <legend className="label">雰囲気タグ (複数可)</legend>
+        <legend className="label">雰囲気タグ <span className="text-xs font-normal text-muted">(複数可)</span></legend>
         <div className="flex flex-wrap gap-2">
           {MOOD_TAGS.map((t) => (
-            <label key={t} className="check-pill">
-              <input type="checkbox" name="tags" value={t} defaultChecked={profile?.tags.includes(t)} className="sr-only" />#{MOOD_TAG_LABELS[t]}
+            <label key={t} className="pick">
+              <input type="checkbox" name="tags" value={t} defaultChecked={profile.tags.includes(t)} className="sr-only" />#{MOOD_TAG_LABELS[t]}
             </label>
           ))}
         </div>
       </fieldset>
       <div>
-        <label className="label" htmlFor="bio">自己紹介 (200字まで・URL不可)</label>
-        <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile?.bio ?? ''} className="input" />
+        <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(200字まで・URL不可)</span></label>
+        <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile.bio} className="input" />
       </div>
 
-      <fieldset className="card space-y-3">
-        <legend className="px-1 text-sm font-bold">連絡先 (任意)</legend>
+      <fieldset id="contacts" className="card scroll-mt-16 space-y-4">
+        <legend className="px-1 text-sm font-extrabold">連絡先 (任意)</legend>
         <p className="text-xs text-muted">
-          入力したものだけが、<strong>あなたの募集で承認した相手</strong>と<strong>あなたの参加が承認された募集のメンバー</strong>にだけ表示されます。一覧や他のページには表示されません。
+          入力したものだけが、<strong className="text-fg">あなたの募集に参加が確定した人</strong>と、
+          <strong className="text-fg">あなたが参加した募集の募集者</strong>にだけ表示されます。一覧や他のページには出ません。
         </p>
         <div>
           <label className="label" htmlFor="contactDiscord">DiscordのユーザーID</label>
-          <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" />
+          <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="contactX">XのID</label>
-          <input id="contactX" name="contactX" maxLength={16} defaultValue={contacts?.contact_x ?? ''} className="input" placeholder="@なしでも可" autoCapitalize="off" />
+          <input id="contactX" name="contactX" maxLength={16} defaultValue={contacts?.contact_x ?? ''} className="input" placeholder="@なしでも可" autoCapitalize="off" autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="contactIngame">ゲーム内ID / プレイヤー名</label>
-          <input id="contactIngame" name="contactIngame" maxLength={20} defaultValue={contacts?.contact_ingame ?? ''} className="input" />
+          <input id="contactIngame" name="contactIngame" maxLength={20} defaultValue={contacts?.contact_ingame ?? ''} className="input" autoComplete="off" />
         </div>
       </fieldset>
 
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" name="agreeTerms" required={isNew} className="mt-1 size-4" />
-        <span>
-          <Link href="/terms" className="link" target="_blank">利用規約</Link>と
-          <Link href="/privacy" className="link" target="_blank">プライバシーポリシー</Link>に同意します。
-          (13歳未満の方は利用できません。18歳未満の方は保護者の同意を得てください){!isNew && ' ※更新時は任意'}
-        </span>
-      </label>
-
       <FormMessage state={state} />
-      <button className="btn-primary w-full" disabled={pending}>{pending ? '保存中…' : isNew ? 'はじめる' : '保存する'}</button>
+      <button className="btn-primary btn-lg w-full" disabled={pending}>{pending ? '保存中…' : '保存する'}</button>
     </form>
   );
 }

@@ -1,25 +1,27 @@
-import { requireViewer, isRestricted } from '@/lib/auth';
-import { RecruitmentForm } from './RecruitmentForm';
-import { toJstLocalInput } from '@/lib/time';
+import { getViewerSafe } from '@/lib/viewer-safe';
+import { authStateOf } from '@/lib/auth';
+import { sanitizeSrc } from '@/lib/src-param';
+import { CreateRecruitmentForm } from './CreateRecruitmentForm';
 
+export const dynamic = 'force-dynamic';
 export const metadata = { title: '募集する' };
 
-function defaultStart(now = new Date()): string {
-  // 次の30分区切り (JST表示)
-  const ms = Math.ceil((now.getTime() + 5 * 60_000) / (30 * 60_000)) * 30 * 60_000;
-  return toJstLocalInput(new Date(ms));
-}
-
+// ログインしていなくても画面は開ける。「募集する」を押した時点でログイン → 初回登録 → 自動で投稿を再開する
 export default async function NewRecruitmentPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const viewer = await requireViewer('/recruitments/new');
+  const viewer = await getViewerSafe();
+  const auth = authStateOf(viewer);
   const sp = await searchParams;
-  if (isRestricted(viewer.profile)) {
+  if (auth === 'restricted') {
     return <p className="alert-error">このアカウントは現在募集を作成できません。</p>;
   }
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">募集する</h1>
-      <RecruitmentForm defaultStart={defaultStart()} src={sp.src ?? ''} />
+    <div className="space-y-5">
+      <div>
+        <p className="section-title">NEW PARTY</p>
+        <h1 className="mt-1 text-2xl font-extrabold">募集する</h1>
+        <p className="mt-1 text-sm text-muted">タップで選んで、下のボタンを押すだけ。終了は開始の1時間後に自動で設定されます。</p>
+      </div>
+      <CreateRecruitmentForm auth={auth} serverNow={new Date().toISOString()} src={sanitizeSrc(sp.src) ?? ''} />
     </div>
   );
 }

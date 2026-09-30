@@ -1,82 +1,119 @@
 @import "tailwindcss";
 
+/* ダーク基調 + ネオンアクセント。目的ごとの色は --color-p-* */
 @theme {
-  --color-bg: #f7f7fb;
-  --color-surface: #ffffff;
-  --color-fg: #1b1b24;
-  --color-muted: #5f6070;
-  --color-line: #e3e3ec;
-  --color-brand: #5b3df5;
-  --color-brand-fg: #ffffff;
-  --color-ok: #137a3d;
-  --color-warn: #a45a00;
-  --color-danger: #c42b2b;
-  --font-sans: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  --color-bg: #0a0c16;
+  --color-surface: #131729;
+  --color-surface-2: #1b2038;
+  --color-raise: #232a48;
+  --color-fg: #eef1ff;
+  --color-muted: #a3abcf;
+  --color-line: #2b3257;
+  --color-brand: #ffd23f;
+  --color-brand-fg: #1d1600;
+  --color-accent: #7c5cff;
+  --color-ok: #4ade80;
+  --color-warn: #fbbf24;
+  --color-danger: #ff6b7a;
+
+  --color-p-rank: #22d3ee;
+  --color-p-enjoy: #4ade80;
+  --color-p-tournament: #fb923c;
+  --color-p-custom: #c084fc;
+
+  --font-sans: var(--font-mplus), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --radius-card: 1.25rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #111118;
-    --color-surface: #1b1b25;
-    --color-fg: #ececf3;
-    --color-muted: #a2a3b5;
-    --color-line: #2e2e3d;
-    --color-brand: #8f7bff;
-    --color-brand-fg: #111118;
-    --color-ok: #5fd08d;
-    --color-warn: #f0b060;
-    --color-danger: #ff7a7a;
-  }
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-bg);
 }
 
 body {
-  background: var(--color-bg);
+  background:
+    radial-gradient(60rem 28rem at 50% -12rem, rgb(124 92 255 / 0.22), transparent 70%),
+    radial-gradient(40rem 20rem at 110% 10%, rgb(34 211 238 / 0.08), transparent 70%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-fg);
   -webkit-tap-highlight-color: transparent;
+  font-feature-settings: "palt" 1;
 }
 
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* 目的ごとの色。親要素に .tone-rank などを付けると --tone で参照できる */
+.tone-rank { --tone: var(--color-p-rank); }
+.tone-enjoy { --tone: var(--color-p-enjoy); }
+.tone-tournament { --tone: var(--color-p-tournament); }
+.tone-custom { --tone: var(--color-p-custom); }
+
 @utility card {
-  @apply rounded-xl border border-line bg-surface p-4;
+  @apply rounded-[var(--radius-card)] border border-line bg-surface p-4;
 }
 
 @utility btn {
-  @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-11 select-none items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
 }
 
 @utility btn-primary {
-  @apply btn bg-brand text-brand-fg;
+  @apply btn bg-brand text-brand-fg shadow-[0_0_0_1px_rgb(255_210_63/0.4),0_6px_24px_-6px_rgb(255_210_63/0.55)] hover:brightness-105;
 }
 
 @utility btn-outline {
-  @apply btn border border-line bg-surface text-fg;
+  @apply btn border border-line bg-surface-2 text-fg hover:border-muted/60;
+}
+
+@utility btn-ghost {
+  @apply btn text-muted hover:text-fg;
 }
 
 @utility btn-danger {
-  @apply btn border border-danger text-danger bg-surface;
+  @apply btn border border-danger/50 bg-danger/10 text-danger;
 }
 
 @utility btn-sm {
-  @apply min-h-9 px-3 text-xs;
+  @apply min-h-11 rounded-lg px-3 text-xs;
+}
+
+@utility btn-lg {
+  @apply min-h-14 rounded-2xl px-6 text-base;
 }
 
 @utility input {
-  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-fg outline-none focus:border-brand;
+  @apply min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-base text-fg outline-none placeholder:text-muted/70 focus:border-brand;
 }
 
 @utility label {
-  @apply mb-1 block text-sm font-bold;
+  @apply mb-2 block text-sm font-bold;
 }
 
 @utility hint {
   @apply mt-1 text-xs text-muted;
 }
 
+@utility section-title {
+  @apply text-xs font-extrabold tracking-[0.15em] text-muted;
+}
+
 @utility chip {
-  @apply inline-flex items-center rounded-full border border-line px-2 py-0.5 text-xs text-muted;
+  @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs text-muted;
 }
 
 @utility chip-brand {
-  @apply inline-flex items-center rounded-full bg-brand/15 px-2 py-0.5 text-xs font-bold text-brand;
+  @apply inline-flex items-center gap-1 rounded-full bg-brand/15 px-2.5 py-1 text-xs font-bold text-brand;
+}
+
+/* タップで選ぶチップ (radio / checkbox を内包する label) */
+@utility pick {
+  @apply inline-flex min-h-11 cursor-pointer select-none items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3.5 text-sm font-bold text-muted transition active:scale-[0.97] has-[:checked]:border-[var(--tone,var(--color-brand))] has-[:checked]:bg-[color-mix(in_srgb,var(--tone,var(--color-brand))_16%,transparent)] has-[:checked]:text-[var(--tone,var(--color-brand))] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand;
 }
 
 @utility link {
@@ -84,13 +121,32 @@ body {
 }
 
 @utility alert-error {
-  @apply rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger;
+  @apply rounded-xl border border-danger/40 bg-danger/10 px-3 py-2.5 text-sm text-danger;
 }
 
 @utility alert-ok {
-  @apply rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm text-ok;
+  @apply rounded-xl border border-ok/40 bg-ok/10 px-3 py-2.5 text-sm text-ok;
 }
 
-@utility check-pill {
-  @apply inline-flex cursor-pointer select-none items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/15 has-[:checked]:font-bold has-[:checked]:text-brand;
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+
+@utility live-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
