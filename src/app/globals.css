@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f7f7fb;
+  --color-surface: #ffffff;
+  --color-fg: #1b1b24;
+  --color-muted: #5f6070;
+  --color-line: #e3e3ec;
+  --color-brand: #5b3df5;
+  --color-brand-fg: #ffffff;
+  --color-ok: #137a3d;
+  --color-warn: #a45a00;
+  --color-danger: #c42b2b;
+  --font-sans: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #111118;
+    --color-surface: #1b1b25;
+    --color-fg: #ececf3;
+    --color-muted: #a2a3b5;
+    --color-line: #2e2e3d;
+    --color-brand: #8f7bff;
+    --color-brand-fg: #111118;
+    --color-ok: #5fd08d;
+    --color-warn: #f0b060;
+    --color-danger: #ff7a7a;
+  }
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility card {
+  @apply rounded-xl border border-line bg-surface p-4;
+}
+
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply btn bg-brand text-brand-fg;
+}
+
+@utility btn-outline {
+  @apply btn border border-line bg-surface text-fg;
+}
+
+@utility btn-danger {
+  @apply btn border border-danger text-danger bg-surface;
+}
+
+@utility btn-sm {
+  @apply min-h-9 px-3 text-xs;
+}
+
+@utility input {
+  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-base text-fg outline-none focus:border-brand;
+}
+
+@utility label {
+  @apply mb-1 block text-sm font-bold;
+}
+
+@utility hint {
+  @apply mt-1 text-xs text-muted;
+}
+
+@utility chip {
+  @apply inline-flex items-center rounded-full border border-line px-2 py-0.5 text-xs text-muted;
+}
+
+@utility chip-brand {
+  @apply inline-flex items-center rounded-full bg-brand/15 px-2 py-0.5 text-xs font-bold text-brand;
+}
+
+@utility link {
+  @apply text-brand underline underline-offset-2;
+}
+
+@utility alert-error {
+  @apply rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger;
+}
+
+@utility alert-ok {
+  @apply rounded-lg border border-ok/40 bg-ok/10 px-3 py-2 text-sm text-ok;
+}
+
+@utility check-pill {
+  @apply inline-flex cursor-pointer select-none items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/15 has-[:checked]:font-bold has-[:checked]:text-brand;
+}
