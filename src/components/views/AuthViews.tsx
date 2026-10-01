@@ -39,7 +39,7 @@ export function SignupView({
   if (initialCode) return <SignupForm next={next} configured={configured} initialCode={initialCode} initialLoginId={initialLoginId} />;
   return (
     <div>
-      <div className="mb-7 max-w-xl lg:mb-10">
+      <div className="mb-8 max-w-xl lg:mb-12">
         <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">{resuming ? '登録して続ける' : 'はじめる'}</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate">
           ユーザーIDとパスワードを決めるだけ。メールアドレスはいりません。
@@ -71,7 +71,7 @@ export function LoginView({ next, configured, resuming }: { next: string; config
         <div className="mt-6">
           <LoginForm next={next} configured={configured} />
         </div>
-        <div className="mt-5 flex flex-wrap justify-between gap-x-4 text-sm">
+        <div className="mt-6 flex flex-wrap justify-between gap-x-4 text-sm">
           <Link href={`/login/recover?${q}`} className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
             パスワードを忘れた
           </Link>
@@ -83,7 +83,7 @@ export function LoginView({ next, configured, resuming }: { next: string; config
           <DiscordOption next={next} configured={configured} />
         </div>
       </div>
-      <aside className="sheet hidden flex-col justify-between p-10 lg:flex" aria-label="このサイトでできること">
+      <aside className="sheet hidden flex-col justify-between p-12 lg:flex" aria-label="このサイトでできること">
         <div className="-mx-2">
           <Lineup
             seats={[{ kind: 'owner', name: '募集者' }, { kind: 'member', name: 'あなた', you: true }, { kind: 'empty' }]}
@@ -91,9 +91,9 @@ export function LoginView({ next, configured, resuming }: { next: string; config
             label="募集者とあなたの席、空いている1つの席"
           />
         </div>
-        <div className="mt-10">
-          <p className="font-display text-[26px] leading-snug text-balance">空いている席に入れば、すぐ一緒に遊べます。</p>
-          <p className="mt-3 text-sm leading-relaxed text-slate">部屋番号とチャットは、参加した人にだけ表示されます。</p>
+        <div className="mt-12">
+          <p className="font-display text-[26px] leading-snug text-balance">空いてる席に入れば、そのまま3人で回せます。</p>
+          <p className="mt-3 text-sm leading-relaxed text-slate">部屋番号とチャットは、パーティのメンバーにだけ出ます。</p>
         </div>
       </aside>
     </div>

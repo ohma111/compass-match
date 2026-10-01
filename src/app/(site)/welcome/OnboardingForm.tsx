@@ -14,7 +14,7 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
   const ready = name.trim().length > 0 && rank !== '' && agree;
 
   return (
-    <form action={formAction} className="space-y-7">
+    <form action={formAction} className="space-y-8">
       <input type="hidden" name="next" value={next} />
       <div>
         <label className="label" htmlFor="displayName">表示名</label>

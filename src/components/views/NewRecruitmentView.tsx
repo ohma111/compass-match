@@ -14,9 +14,9 @@ export function NewRecruitmentView({
 }) {
   return (
     <div>
-      <div className="mb-7 lg:mb-10">
+      <div className="mb-8 lg:mb-12">
         <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">募集する</h1>
-        <p className="mt-2 text-sm text-slate">タップで選んで「募集する」を押すだけ。終わりの時刻は開始の1時間後になります。</p>
+        <p className="mt-2 text-sm text-slate">終わりは開始の1時間後です。</p>
       </div>
       <CreateRecruitmentForm auth={auth} serverNow={serverNow} src={src} ownerName={ownerName} />
     </div>

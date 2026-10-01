@@ -76,6 +76,20 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   });
   const stamp = justJoined ? (left === 0 ? '満員' : '参加確定') : null;
 
+  const LOCKED = (
+    <section className="bg-ink p-6 text-white" aria-labelledby="locked-title">
+      <h2 id="locked-title" className="flex items-center gap-2 font-bold">
+        <Lock className="size-4" aria-hidden />
+        {myState === 'pending' ? 'OKが出たら見られるもの' : '参加すると見られるもの'}
+      </h2>
+      <ul className="mt-3 space-y-1 text-sm text-white/85">
+        <li>部屋番号 (コピーしてそのまま入力)</li>
+        <li>メンバーだけのチャット</li>
+        <li>連絡先 (本人が登録していれば)</li>
+      </ul>
+    </section>
+  );
+
   return (
     <div>
       <Link href="/" className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-slate hover:text-ink">
@@ -88,8 +102,8 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           <div className="alert-ok space-y-1">
             <p className="font-bold">募集を出しました</p>
             <p className="text-[13px] font-normal text-ink-2">
-              {r.join_mode === 'instant' ? '参加者が入ると通知でお知らせします。' : '参加申請が届くと通知でお知らせします。'}
-              部屋番号は、参加した人にだけ表示されます。
+              {r.join_mode === 'instant' ? '誰かが入ったら通知します。' : '申請が来たら通知します。'}
+              部屋を立てたら部屋番号を入れておくと、入った人がすぐ来られます。
             </p>
           </div>
         )}
@@ -99,9 +113,13 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
         )}
       </div>
 
-      <div className={`mt-4 lg:grid lg:items-start lg:gap-14 ${isMember || isOwner ? 'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]' : 'lg:grid-cols-[minmax(0,1fr)_340px]'}`}>
-        {/* 左: 募集の内容と席 */}
-        <section aria-labelledby="r-title" className={`tone-${r.purpose}`}>
+      {/*
+        PC の構成: 上段 = 募集の内容 (左) と、部屋番号 / 参加すると見られるもの (右)。
+        中段 = 席の並びを横いっぱいに (この画面の主役)。下段 = 連絡先・申請 (左) とチャット (右)。
+        スマホは上から順に1列 (部屋番号は時刻のすぐ下)。
+      */}
+      <div className="mt-4 grid gap-y-8 lg:grid-cols-12 lg:gap-x-12 lg:gap-y-12">
+        <section aria-labelledby="r-title" className={`tone-${r.purpose} lg:col-span-7`}>
           <div className="flex items-center justify-between gap-3">
             <PurposeBadge purpose={r.purpose} size="md" />
             {!active && <span className="text-sm font-bold text-slate">{RECRUIT_STATUS_LABELS[status]}</span>}
@@ -114,9 +132,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             )}
             <p className="mt-2 text-sm font-medium text-slate tabular-nums">{formatJstRange(r.starts_at, r.ends_at)}</p>
           </div>
-          {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、時刻のすぐ下に出す */}
+          {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、スマホでは時刻のすぐ下に出す */}
           {isMember && (
-            <div className="mt-5">
+            <div className="mt-6 lg:hidden">
               <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} />
             </div>
           )}
@@ -130,30 +148,33 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             <MoodTags tags={r.tags} />
           </div>
           {r.note && <p className="mt-4 border-l-4 border-line bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{r.note}</p>}
+        </section>
 
-          <div className="mt-7">
-            <LobbyLineup
-              recruitmentId={id}
-              seats={seats}
-              label={seatLabel(r.capacity, r.approved_count)}
-              capacity={r.capacity}
-              occupied={Math.min(r.capacity, r.approved_count + 1)}
-              left={left}
-              joinMode={r.join_mode}
-              auth={auth}
-              canJoin={join.ok}
-              reason={join.reason}
-              isOwner={isOwner}
-              joined={myState === 'approved'}
-              src={src}
-              stamp={stamp}
-              live={active && !r.hidden_at}
-            />
-          </div>
+        <div className="hidden lg:col-span-5 lg:block lg:self-end">
+          {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
+        </div>
 
+        <section className="lg:col-span-12" aria-label="パーティの席">
+          <LobbyLineup
+            recruitmentId={id}
+            seats={seats}
+            label={seatLabel(r.capacity, r.approved_count)}
+            capacity={r.capacity}
+            occupied={Math.min(r.capacity, r.approved_count + 1)}
+            left={left}
+            joinMode={r.join_mode}
+            auth={auth}
+            canJoin={join.ok}
+            reason={join.reason}
+            isOwner={isOwner}
+            joined={myState === 'approved'}
+            src={src}
+            stamp={stamp}
+            live={active && !r.hidden_at}
+          />
           {!isOwner && (
-            <div className="mt-2 space-y-2">
-              {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者の承認を待っています。承認されると通知が届きます。</p>}
+            <div className="mt-2 space-y-2 lg:mx-auto lg:max-w-md">
+              {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者のOK待ちです。OKが出たら通知します。</p>}
               {(myState === 'pending' || myState === 'approved') && active && (
                 <ActionButton action={cancelParticipationAction.bind(null, id)} className="btn-ghost btn-sm w-full" confirm="参加を取り消しますか?">
                   {myState === 'pending' ? '申請を取り消す' : '参加をやめる'}
@@ -161,7 +182,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               )}
             </div>
           )}
-
           {isOwner && active && approved.length > 0 && (
             <div className="mt-6 space-y-2">
               <h2 className="text-sm font-bold">参加者を外す</h2>
@@ -182,14 +202,15 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           )}
         </section>
 
-        {/* 右: 参加した人だけが使うもの */}
-        <div className="mt-10 space-y-6 lg:sticky lg:top-24 lg:mt-0">
+        {!isMember && active && <div className="lg:hidden">{LOCKED}</div>}
+
+        <div className={`space-y-8 ${isMember ? 'lg:col-span-5' : 'lg:col-span-12'}`}>
           {isOwner && (pending.length > 0 || r.join_mode === 'approval') && (
             <section className="space-y-3" aria-labelledby="requests-title">
               <h2 id="requests-title" className="section-title">
                 参加申請 <span className="ml-1 font-sans text-sm font-bold text-slate">{pending.length}件</span>
               </h2>
-              {pending.length === 0 && <p className="text-sm text-slate">承認待ちの申請はありません。</p>}
+              {pending.length === 0 && <p className="text-sm text-slate">まだ申請はありません。</p>}
               <ul className="space-y-2">
                 {pending.map((p) => (
                   <li key={p.id} className="sheet space-y-3 p-4">
@@ -215,51 +236,26 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               </ul>
             </section>
           )}
-
-          {isMember ? (
-            <>
-              <section className="space-y-2" aria-labelledby="contacts-title">
-                <h2 id="contacts-title" className="section-title">{isOwner ? '参加者の連絡先' : '募集者の連絡先'}</h2>
-                {contacts.length === 0 && <p className="text-sm text-slate">登録されている連絡先はありません。</p>}
-                <ul className="space-y-1.5 text-sm">
-                  {contacts.map((c) => (
-                    <li key={c.user_id} className="flex flex-wrap gap-x-3">
-                      <span className="font-bold">{c.display_name}</span>
-                      {c.contact_discord && <span className="break-all text-ink-2">Discord {c.contact_discord}</span>}
-                      {c.contact_x && <span className="break-all text-ink-2">X @{c.contact_x}</span>}
-                      {c.contact_ingame && <span className="break-all text-ink-2">ゲーム内 {c.contact_ingame}</span>}
-                      {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先なし</span>}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-              <ChatRoom
-                recruitmentId={id}
-                viewerId={viewerId!}
-                initialMessages={messages}
-                names={Object.fromEntries(nameOf)}
-                open={chatOpen && !restricted}
-              />
-            </>
-          ) : (
-            active && (
-              <section className="bg-ink p-5 text-white" aria-labelledby="locked-title">
-                <h2 id="locked-title" className="flex items-center gap-2 font-bold">
-                  <Lock className="size-4" aria-hidden />
-                  {myState === 'pending' ? '承認されると表示されます' : '参加すると表示されます'}
-                </h2>
-                <ul className="mt-3 space-y-1.5 text-sm text-white/85">
-                  <li>部屋番号 (コピーしてそのまま入れます)</li>
-                  <li>メンバーだけのチャット</li>
-                  <li>本人が登録した連絡先</li>
-                </ul>
-              </section>
-            )
+          {isMember && (
+            <section className="space-y-2" aria-labelledby="contacts-title">
+              <h2 id="contacts-title" className="section-title">{isOwner ? '参加者の連絡先' : '募集者の連絡先'}</h2>
+              {contacts.length === 0 && <p className="text-sm text-slate">連絡先は登録されていません。チャットで声をかけてください。</p>}
+              <ul className="space-y-1 text-sm">
+                {contacts.map((c) => (
+                  <li key={c.user_id} className="flex flex-wrap gap-x-3">
+                    <span className="font-bold">{c.display_name}</span>
+                    {c.contact_discord && <span className="break-all text-ink-2">Discord {c.contact_discord}</span>}
+                    {c.contact_x && <span className="break-all text-ink-2">X @{c.contact_x}</span>}
+                    {c.contact_ingame && <span className="break-all text-ink-2">ゲーム内 {c.contact_ingame}</span>}
+                    {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先なし</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
-
-          <div className="space-y-2">
+          <div className={`flex flex-col gap-2 ${isMember ? '' : 'lg:flex-row lg:items-center lg:justify-end'}`}>
             {active && !r.hidden_at && (
-              <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full">
+              <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full lg:w-auto lg:min-w-48">
                 <Share2 className="size-4" aria-hidden />
                 Xで共有
               </a>
@@ -276,6 +272,18 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             )}
           </div>
         </div>
+
+        {isMember && (
+          <div className="lg:col-span-7">
+            <ChatRoom
+              recruitmentId={id}
+              viewerId={viewerId!}
+              initialMessages={messages}
+              names={Object.fromEntries(nameOf)}
+              open={chatOpen && !restricted}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ export const metadata = { title: '利用規約' };
 // ※雛形です。公開前に運営者本人が内容を確認・修正してください。
 export default function TermsPage() {
   return (
-    <article className="mx-auto max-w-2xl space-y-5 text-[15px] leading-relaxed">
+    <article className="mx-auto max-w-2xl space-y-6 text-[15px] leading-relaxed">
       <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">利用規約 (雛形)</h1>
       <p className="alert-error">この規約は雛形です。公開前に運営者が内容を確認してください。</p>
       <p>最終更新日: 2026年9月30日</p>

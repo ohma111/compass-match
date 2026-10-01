@@ -121,7 +121,7 @@ export function SignupForm({
           {pending ? '登録しています…' : missing > 0 ? `はじめる (あと${missing}項目)` : 'はじめる'}
           {!pending && missing === 0 && <ArrowRight className="size-5" aria-hidden />}
         </button>
-        <p className="text-xs leading-relaxed text-slate">ランク帯は、初めて募集・参加するときに1タップで選びます。</p>
+        <p className="text-xs leading-relaxed text-slate">ランク帯は、最初に募集か参加をするときに聞きます。</p>
       </form>
 
       {/* 自分の席のプレビュー (PCのみ) */}
@@ -132,7 +132,7 @@ export function SignupForm({
           size="lg"
           label="あなたの席と、空いている2つの席"
         />
-        <p className="mt-5 text-sm leading-relaxed text-slate">
+        <p className="mt-6 text-sm leading-relaxed text-slate">
           登録が終わると、さっき押した「参加する」「募集する」にそのまま戻ります。
         </p>
       </aside>

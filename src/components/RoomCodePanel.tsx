@@ -29,7 +29,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
   }
 
   return (
-    <section className="bg-ink p-5 text-white" aria-labelledby="room-code-title">
+    <section className="bg-ink p-6 text-white" aria-labelledby="room-code-title">
       <div className="flex items-center justify-between">
         <h2 id="room-code-title" className="text-sm font-bold text-white/80">部屋番号</h2>
         {isOwner && !editing && (
@@ -62,7 +62,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
             </button>
           </div>
           {error && <p className="text-[13px] font-bold text-signal-on-ink" role="alert">{error}</p>}
-          <p className="text-xs text-white/80">参加が確定した人にだけ表示されます。</p>
+          <p className="text-xs text-white/80">パーティのメンバーにだけ見えます。</p>
         </form>
       ) : code ? (
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
@@ -70,7 +70,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
           <CopyButton text={code} onInk />
         </div>
       ) : (
-        <p className="mt-2 text-sm text-white/85">まだ入力されていません。募集者が入力するとここに表示されます。</p>
+        <p className="mt-2 text-sm text-white/85">まだ部屋番号がありません。募集者が部屋を立てたら、ここに出ます。</p>
       )}
     </section>
   );

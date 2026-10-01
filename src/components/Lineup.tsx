@@ -35,8 +35,11 @@ export function Lineup({
   size = 'sm',
   label,
   joinSeat,
+  tall = false,
 }: {
   seats: Seat[];
+  /** 募集詳細の主役として、PC で大きく出す */
+  tall?: boolean;
   size?: 'sm' | 'lg';
   /**
    * 空き席を「参加ボタン」にする (募集詳細のロビー)。最初の空き席だけが押せる。
@@ -72,21 +75,21 @@ export function Lineup({
   return (
     <div className="relative">
       <ul
-        className="grid gap-2.5 px-5 sm:gap-3 sm:px-7"
+        className={`grid gap-3 px-5 sm:px-7 ${tall ? 'lg:gap-6 lg:px-12' : ''}`}
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         aria-label={label}
       >
         {seats.map((s, i) => {
           const body = (
             <div
-              className={`relative flex h-40 flex-col justify-end overflow-hidden [transform:skewX(var(--seat-skew))] sm:h-48 ${
+              className={`relative flex h-40 flex-col justify-end overflow-hidden [transform:skewX(var(--seat-skew))] sm:h-48 ${tall ? 'lg:h-72' : ''} ${
                 joinable(i) ? 'seat-open bg-ally text-white' : SEAT_BG[s.kind]
               } ${
                 s.you ? 'outline-4 outline-offset-2 outline-signal' : ''
               } ${s.enter ? 'seat-enter' : ''}`}
             >
               <div className="flex h-full flex-col justify-between px-3.5 pt-3 pb-3 [transform:skewX(calc(var(--seat-skew)*-1))] sm:px-5">
-                <div className="flex items-center justify-between text-xs font-bold">
+                <div className={`flex items-center justify-between text-xs font-bold ${tall ? 'pl-2 lg:pl-12' : 'pl-2'}`}>
                   {s.kind === 'owner' && (
                     <span className="inline-flex items-center gap-1 whitespace-nowrap text-white/85">
                       <Crown className="size-3.5" aria-label="募集者" role="img" />
@@ -113,7 +116,7 @@ export function Lineup({
                   </div>
                 ) : (
                   <div className="min-w-0">
-                    <p className="font-display text-[44px] leading-none sm:text-[56px]" aria-hidden>{initialOf(s.name)}</p>
+                    <p className={`font-display text-[44px] leading-none sm:text-[56px] ${tall ? 'lg:text-[96px]' : ''}`} aria-hidden>{initialOf(s.name)}</p>
                     <p className="mt-2 truncate text-[13px] font-bold sm:text-sm">{s.name}</p>
                     <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
                       {s.rank && <span className="whitespace-nowrap">{RANK_LABELS[s.rank]}</span>}

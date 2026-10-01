@@ -58,7 +58,7 @@ export function RecruitmentCard({
           <Countdown start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} size={featured ? 'lg' : 'md'} />
           <PurposeBadge purpose={r.purpose} />
         </div>
-        <h3 id={titleId} className={`mt-2.5 leading-snug font-black break-words ${featured ? 'text-[20px] xl:text-[24px]' : 'text-[17px]'}`}>
+        <h3 id={titleId} className={`mt-3 leading-snug font-black break-words ${featured ? 'text-[20px] xl:text-[24px]' : 'text-[17px]'}`}>
           {r.title}
         </h3>
         <p className="mt-1 flex min-w-0 items-center gap-2 text-[13px] text-slate">

@@ -32,7 +32,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <section className="flex items-center gap-5">
+      <section className="flex items-center gap-6">
         <div className="ml-3 flex h-28 w-22 shrink-0 items-end bg-ink px-3 pb-3 text-white [transform:skewX(var(--seat-skew))]">
           <span className="font-display text-[44px] leading-none [transform:skewX(calc(var(--seat-skew)*-1))]" aria-hidden>{initial}</span>
         </div>

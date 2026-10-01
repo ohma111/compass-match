@@ -24,7 +24,7 @@ export function RecoveryCodePanel({
   const [saved, setSaved] = useState(false);
   const formatted = formatRecoveryCode(code);
   return (
-    <section aria-labelledby="recovery-title" className="space-y-5">
+    <section aria-labelledby="recovery-title" className="space-y-6">
       <div>
         <h1 id="recovery-title" className="font-display text-[26px] leading-tight lg:text-[34px]">{heading}</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-2">
@@ -33,7 +33,7 @@ export function RecoveryCodePanel({
           <strong>この画面を閉じると、もう表示できません。</strong>
         </p>
       </div>
-      <div className="bg-ink p-5 text-white">
+      <div className="bg-ink p-6 text-white">
         {loginId && (
           <p className="text-sm text-white/80">
             ユーザーID <span className="ml-1 font-bold text-white">{loginId}</span>

@@ -21,7 +21,7 @@ export function RecoverForm({ next, configured }: { next: string; configured: bo
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-6">
       <input type="hidden" name="next" value={next} />
       <div>
         <label className="label" htmlFor="loginId">ユーザーID</label>

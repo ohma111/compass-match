@@ -29,7 +29,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
   const chars = [...profile.characters, '', '', ''].slice(0, LIMITS.maxCharacters);
 
   return (
-    <form action={formAction} className="space-y-7">
+    <form action={formAction} className="space-y-8">
       <div>
         <label className="label" htmlFor="displayName">表示名</label>
         <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile.display_name} className="input" />

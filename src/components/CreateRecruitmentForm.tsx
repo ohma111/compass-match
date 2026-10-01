@@ -233,7 +233,7 @@ export function CreateRecruitmentForm({
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={`tone-${c.purpose} lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-14`}>
       <input type="hidden" name="src" value={src} />
       <div className="space-y-8 pb-24 lg:pb-0">
-        {resumed && <p className="alert-ok">ログインしました。さっきの内容で募集を出しています…</p>}
+        {resumed && <p className="alert-ok">さっきの内容で募集を出しています…</p>}
 
         {/* 目的 */}
         <fieldset>
@@ -375,7 +375,7 @@ export function CreateRecruitmentForm({
             </span>
             <ChevronDown className={`size-5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
           </button>
-          <div id="details" hidden={!open} className="space-y-7 pt-2 pb-6">
+          <div id="details" hidden={!open} className="space-y-8 pt-2 pb-6">
             <fieldset>
               <legend className={legend}>ランク条件</legend>
               <div className="grid grid-cols-4 gap-2">
@@ -425,7 +425,7 @@ export function CreateRecruitmentForm({
             </fieldset>
             <div>
               <label className="label" htmlFor="title">
-                ひとこと <span className="text-xs font-medium text-slate">(空欄ならこの下の文になります)</span>
+                ひとこと <span className="text-xs font-medium text-slate">(なくてもOK)</span>
               </label>
               <input
                 id="title"
@@ -438,7 +438,7 @@ export function CreateRecruitmentForm({
                 aria-describedby="title-hint"
               />
               <p id="title-hint" className={`hint flex justify-between ${titleError ? 'font-bold text-signal-deep' : ''}`}>
-                <span>{titleError ?? 'URL・連絡先は書けません'}</span>
+                <span>{titleError ?? 'URLは書けません。連絡先はプロフィールに'}</span>
                 <span className="tabular-nums">{Array.from(title).length}/{LIMITS.title}</span>
               </p>
             </div>
@@ -458,21 +458,21 @@ export function CreateRecruitmentForm({
                 placeholder="例: 12345"
                 aria-describedby="room-hint"
               />
-              <p id="room-hint" className={`hint ${roomError ? 'font-bold text-signal-deep' : ''}`}>{roomError ?? '参加が確定した人にだけ表示されます'}</p>
+              <p id="room-hint" className={`hint ${roomError ? 'font-bold text-signal-deep' : ''}`}>{roomError ?? 'パーティのメンバーにだけ見えます'}</p>
             </div>
           </div>
         </section>
       </div>
 
       {/* PC: 右側にパーティのプレビューと募集ボタン */}
-      <aside className="hidden lg:sticky lg:top-28 lg:block lg:space-y-5">
-        <div className="sheet p-5">
-          <p className="text-sm font-bold">このパーティで募集します</p>
+      <aside className="hidden lg:sticky lg:top-28 lg:block lg:space-y-6">
+        <div className="sheet p-6">
+          <p className="text-sm font-bold">この内容で出します</p>
           <div className="-mx-3 mt-4">
             <Lineup seats={previewSeats.slice(0, 3)} size="lg" label={`あなたと、あと${capacity - 1}人`} />
           </div>
           {capacity > 3 && <p className="mt-2 text-right text-xs font-bold text-slate">ほか{capacity - 3}席</p>}
-          <p className="font-display mt-5 text-[22px] leading-snug">{title.trim() || placeholderTitle}</p>
+          <p className="font-display mt-6 text-[22px] leading-snug">{title.trim() || placeholderTitle}</p>
         </div>
         <div className="space-y-2">{submit}</div>
       </aside>

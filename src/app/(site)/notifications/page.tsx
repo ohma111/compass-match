@@ -54,7 +54,7 @@ export default async function NotificationsPage() {
       {rows.length === 0 && (
         <div className="card flex flex-col items-center gap-2 py-10 text-center text-sm text-muted">
           <Bell className="size-8" aria-hidden />
-          通知はまだありません。参加や申請があるとここに届きます。
+          まだ通知はありません。誰かが参加したり、申請が来たらここに出ます。
         </div>
       )}
       <ul className="space-y-2">

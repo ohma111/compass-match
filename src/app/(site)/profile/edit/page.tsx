@@ -16,7 +16,7 @@ export default async function ProfileEditPage() {
     .eq('user_id', viewer.userId)
     .maybeSingle();
   return (
-    <div className="mx-auto max-w-xl space-y-5">
+    <div className="mx-auto max-w-xl space-y-6">
       <Link href="/me" className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-slate">
         <ChevronLeft className="size-4" aria-hidden />
         マイページ

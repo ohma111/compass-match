@@ -81,9 +81,9 @@ export function LobbyLineup(props: {
           </p>
         )}
       </div>
-      <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} />
+      <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} tall />
       {!props.isOwner && (
-        <div className="mt-6">
+        <div className="mt-6 lg:mx-auto lg:mt-8 lg:max-w-md">
           <JoinButton
             recruitmentId={props.recruitmentId}
             joinMode={props.joinMode}

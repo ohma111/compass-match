@@ -30,7 +30,7 @@ export function RankPrompt({ verb, onConfirmed }: { verb: string; onConfirmed: (
       <h2 id="rank-prompt-title" className="text-[15px] font-black">
         あなたのランク帯は?
       </h2>
-      <p className="mt-1 text-[13px] text-slate">タップすると、そのまま{verb}します。あとからマイページで変えられます。</p>
+      <p className="mt-1 text-[13px] text-slate">タップすると、そのまま{verb}します。あとで変えられます。</p>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {RANK_BANDS.map((r) => {
           const suggested = r === DEFAULT_RANK_BAND;

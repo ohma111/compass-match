@@ -31,7 +31,7 @@ export function AppShell({
       </a>
       <header className="sticky top-0 z-30 bg-ink pt-[env(safe-area-inset-top)] text-white">
         <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
-          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 whitespace-nowrap" aria-label="コンパス遊び相手さがし ホーム">
+          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-3 whitespace-nowrap" aria-label="コンパス遊び相手さがし ホーム">
             <LogoMark />
             <span className="type-heavy truncate text-[16px] lg:text-[22px] lg:font-display lg:font-normal lg:tracking-normal">コンパス遊び相手さがし</span>
           </Link>
@@ -72,12 +72,12 @@ export function AppShell({
       </header>
 
       <div className="flex min-h-[calc(100dvh-3.25rem)] flex-col lg:min-h-[calc(100dvh-4rem)]">
-      <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-10 lg:pb-16">
+      <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 pt-6 pb-12 lg:px-8 lg:pt-12 lg:pb-16">
         {!configured && (
-          <p className="alert-error mb-5">サーバーの設定(Supabase環境変数)が未完了です。README の手順に従って設定してください。</p>
+          <p className="alert-error mb-6">サーバーの設定(Supabase環境変数)が未完了です。README の手順に従って設定してください。</p>
         )}
         {restricted && (
-          <p className="alert-error mb-5">
+          <p className="alert-error mb-6">
             このアカウントは現在、募集・参加・チャットを利用できません。心当たりがない場合はフィードバックからお問い合わせください。
           </p>
         )}

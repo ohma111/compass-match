@@ -49,7 +49,7 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div>
         <label className="label" htmlFor="loginId">ユーザーID</label>
         <input

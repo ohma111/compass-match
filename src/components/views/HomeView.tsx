@@ -91,18 +91,18 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
           </div>
           <div className="shrink-0 lg:hidden">{soonSwitch}</div>
         </div>
-        <p className="hidden text-sm leading-relaxed text-slate lg:block">
-          空いている席に入れば、そのまま一緒に遊べます。部屋番号は参加した人にだけ表示されます。
+        <p className="hidden text-sm leading-relaxed text-pretty text-slate lg:block">
+          空いてる席に入れば、そのまま3人で回せます。部屋番号は入った人にだけ出ます。
         </p>
         <div className="space-y-3">
           {chips}
           <div className="hidden lg:block">{soonSwitch}</div>
         </div>
-        <div className="hidden space-y-3 border-t-2 border-ink pt-5 lg:block">
-          <p className="text-sm font-bold">ちょうどいい募集がない?</p>
+        <div className="hidden space-y-3 border-t-2 border-ink pt-6 lg:block">
+          <p className="text-sm font-bold">合う募集がない?</p>
           <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
             <Plus className="size-5" strokeWidth={3} aria-hidden />
-            自分で募集する
+            自分で出す
           </Link>
         </div>
         {availableNow && (
@@ -114,21 +114,21 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
       </aside>
 
       <section aria-label="募集一覧" className="mt-6 lg:mt-0">
-        {loadError && <p className="alert-error">募集を読み込めませんでした。時間をおいて再読み込みしてください。</p>}
+        {loadError && <p className="alert-error">募集を読み込めませんでした。少し待ってから、ページを読み込み直してください。</p>}
 
         {!loadError && items.length === 0 && (
-          <div className="sheet px-5 pt-8 pb-7 lg:px-10 lg:pt-12 lg:pb-10">
+          <div className="sheet px-5 pt-8 pb-8 lg:px-10 lg:pt-12 lg:pb-12">
             <div className="mx-auto max-w-md">
               <Lineup seats={[{ kind: 'empty' }, { kind: 'empty' }, { kind: 'empty' }]} size="lg" label="空いている3つの席" />
             </div>
-            <div className="mx-auto mt-7 max-w-md space-y-4 text-center">
+            <div className="mx-auto mt-8 max-w-md space-y-4 text-center">
               <h2 className="type-heavy text-[20px] leading-snug text-balance sm:text-[22px]">
-                {filtered ? '条件に合う募集はまだありません' : 'いま出ている募集はありません'}
+                {filtered ? 'この条件の募集はまだありません' : 'まだ誰も募集していません'}
               </h2>
-              <p className="text-sm text-slate">目的と時間をタップして、下のボタンを押すだけで募集できます。</p>
+              <p className="text-sm text-balance text-slate">先に出しておけば、来た人がそのまま入ってきます。</p>
               <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
                 <Plus className="size-5" strokeWidth={3} aria-hidden />
-                最初の募集を出す
+                募集を出す
               </Link>
               {filtered && (
                 <Link href="/" className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">
@@ -139,7 +139,7 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
           </div>
         )}
 
-        <div className="grid gap-4 xl:grid-cols-2 xl:gap-5">
+        <div className="grid gap-4 xl:grid-cols-2 xl:gap-6">
           {items.map((r) => (
             <RecruitmentCard key={r.id} r={r} now={now} auth={auth} viewerId={viewerId} myState={states[r.id]} featured={r.id === featuredId} />
           ))}
