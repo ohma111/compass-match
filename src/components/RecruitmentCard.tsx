@@ -45,7 +45,7 @@ export function RecruitmentCard({
   return (
     <article
       aria-labelledby={titleId}
-      className={`tone-${r.purpose} sheet flex flex-col ${muted ? 'opacity-60' : ''} ${featured ? 'xl:col-span-2' : ''}`}
+      className={`tone-${r.purpose} sheet flex min-w-0 flex-col ${muted ? 'opacity-60' : ''} ${featured ? 'xl:col-span-2' : ''}`}
     >
       <span aria-hidden className="absolute top-0 left-0 h-1 w-[calc(100%-var(--cut))] bg-[var(--tone)]" />
       <Link
@@ -53,7 +53,7 @@ export function RecruitmentCard({
         className={`block flex-1 px-4 pt-4 pb-3 hover:bg-tint/60 focus-visible:outline-offset-[-3px] ${featured ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:gap-8 xl:px-6 xl:pt-6' : ''}`}
       >
        <div className="min-w-0">
-        {featured && <p className="mb-1 text-[13px] font-bold text-signal-deep">まもなく始まります</p>}
+        {featured && <p className="mb-1 hidden text-[13px] font-bold text-signal-deep xl:block">まもなく始まります</p>}
         <div className="flex items-start justify-between gap-3 pr-2">
           <Countdown start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} size={featured ? 'lg' : 'md'} />
           <PurposeBadge purpose={r.purpose} />
@@ -66,41 +66,40 @@ export function RecruitmentCard({
           {r.owner && <span className="shrink-0">{RANK_LABELS[r.owner.rank_band]}</span>}
           {r.min_rank && <span className="ml-auto shrink-0 font-bold text-ink-2">条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
         </p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {/* 1行に収める。入りきらないタグは「+N」にまとめる */}
+        <div className="mt-3 flex items-center gap-x-3 overflow-hidden whitespace-nowrap">
+          <span className={`type-heavy shrink-0 text-[15px] ${left > 0 ? 'text-ink' : 'text-slate'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
           <JoinModeBadge mode={r.join_mode} />
-          <VcBadge vc={r.vc} />
-          <MoodTags tags={r.tags} />
+          <VcBadge vc={r.vc} compact />
+          <MoodTags tags={r.tags} max={1} />
         </div>
        </div>
-        {featured ? (
-          <div className="mt-5 xl:mt-0">
+        {featured && (
+          <div className="hidden xl:block">
             <Lineup seats={seatsFor(r, { viewerId })} size="lg" label={seatLabel(r.capacity, r.approved_count)} />
-            <p className="font-display mt-3 text-right text-[17px]" aria-hidden>{left > 0 ? `あと${left}人` : '満員'}</p>
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <Lineup seats={seatsFor(r, { viewerId })} label={seatLabel(r.capacity, r.approved_count)} />
-            </div>
-            <span className={`font-display shrink-0 text-[15px] ${left > 0 ? 'text-ink' : 'text-slate'}`} aria-hidden>
-              {left > 0 ? `あと${left}人` : '満員'}
-            </span>
           </div>
         )}
       </Link>
-      {showJoin && (
-        <div className="border-t border-dashed border-line px-4 pt-3 pb-4">
-          <JoinButton
-            recruitmentId={r.id}
-            joinMode={r.join_mode}
-            auth={auth}
-            canJoin={join.ok}
-            reason={join.reason}
-            isOwner={isOwner}
-            joined={myState === 'approved'}
-          />
+      {/* 席の並びと参加ボタンを1行に (スマホで1画面に2枚以上入るように) */}
+      <div className={`flex items-center gap-3 px-4 pb-4 ${featured ? 'xl:px-6' : ''}`}>
+        <div className={`min-w-0 flex-1 ${featured ? 'xl:hidden' : ''}`}>
+          <Lineup seats={seatsFor(r, { viewerId })} label={seatLabel(r.capacity, r.approved_count)} />
         </div>
-      )}
+        {showJoin && (
+          <div className={`w-[8.75rem] shrink-0 ${featured ? 'xl:ml-auto xl:w-56' : ''}`}>
+            <JoinButton
+              recruitmentId={r.id}
+              joinMode={r.join_mode}
+              auth={auth}
+              canJoin={join.ok}
+              reason={join.reason}
+              isOwner={isOwner}
+              joined={myState === 'approved'}
+              compact
+            />
+          </div>
+        )}
+      </div>
     </article>
   );
 }

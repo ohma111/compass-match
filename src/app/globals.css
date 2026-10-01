@@ -13,7 +13,7 @@
   --color-tint: #f1f2f6;
   --color-ink: #16161d;
   --color-ink-2: #2a2b35;
-  --color-slate: #5a5f70;
+  --color-slate: #565b6b;
   --color-line: #c5c9d4;
   --color-ally: #2340f0;
   --color-ally-deep: #1a2fc0;
@@ -139,7 +139,7 @@ h1, h2, h3 {
 }
 
 @utility input {
-  @apply min-h-12 w-full rounded-[3px] border-2 border-line bg-sheet px-3 py-2 text-base text-ink outline-none placeholder:text-slate/80 focus:border-ink;
+  @apply min-h-12 w-full rounded-[3px] border-2 border-line bg-sheet px-3 py-2 text-base text-ink outline-none placeholder:text-slate focus:border-ink;
 }
 
 @utility label {
@@ -151,8 +151,13 @@ h1, h2, h3 {
 }
 
 /* 見出し (v2 の英字・字間広めのラベルは使わない) */
+/* Dela Gothic One は22px以上だけ。小さい見出しは Zen Kaku Gothic New の900で */
 @utility section-title {
-  @apply font-display text-[17px] text-ink;
+  @apply text-[17px] font-black tracking-[0.02em] text-ink;
+}
+
+@utility type-heavy {
+  @apply font-black tracking-[0.02em];
 }
 
 @utility chip {
@@ -201,10 +206,18 @@ h1, h2, h3 {
  * 動きはここ1か所だけ: 参加が確定した瞬間 (席が滑り込み、判が押される)
  * --------------------------------------------------------------- */
 @keyframes seat-lock {
-  0% { transform: translateX(70%) skewX(var(--seat-skew)); opacity: 0; }
-  55% { transform: translateX(-4%) skewX(var(--seat-skew)); opacity: 1; }
-  75% { transform: translateX(1.5%) skewX(var(--seat-skew)); }
-  100% { transform: translateX(0) skewX(var(--seat-skew)); }
+  0% { transform: translateX(70%) skewX(-24deg); opacity: 0; filter: brightness(1); }
+  50% { transform: translateX(-4%) skewX(var(--seat-skew)); opacity: 1; filter: brightness(2.2); }
+  72% { transform: translateX(1.5%) skewX(var(--seat-skew)); filter: brightness(1.15); }
+  100% { transform: translateX(0) skewX(var(--seat-skew)); filter: brightness(1); }
+}
+
+/* 押せる空き席 (ロビー) */
+.seat-open {
+  cursor: pointer;
+}
+button:hover > .seat-open {
+  background-color: var(--color-ally-deep);
 }
 @keyframes stamp {
   0%, 45% { transform: rotate(-8deg) scale(1.9); opacity: 0; }

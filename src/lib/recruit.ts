@@ -86,12 +86,13 @@ export function autoEnd(start: Date): Date {
   return new Date(start.getTime() + DEFAULT_DURATION_MIN * 60_000);
 }
 
-/** ひとことが空のときのタイトル。例: 「ランク S4〜 あと1人」 */
-export function autoTitle(args: { purpose: Purpose; minRank: RankBand | null; capacity: number }): string {
-  const parts = [PURPOSE_LABELS[args.purpose]];
-  if (args.minRank) parts.push(RANK_MIN_LABELS[args.minRank]);
-  parts.push(`あと${Math.max(1, args.capacity - 1)}人`);
-  return parts.join(' ');
+/**
+ * ひとことが空のときのタイトル。例: 「ランク S4〜の募集」
+ * 残りの人数は入れない (参加者が増えると「あと1人」のまま満員になり、表示と食い違うため)。
+ */
+export function autoTitle(args: { purpose: Purpose; minRank: RankBand | null; capacity?: number }): string {
+  const head = args.minRank ? `${PURPOSE_LABELS[args.purpose]} ${RANK_MIN_LABELS[args.minRank]}` : PURPOSE_LABELS[args.purpose];
+  return `${head}の募集`;
 }
 
 /** 開始時刻のプレビュー表示。例: 「今日 21:35」「明日 01:00」 */

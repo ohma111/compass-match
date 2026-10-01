@@ -192,7 +192,7 @@ export function CreateRecruitmentForm({
   const legend = 'mb-3 flex w-full items-baseline justify-between gap-3 text-[15px] font-bold';
 
   const submitButton = (
-    <button type="submit" className="btn-primary btn-lg w-full flex-col gap-0 px-3 leading-tight" disabled={pending || !ready}>
+    <button type="submit" className="btn-primary min-h-12 w-full flex-col gap-0 px-3 leading-tight" disabled={pending || !ready}>
       <span className="text-base font-bold">{pending ? '募集を出しています…' : '募集する'}</span>
       {!pending && <span className="max-w-full truncate text-xs font-medium opacity-85">{summaryParts.join(' / ')}</span>}
     </button>
@@ -211,7 +211,7 @@ export function CreateRecruitmentForm({
   return (
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={`tone-${c.purpose} lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-14`}>
       <input type="hidden" name="src" value={src} />
-      <div className="space-y-8 pb-44 lg:pb-0">
+      <div className="space-y-8 lg:pb-0">
         {resumed && <p className="alert-ok">ログインしました。さっきの内容で募集を出しています…</p>}
 
         {/* 目的 */}
@@ -306,7 +306,7 @@ export function CreateRecruitmentForm({
                 <input type="radio" name="capacity" value={n} checked={capacity === n} onChange={() => set('capacity', n)} className="sr-only" />
                 {c.purpose === 'custom' ? (
                   <span>
-                    <span className="text-[11px] font-medium">あと</span>
+                    <span className="text-xs font-medium">あと</span>
                     {n - 1}人
                   </span>
                 ) : (
@@ -457,8 +457,8 @@ export function CreateRecruitmentForm({
       </aside>
 
       {/* スマホ: タブバーの上に固定 */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+2px+env(safe-area-inset-bottom))] z-20 border-t-2 border-ink bg-sheet lg:hidden">
-        <div className="mx-auto max-w-xl space-y-2 px-4 pt-3 pb-3">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-sheet pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="mx-auto max-w-xl space-y-2 px-4 py-2">
           {state && !state.ok && (
             <p className="alert-error" role="alert">
               {state.error}

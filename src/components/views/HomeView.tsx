@@ -44,9 +44,8 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
       active ? 'border-ink bg-ink text-white' : 'border-line bg-sheet text-ink-2 hover:border-slate'
     } lg:min-h-12 lg:border-0 lg:border-b lg:border-line lg:rounded-none lg:px-3 lg:text-[15px] ${active ? 'lg:bg-ink' : 'lg:bg-transparent lg:hover:bg-sheet'}`;
 
-  const filters = (
-    <>
-      <nav aria-label="目的で絞り込み" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:border-t-2 lg:border-ink lg:px-0 lg:pb-0">
+  const chips = (
+      <nav aria-label="目的で絞り込み" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pr-12 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] lg:[mask-image:none] lg:mx-0 lg:pr-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:border-t-2 lg:border-ink lg:px-0 lg:pb-0">
         <Link href={href('all', filter.soon)} className={chip(filter.purpose === 'all')} aria-current={filter.purpose === 'all' ? 'true' : undefined}>
           すべて
         </Link>
@@ -57,36 +56,48 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
           </Link>
         ))}
       </nav>
+  );
+  const soonSwitch = (
       <Link
         href={href(filter.purpose, !filter.soon)}
-        aria-pressed={filter.soon}
-        className="inline-flex min-h-11 items-center gap-2.5 text-sm font-bold"
+        role="switch"
+        aria-checked={filter.soon}
+        className="inline-flex min-h-11 items-center gap-3 text-sm font-bold"
       >
-        <span className={`relative inline-flex h-6 w-11 shrink-0 items-center border-2 border-ink ${filter.soon ? 'bg-signal' : 'bg-sheet'}`} aria-hidden>
-          <span className={`absolute size-4 bg-ink transition-[left] ${filter.soon ? 'left-[1.3rem] bg-white' : 'left-0.5'}`} />
+        <span
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors ${filter.soon ? 'border-signal bg-signal' : 'border-slate bg-sheet'}`}
+          aria-hidden
+        >
+          <span className={`absolute size-4 rounded-full transition-[left] ${filter.soon ? 'left-[1.3rem] bg-white' : 'left-0.5 bg-slate'}`} />
         </span>
-        30分以内に始まる募集だけ
+        <span className="lg:hidden">30分以内</span>
+        <span className="hidden lg:inline">30分以内に始まる募集だけ</span>
       </Link>
-    </>
   );
 
   return (
     <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
       <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-        <div className="flex items-end justify-between gap-3 lg:block">
-          <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">
-            募集中の
-            <br className="hidden lg:block" />
-            パーティ
-          </h1>
-          <p className="shrink-0 pb-1 text-sm font-bold text-slate lg:mt-3 lg:pb-0" aria-live="polite">
-            {loadError ? '―' : <><span className="font-display text-xl text-ink">{items.length}</span> 件</>}
-          </p>
+        <div className="flex items-center justify-between gap-2 lg:block">
+          <div className="flex min-w-0 items-baseline gap-2 lg:block">
+            <h1 className="font-display text-[22px] leading-tight whitespace-nowrap lg:text-[40px] lg:whitespace-normal">
+              募集中の
+              <br className="hidden lg:block" />
+              パーティ
+            </h1>
+            <p className="shrink-0 text-sm font-bold text-slate lg:mt-3" aria-live="polite">
+              {loadError ? '―' : <><span className="type-heavy text-[17px] text-ink lg:font-display lg:text-[22px] lg:font-normal">{items.length}</span> 件</>}
+            </p>
+          </div>
+          <div className="shrink-0 lg:hidden">{soonSwitch}</div>
         </div>
         <p className="hidden text-sm leading-relaxed text-slate lg:block">
           空いている席に入れば、そのまま一緒に遊べます。部屋番号は参加した人にだけ表示されます。
         </p>
-        <div className="space-y-3">{filters}</div>
+        <div className="space-y-3">
+          {chips}
+          <div className="hidden lg:block">{soonSwitch}</div>
+        </div>
         <div className="hidden space-y-3 border-t-2 border-ink pt-5 lg:block">
           <p className="text-sm font-bold">ちょうどいい募集がない?</p>
           <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
@@ -111,7 +122,7 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
               <Lineup seats={[{ kind: 'empty' }, { kind: 'empty' }, { kind: 'empty' }]} size="lg" label="空いている3つの席" />
             </div>
             <div className="mx-auto mt-7 max-w-md space-y-4 text-center">
-              <h2 className="font-display text-[19px] leading-snug text-balance sm:text-[22px]">
+              <h2 className="type-heavy text-[20px] leading-snug text-balance sm:text-[22px]">
                 {filtered ? '条件に合う募集はまだありません' : 'いま出ている募集はありません'}
               </h2>
               <p className="text-sm text-slate">目的と時間をタップして、下のボタンを押すだけで募集できます。</p>

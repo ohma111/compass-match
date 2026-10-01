@@ -30,7 +30,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <AppShell
       unread={unread}
-      signedIn={Boolean(viewer?.profile)}
+      signedIn={Boolean(viewer)}
       restricted={isRestricted(viewer?.profile ?? null)}
       configured={isSupabaseConfigured()}
     >

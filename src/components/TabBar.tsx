@@ -3,13 +3,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, House, Plus, UserRound } from 'lucide-react';
 
-export type TabKey = 'home' | 'new' | 'notif' | 'me' | 'none';
+export type TabKey = 'home' | 'new' | 'notif' | 'me' | 'auth' | 'none';
 
 function tabOf(path: string): TabKey {
   if (path === '/' || path === '/recruitments') return 'home';
   if (path.startsWith('/recruitments/new')) return 'new';
   if (path.startsWith('/notifications')) return 'notif';
   if (path.startsWith('/me') || path.startsWith('/profile')) return 'me';
+  if (['/signup', '/login', '/welcome'].some((p) => path.startsWith(p))) return 'auth';
   return 'none';
 }
 
@@ -17,8 +18,10 @@ function tabOf(path: string): TabKey {
 export function TabBar({ unread, active }: { unread: number; active?: TabKey }) {
   const path = usePathname() ?? '/';
   const current = active ?? tabOf(path);
+  // 募集作成は画面下の「募集する」ボタンを1つにするため、登録・ログインは入力に集中するため、タブバーを出さない
+  if (current === 'new' || current === 'auth') return null;
   const item = (on: boolean) =>
-    `relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${on ? 'text-ink' : 'text-slate hover:text-ink'}`;
+    `relative flex h-full flex-col items-center justify-center gap-0.5 text-xs font-bold ${on ? 'text-ink' : 'text-slate hover:text-ink'}`;
   const bar = <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 bg-ink" />;
 
   return (
@@ -35,9 +38,8 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
         <div className="flex items-center justify-center">
           <Link
             href="/recruitments/new"
-            aria-current={current === 'new' ? 'page' : undefined}
-            className="-mt-6 flex h-14 min-w-26 items-center justify-center gap-1 px-3 text-[14px] font-bold text-white"
-            style={{ background: 'linear-gradient(315deg, transparent 12px, var(--color-ally) 0)' }}
+            className="flex h-12 w-full items-center justify-center gap-1 px-2 text-[14px] font-bold text-white"
+            style={{ background: 'linear-gradient(315deg, transparent 10px, var(--color-ally) 0)' }}
           >
             <Plus className="size-5" strokeWidth={3} aria-hidden />
             募集する
@@ -48,7 +50,7 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
           <span className="relative">
             <Bell className="size-6" strokeWidth={current === 'notif' ? 2.5 : 2} aria-hidden />
             {unread > 0 && (
-              <span className="absolute -top-1.5 -right-3 min-w-[1.2rem] bg-signal px-1 text-center text-[10px] leading-[1.2rem] font-bold text-white">
+              <span className="absolute -top-1.5 -right-3 min-w-[1.2rem] bg-signal px-1 text-center text-xs leading-[1.2rem] font-bold text-white">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}

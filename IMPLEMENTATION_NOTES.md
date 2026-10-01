@@ -138,6 +138,9 @@
 ## 5. Design ("ロビー")
 Plan, review against generic defaults, and the 6 scored rounds are in `docs/design-review.md`; final screenshots in `docs/screenshots/`. In short: light arena floor + ink + cobalt (ally) + vermilion (signal), Dela Gothic One for display and numbers, Zen Kaku Gothic New for text, chamfered sheets/buttons instead of rounded cards, and one recurring shape — the slanted 3-seat lineup (`src/components/Lineup.tsx`) used in the feed, detail, create preview and sign-up preview. Motion only when your join is confirmed (seat slides in, stamp). The soonest joinable recruitment is shown larger. Pages are split into data loaders (`src/app/(site)/...`) and views (`src/components/views/*`) so the preview can render the same views with fixtures.
 
+## 5b. Juror round (live lobby)
+After an outside review, the following changed: the tab bar is hidden on `/recruitments/new`, `/signup`, `/login` and `/welcome`. Dela Gothic is used only at 22px and above. When joined, the room number sits right under the countdown. Auto titles no longer contain the seat count (`autoTitle` → 「ランク S4〜の募集」). The stamp moved off the seats. The header follows the session. The signup order is ID → password → rank, with 「あと◯項目」 on the button. Contrast and minimum sizes were fixed, chips fade at the scroll edge, card tags show one tag plus 「+N」, the footer sits at the bottom, and the soon filter is a `role="switch"`. The detail page is now a live lobby (`LobbyLineup`): the first empty seat is a join button that shares state with the text button through `useJoin`, it refreshes every 15 s, new members get a slide-in flash, and the countdown ticks every second within the last hour.
+
 ## 6. Dev-only preview
 `/dev/preview/[screen]` (`src/app/dev/**/*.dev.tsx`, fixtures in `src/lib/fixtures.ts`). `next.config.ts` adds `dev.tsx` to `pageExtensions` only when `NODE_ENV=development`; the page also checks `isPreviewEnabled()`. Guarded by `tests/preview-guard.test.ts` and by `postbuild` (`scripts/check-no-preview.mjs` fails the build if any `/dev` route exists).
 
@@ -148,4 +151,4 @@ Plan, review against generic defaults, and the 6 scored rounds are in `docs/desi
 - Someone calling GoTrue's sign-up API directly can still occupy a login ID (the account is useless because it cannot create a profile, but the ID shows as taken). The operator can delete such users in the dashboard.
 - The signup IP limit trusts Vercel's `x-forwarded-for`; elsewhere a proxy could share one bucket.
 - Screenshots were taken with `next dev --webpack` (Turbopack's dev font fetch failed through the sandbox proxy); `npm run build` (Turbopack) succeeded.
-- Instant joins by others still appear on refresh only (unchanged from v2).
+- Other people's joins appear through polling: the detail page calls `router.refresh()` every 15 s while it is visible and the recruitment is active, which costs a few Supabase reads per open page. There is no Realtime subscription on participations.

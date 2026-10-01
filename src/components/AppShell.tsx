@@ -33,7 +33,7 @@ export function AppShell({
         <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
           <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 whitespace-nowrap" aria-label="コンパス遊び相手さがし ホーム">
             <LogoMark />
-            <span className="font-display truncate text-[15px] lg:text-lg">コンパス遊び相手さがし</span>
+            <span className="type-heavy truncate text-[16px] lg:text-[22px] lg:font-display lg:font-normal lg:tracking-normal">コンパス遊び相手さがし</span>
           </Link>
           <nav aria-label="メニュー" className="ml-auto hidden items-center gap-1 lg:flex">
             <Link href="/" className={nav}>募集一覧</Link>
@@ -43,7 +43,7 @@ export function AppShell({
                   <Bell className="size-4" aria-hidden />
                   通知
                   {unread > 0 && (
-                    <span className="min-w-5 bg-signal px-1 text-center text-[11px] leading-5 font-bold text-white">
+                    <span className="min-w-5 bg-signal px-1 text-center text-xs leading-5 font-bold text-white">
                       {unread > 99 ? '99+' : unread}
                       <span className="sr-only">件の未読</span>
                     </span>
@@ -71,7 +71,8 @@ export function AppShell({
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-[1240px] px-4 pt-5 pb-36 lg:px-8 lg:pt-10 lg:pb-20">
+      <div className="flex min-h-[calc(100dvh-3.25rem)] flex-col lg:min-h-[calc(100dvh-4rem)]">
+      <main id="main" className="mx-auto w-full max-w-[1240px] flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-10 lg:pb-16">
         {!configured && (
           <p className="alert-error mb-5">サーバーの設定(Supabase環境変数)が未完了です。README の手順に従って設定してください。</p>
         )}
@@ -83,7 +84,8 @@ export function AppShell({
         {children}
       </main>
 
-      <footer className="mx-auto max-w-[1240px] px-4 pb-32 text-xs text-slate lg:px-8 lg:pb-12">
+      {/* スマホは下の固定バー (タブバーか募集ボタン、どちらも64px) の分だけ余白を取る */}
+      <footer className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] text-xs text-slate lg:px-8 lg:pb-12">
         <div className="border-t-2 border-ink pt-4">
           <nav className="flex flex-wrap gap-x-5" aria-label="サイト情報">
             <Link href="/feedback" className="inline-flex min-h-11 items-center font-bold text-ink underline underline-offset-4">
@@ -95,6 +97,7 @@ export function AppShell({
           <p className="mt-1 leading-relaxed">個人が運営する非公式のファンサービスです。ゲームの運営会社とは関係ありません。</p>
         </div>
       </footer>
+      </div>
 
       <TabBar unread={unread} active={active} />
     </>

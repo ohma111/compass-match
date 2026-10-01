@@ -42,15 +42,28 @@ for (const vp of viewports) {
   const page = await ctx.newPage();
   for (const s of screens) {
     await page.goto(`${BASE}/dev/preview/${s}`, { waitUntil: 'networkidle', timeout: 180_000 });
+    // CSS の読み込みが終わる前に撮らない (開発サーバーのコンパイル直後に起きる)
+    await page.waitForFunction(() => {
+      const h = document.querySelector('header');
+      return h && getComputedStyle(h).backgroundColor !== 'rgba(0, 0, 0, 0)';
+    }, null, { timeout: 60_000 });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(1300); // 参加確定の演出が終わるまで
     // 横スクロールが出ていないかを記録する (375px で崩れないこと)
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    const overflow = await page.evaluate(() => {
+      const page = document.documentElement.scrollWidth - window.innerWidth;
+      // 横スクロールの入れ物 (絞り込みチップ) の中身以外で、画面の右端からはみ出している要素
+      const clipped = [...document.querySelectorAll('main *')].filter((el) => {
+        if (el.closest('.overflow-x-auto, .overflow-hidden')) return false;
+        return el.getBoundingClientRect().right > window.innerWidth + 1;
+      }).length;
+      return Math.max(page, clipped);
+    });
     const file = path.join(OUT, `${s}-${vp.name}.png`);
     await page.screenshot({ path: file, fullPage: true });
     // 最初に見える範囲 (固定ヘッダー・タブバーの重なりを正しく確認するため)
     if (vp.mobile) await page.screenshot({ path: path.join(OUT, `${s}-${vp.name}-fold.png`) });
-    console.log(`${file}${overflow > 0 ? `  ⚠ horizontal overflow ${overflow}px` : ''}`);
+    console.log(`${file}${overflow > 0 ? `  ⚠ horizontal overflow (${overflow})` : ''}`);
   }
   await ctx.close();
 }

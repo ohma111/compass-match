@@ -62,7 +62,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
             </button>
           </div>
           {error && <p className="text-[13px] font-bold text-signal-on-ink" role="alert">{error}</p>}
-          <p className="text-xs text-white/70">参加が確定した人にだけ表示されます。</p>
+          <p className="text-xs text-white/80">参加が確定した人にだけ表示されます。</p>
         </form>
       ) : code ? (
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">

@@ -9,7 +9,7 @@ export default function NotFound() {
         <div className="mx-auto flex h-13 max-w-[1240px] items-center px-4 lg:px-8">
           <Link href="/" className="flex min-h-11 items-center gap-2.5">
             <LogoMark />
-            <span className="font-display text-[15px]">コンパス遊び相手さがし</span>
+            <span className="type-heavy text-[16px]">コンパス遊び相手さがし</span>
           </Link>
         </div>
       </header>

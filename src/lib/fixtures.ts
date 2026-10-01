@@ -65,12 +65,12 @@ export function feed(now: Date): Recruitment[] {
   const at22 = (jstClock(now, 22).getTime() - now.getTime()) / min;
   const at23 = (jstClock(now, 23).getTime() - now.getTime()) / min;
   return [
-    rec(now, 1, people.taro, { title: 'ランク S4〜 あと1人', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's4_6', vc: 'on', tags: ['serious'] }, 8),
+    rec(now, 1, people.taro, { title: 'ランク S4〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's4_6', vc: 'on', tags: ['serious'] }, 8),
     rec(now, 2, people.mio, { title: 'まったりバトアリ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['beginner_welcome', 'relaxed'], vc: 'off' }, -12),
     rec(now, 3, people.kei, { title: '大会前の連携練習 タンクほしい', purpose: 'tournament', capacity: 3, approved_count: 1, join_mode: 'approval', vc: 'on', tags: ['practice'], min_rank: 's7_9' }, at22),
     rec(now, 4, people.shiro, { title: 'カスタム 3vs3 やりたい人', purpose: 'custom', capacity: 6, approved_count: 3, tags: ['relaxed', 'quiet_ok'] }, 40),
     rec(now, 5, people.natsu, { title: 'エンジョイ 22時から', purpose: 'enjoy', capacity: 3, approved_count: 2, tags: ['relaxed'] }, at22),
-    rec(now, 6, people.rin, { title: 'ランク 聞き専OK あと2人', purpose: 'rank', capacity: 3, approved_count: 0, tags: ['quiet_ok', 'considerate'] }, at23),
+    rec(now, 6, people.rin, { title: 'ランク 聞き専OKです', purpose: 'rank', capacity: 3, approved_count: 0, tags: ['quiet_ok', 'considerate'] }, at23),
   ];
 }
 
@@ -127,5 +127,5 @@ export function meProfile(now: Date): Profile {
 }
 
 export function myRecruitments(now: Date): Recruitment[] {
-  return [rec(now, 9, people.me, { title: 'エンジョイ あと2人', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['relaxed'] }, 25)];
+  return [rec(now, 9, people.me, { title: 'エンジョイの募集', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['relaxed'] }, 25)];
 }

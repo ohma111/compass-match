@@ -111,7 +111,7 @@ describe('buildRecruitment (tap-based create)', () => {
     if (!r.ok) return;
     expect(r.data.startsAt.toISOString()).toBe('2026-10-01T12:00:00.000Z');
     expect(r.data.endsAt.toISOString()).toBe('2026-10-01T13:00:00.000Z');
-    expect(r.data.title).toBe('ランク S4〜 あと1人');
+    expect(r.data.title).toBe('ランク S4〜の募集');
     expect(r.data.capacity).toBe(2);
     expect(r.data.joinMode).toBe('instant');
     expect(r.data.tags).toEqual(['serious']);

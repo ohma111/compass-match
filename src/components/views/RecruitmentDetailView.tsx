@@ -6,10 +6,10 @@ import { PURPOSE_LABELS, RANK_LABELS, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } f
 import { seatsFor } from '@/lib/seats';
 import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
 import { Countdown } from '@/components/Countdown';
-import { Lineup } from '@/components/Lineup';
+import { LobbyLineup } from '@/components/LobbyLineup';
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
-import { JoinButton, type AuthState } from '@/components/JoinButton';
+import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
 import { RoomCodePanel } from '@/components/RoomCodePanel';
 import { IntentRunner } from '@/components/IntentRunner';
@@ -112,6 +112,12 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             )}
             <p className="mt-2 text-sm font-medium text-slate tabular-nums">{formatJstRange(r.starts_at, r.ends_at)}</p>
           </div>
+          {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、時刻のすぐ下に出す */}
+          {isMember && (
+            <div className="mt-5">
+              <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} />
+            </div>
+          )}
           <h1 id="r-title" className="mt-4 text-[22px] leading-snug font-black break-words lg:text-[28px]">
             {r.title}
           </h1>
@@ -124,32 +130,27 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           {r.note && <p className="mt-4 border-l-4 border-line bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{r.note}</p>}
 
           <div className="mt-7">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="section-title">パーティ</h2>
-              <p className="text-sm font-bold text-slate">
-                {r.capacity}人中 {Math.min(r.capacity, r.approved_count + 1)}人
-                <span className={`font-display ml-2 text-base ${left > 0 ? 'text-ink' : 'text-slate'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
-              </p>
-            </div>
-            <div className="pt-2">
-              <Lineup seats={seats} size="lg" stamp={stamp} label={seatLabel(r.capacity, r.approved_count)} />
-            </div>
+            <LobbyLineup
+              recruitmentId={id}
+              seats={seats}
+              label={seatLabel(r.capacity, r.approved_count)}
+              capacity={r.capacity}
+              occupied={Math.min(r.capacity, r.approved_count + 1)}
+              left={left}
+              joinMode={r.join_mode}
+              auth={auth}
+              canJoin={join.ok}
+              reason={join.reason}
+              isOwner={isOwner}
+              joined={myState === 'approved'}
+              src={src}
+              stamp={stamp}
+              live={active && !r.hidden_at}
+            />
           </div>
 
           {!isOwner && (
-            <div className={`${stamp ? 'mt-12' : 'mt-6'} space-y-2`}>
-              <JoinButton
-                recruitmentId={id}
-                joinMode={r.join_mode}
-                auth={auth}
-                canJoin={join.ok}
-                reason={join.reason}
-                isOwner={false}
-                joined={myState === 'approved'}
-                src={src}
-                size="lg"
-                hideWhenJoined
-              />
+            <div className="mt-2 space-y-2">
               {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者の承認を待っています。承認されると通知が届きます。</p>}
               {(myState === 'pending' || myState === 'approved') && active && (
                 <ActionButton action={cancelParticipationAction.bind(null, id)} className="btn-ghost btn-sm w-full" confirm="参加を取り消しますか?">
@@ -215,7 +216,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
 
           {isMember ? (
             <>
-              <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} />
               <section className="space-y-2" aria-labelledby="contacts-title">
                 <h2 id="contacts-title" className="section-title">{isOwner ? '参加者の連絡先' : '募集者の連絡先'}</h2>
                 {contacts.length === 0 && <p className="text-sm text-slate">登録されている連絡先はありません。</p>}

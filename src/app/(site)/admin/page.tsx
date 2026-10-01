@@ -167,7 +167,7 @@ async function UsersTab({ supabase, q }: { supabase: SB; q: string }) {
               {u.hidden_at && <span className="chip">通報で非表示</span>}
               <span className="ml-auto text-xs text-muted">登録 {formatJst(u.created_at)}</span>
             </div>
-            <p className="break-all text-[11px] text-muted">{u.id}</p>
+            <p className="break-all text-xs text-muted">{u.id}</p>
             <div className="flex flex-wrap gap-2">
               <ActionButton action={adminUserAction.bind(null, u.id, 'suspend')} className="btn-outline btn-sm" confirm="利用停止にしますか?">停止</ActionButton>
               <ActionButton action={adminUserAction.bind(null, u.id, 'ban')} className="btn-danger btn-sm" confirm="BANしますか? 進行中の募集は取り消されます。">BAN</ActionButton>

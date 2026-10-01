@@ -32,13 +32,16 @@ const SEAT_BG: Record<Seat['kind'], string> = {
 export function Lineup({
   seats,
   size = 'sm',
-  stamp,
   label,
+  joinSeat,
 }: {
   seats: Seat[];
   size?: 'sm' | 'lg';
-  /** 席の上に押す判 (「参加確定」「満員」) */
-  stamp?: string | null;
+  /**
+   * 空き席を「参加ボタン」にする (募集詳細のロビー)。最初の空き席だけが押せる。
+   * キーボード・読み上げでも使えるよう button にする。文字のボタンも別に残す。
+   */
+  joinSeat?: { onJoin: () => void; label: string; pending?: boolean } | null;
   /** 読み上げ用の説明 (例: 「3人中2人・あと1人」) */
   label: string;
 }) {
@@ -53,7 +56,7 @@ export function Lineup({
               s.you ? 'outline-3 outline-offset-1 outline-signal' : ''
             } ${s.enter ? 'seat-enter' : ''}`}
           >
-            <span className="font-display [transform:skewX(calc(var(--seat-skew)*-1))] text-[15px] leading-none">
+            <span className="type-heavy [transform:skewX(calc(var(--seat-skew)*-1))] text-[16px] leading-none">
               {s.kind === 'empty' || s.kind === 'anon' ? '' : initialOf(s.name)}
             </span>
           </span>
@@ -63,6 +66,8 @@ export function Lineup({
   }
 
   const cols = seats.length <= 3 ? seats.length : 3;
+  const firstEmpty = seats.findIndex((x) => x.kind === 'empty');
+  const joinable = (i: number) => Boolean(joinSeat) && i === firstEmpty;
   return (
     <div className="relative">
       <ul
@@ -73,12 +78,14 @@ export function Lineup({
         {seats.map((s, i) => {
           const body = (
             <div
-              className={`relative flex h-40 flex-col justify-end overflow-hidden [transform:skewX(var(--seat-skew))] sm:h-48 ${SEAT_BG[s.kind]} ${
+              className={`relative flex h-40 flex-col justify-end overflow-hidden [transform:skewX(var(--seat-skew))] sm:h-48 ${
+                joinable(i) ? 'seat-open bg-ally text-white' : SEAT_BG[s.kind]
+              } ${
                 s.you ? 'outline-4 outline-offset-2 outline-signal' : ''
               } ${s.enter ? 'seat-enter' : ''}`}
             >
               <div className="flex h-full flex-col justify-between px-3.5 pt-3 pb-3 [transform:skewX(calc(var(--seat-skew)*-1))] sm:px-5">
-                <div className="flex items-center justify-between text-[11px] font-bold">
+                <div className="flex items-center justify-between text-xs font-bold">
                   {s.kind === 'owner' && (
                     <span className="inline-flex items-center gap-1 whitespace-nowrap text-white/85">
                       <Crown className="size-3.5" aria-label="募集者" role="img" />
@@ -88,10 +95,17 @@ export function Lineup({
                   {s.you && <span className="bg-signal px-1.5 leading-5 whitespace-nowrap text-white">あなた</span>}
                 </div>
                 {s.kind === 'empty' ? (
-                  <div>
-                    <p className="font-display text-[44px] leading-none text-line sm:text-[56px]" aria-hidden>?</p>
-                    <p className="mt-2 text-[13px] font-bold">空き</p>
-                  </div>
+                  joinable(i) ? (
+                    <div className="text-white">
+                      <p className="font-display text-[44px] leading-none sm:text-[56px]" aria-hidden>+</p>
+                      <p className="mt-2 text-[13px] leading-snug font-bold">{joinSeat!.pending ? '参加しています…' : joinSeat!.label}</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-display text-[44px] leading-none text-slate/40 sm:text-[56px]" aria-hidden>?</p>
+                      <p className="mt-2 inline-block bg-sheet px-1.5 text-[13px] font-bold text-ink-2">空き</p>
+                    </div>
+                  )
                 ) : s.kind === 'anon' ? (
                   <div>
                     <p className="text-[13px] font-bold">参加者</p>
@@ -100,7 +114,7 @@ export function Lineup({
                   <div className="min-w-0">
                     <p className="font-display text-[44px] leading-none sm:text-[56px]" aria-hidden>{initialOf(s.name)}</p>
                     <p className="mt-2 truncate text-[13px] font-bold sm:text-sm">{s.name}</p>
-                    <p className="flex items-center gap-1.5 text-[11px] text-white/80">
+                    <p className="flex items-center gap-1.5 text-xs text-white/80">
                       {s.rank && <span className="whitespace-nowrap">{RANK_LABELS[s.rank]}</span>}
                       {s.roles?.map((r) => <RoleIcon key={r} role={r} className="size-3.5" />)}
                     </p>
@@ -111,7 +125,17 @@ export function Lineup({
           );
           return (
             <li key={i} className="min-w-0">
-              {s.href ? (
+              {joinable(i) ? (
+                <button
+                  type="button"
+                  onClick={joinSeat!.onJoin}
+                  disabled={joinSeat!.pending}
+                  className="block w-full text-left focus-visible:outline-offset-4 disabled:cursor-wait"
+                  aria-label={`空いている席に入る: ${joinSeat!.label}`}
+                >
+                  {body}
+                </button>
+              ) : s.href ? (
                 <Link href={s.href} className="block focus-visible:outline-offset-4">
                   {body}
                 </Link>
@@ -122,17 +146,7 @@ export function Lineup({
           );
         })}
       </ul>
-      {stamp && (
-        <div className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2">
-          <p
-            className="lineup-stamp font-display border-4 border-signal bg-sheet px-4 py-0.5 text-[22px] whitespace-nowrap text-signal sm:text-[28px]"
-            style={{ transform: 'rotate(-8deg)' }}
-            role="status"
-          >
-            {stamp}
-          </p>
-        </div>
-      )}
+
     </div>
   );
 }

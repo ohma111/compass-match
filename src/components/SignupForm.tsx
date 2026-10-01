@@ -44,7 +44,9 @@ export function SignupForm({
   }
 
   const idOk = LOGIN_ID_PATTERN.test(loginId.trim());
-  const ready = idOk && password.length >= PASSWORD_MIN && name.trim().length > 0 && rank !== '' && agree && configured;
+  // 足りない必須項目の数 (押せないボタンに理由として出す)
+  const missing = [idOk, password.length >= PASSWORD_MIN, rank !== '', name.trim().length > 0, agree].filter((ok) => !ok).length;
+  const ready = missing === 0 && configured;
   const seat = {
     kind: 'member' as const,
     name: name.trim() || 'あなた',
@@ -121,6 +123,17 @@ export function SignupForm({
         </div>
 
         <div className="border-t-2 border-ink pt-6">
+          <fieldset className="mb-7">
+            <legend className="label">ランク帯</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {RANK_BANDS.map((r) => (
+                <label key={r} className="pick">
+                  <input type="radio" name="rankBand" value={r} checked={rank === r} onChange={() => setRank(r)} required className="sr-only" />
+                  {RANK_LABELS[r]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <label className="label" htmlFor="displayName">表示名</label>
           <input
             id="displayName"
@@ -136,17 +149,6 @@ export function SignupForm({
           <p className="hint">ゲーム内の名前でも、別の名前でも大丈夫です。あとから変えられます。</p>
         </div>
 
-        <fieldset>
-          <legend className="label">ランク帯</legend>
-          <div className="grid grid-cols-3 gap-2">
-            {RANK_BANDS.map((r) => (
-              <label key={r} className="pick">
-                <input type="radio" name="rankBand" value={r} checked={rank === r} onChange={() => setRank(r)} required className="sr-only" />
-                {RANK_LABELS[r]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
 
         <fieldset>
           <legend className="label">
@@ -190,8 +192,8 @@ export function SignupForm({
         {state && !state.ok && <p className="alert-error" role="alert">{state.error}</p>}
         {!configured && <p className="alert-error">サーバーの設定が完了していないため、現在は登録できません。</p>}
         <button className="btn-primary btn-lg w-full text-base" disabled={pending || !ready}>
-          {pending ? '登録しています…' : 'はじめる'}
-          {!pending && <ArrowRight className="size-5" aria-hidden />}
+          {pending ? '登録しています…' : missing > 0 ? `はじめる (あと${missing}項目)` : 'はじめる'}
+          {!pending && missing === 0 && <ArrowRight className="size-5" aria-hidden />}
         </button>
       </form>
 

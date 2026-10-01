@@ -67,7 +67,8 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
     }
     case 'signup':
     case 'signup-done':
-      signedIn = false;
+      active = 'auth';
+      signedIn = screen === 'signup-done';
       unread = 0;
       body = (
         <SignupView
@@ -80,6 +81,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       );
       break;
     case 'login':
+      active = 'auth';
       signedIn = false;
       unread = 0;
       body = <LoginView next="/" configured resuming={false} />;
