@@ -29,8 +29,8 @@ describe('resume intent after login', () => {
     saveIntent({ kind: 'post' });
     expect(takeIntent(() => true, Date.now() + INTENT_TTL_MS + 1000)).toBeNull();
   });
-  it('builds the login / onboarding href', () => {
-    expect(authGateHref('guest', '/recruitments/new')).toBe('/login?next=%2Frecruitments%2Fnew');
+  it('builds the signup / onboarding href', () => {
+    expect(authGateHref('guest', '/recruitments/new')).toBe('/signup?next=%2Frecruitments%2Fnew');
     expect(authGateHref('no-profile', '/recruitments/abc')).toBe('/welcome?next=%2Frecruitments%2Fabc');
   });
 });

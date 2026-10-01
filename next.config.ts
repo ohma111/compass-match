@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { pageExtensionsFor } from './src/lib/preview';
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -7,8 +8,15 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
+/**
+ * `*.dev.tsx` のページ (開発用のフィクスチャプレビュー /dev/preview) は `next dev` のときだけルートになる。
+ * 本番ビルド (NODE_ENV=production) では拡張子の一覧に入らないので、ルートとして存在しない。
+ * tests/preview-guard.test.ts と scripts/check-no-preview.mjs (npm run build の後に自動実行) で確認している。
+ */
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  devIndicators: false,
+  pageExtensions: pageExtensionsFor(process.env.NODE_ENV),
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

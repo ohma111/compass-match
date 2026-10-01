@@ -3,41 +3,52 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, House, Plus, UserRound } from 'lucide-react';
 
-/** 下部タブバー。「＋募集する」は画面の中央に来るよう左右の幅をそろえている */
-export function TabBar({ unread }: { unread: number }) {
+export type TabKey = 'home' | 'new' | 'notif' | 'me' | 'none';
+
+function tabOf(path: string): TabKey {
+  if (path === '/' || path === '/recruitments') return 'home';
+  if (path.startsWith('/recruitments/new')) return 'new';
+  if (path.startsWith('/notifications')) return 'notif';
+  if (path.startsWith('/me') || path.startsWith('/profile')) return 'me';
+  return 'none';
+}
+
+/** 下部タブバー (スマホのみ)。「＋募集する」は画面の中央に来るよう左右の幅をそろえている */
+export function TabBar({ unread, active }: { unread: number; active?: TabKey }) {
   const path = usePathname() ?? '/';
-  const isHome = path === '/' || path === '/recruitments';
-  const isNew = path.startsWith('/recruitments/new');
-  const isNotif = path.startsWith('/notifications');
-  const isMe = path.startsWith('/me') || path.startsWith('/profile');
-  const item = (active: boolean) =>
-    `flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold transition ${active ? 'text-brand' : 'text-muted hover:text-fg'}`;
+  const current = active ?? tabOf(path);
+  const item = (on: boolean) =>
+    `relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${on ? 'text-ink' : 'text-slate hover:text-ink'}`;
+  const bar = <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 bg-ink" />;
 
   return (
     <nav
       aria-label="メインメニュー"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line/80 bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-sheet pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto grid h-16 max-w-xl grid-cols-[2fr_1.6fr_1fr_1fr] items-stretch px-2">
-        <Link href="/" className={item(isHome)} aria-current={isHome ? 'page' : undefined}>
-          <House className="size-6" strokeWidth={isHome ? 2.5 : 2} aria-hidden />
+        <Link href="/" className={item(current === 'home')} aria-current={current === 'home' ? 'page' : undefined}>
+          {current === 'home' && bar}
+          <House className="size-6" strokeWidth={current === 'home' ? 2.5 : 2} aria-hidden />
           ホーム
         </Link>
         <div className="flex items-center justify-center">
           <Link
             href="/recruitments/new"
-            aria-current={isNew ? 'page' : undefined}
-            className={`-mt-5 flex h-14 min-w-24 items-center justify-center gap-1 rounded-2xl bg-brand px-2.5 text-[13px] font-extrabold text-brand-fg shadow-[0_0_0_4px_var(--color-bg),0_8px_28px_-4px_rgb(255_210_63/0.6)] transition active:scale-95 ${isNew ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-bg' : ''}`}
+            aria-current={current === 'new' ? 'page' : undefined}
+            className="-mt-6 flex h-14 min-w-26 items-center justify-center gap-1 px-3 text-[14px] font-bold text-white"
+            style={{ background: 'linear-gradient(315deg, transparent 12px, var(--color-ally) 0)' }}
           >
             <Plus className="size-5" strokeWidth={3} aria-hidden />
             募集する
           </Link>
         </div>
-        <Link href="/notifications" className={item(isNotif)} aria-current={isNotif ? 'page' : undefined}>
+        <Link href="/notifications" className={item(current === 'notif')} aria-current={current === 'notif' ? 'page' : undefined}>
+          {current === 'notif' && bar}
           <span className="relative">
-            <Bell className="size-6" strokeWidth={isNotif ? 2.5 : 2} aria-hidden />
+            <Bell className="size-6" strokeWidth={current === 'notif' ? 2.5 : 2} aria-hidden />
             {unread > 0 && (
-              <span className="absolute -top-1.5 -right-2.5 min-w-[1.15rem] rounded-full bg-danger px-1 text-center text-[10px] leading-[1.15rem] font-extrabold text-white">
+              <span className="absolute -top-1.5 -right-3 min-w-[1.2rem] bg-signal px-1 text-center text-[10px] leading-[1.2rem] font-bold text-white">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}
@@ -46,8 +57,9 @@ export function TabBar({ unread }: { unread: number }) {
             通知{unread > 0 && <span className="sr-only">(未読{unread}件)</span>}
           </span>
         </Link>
-        <Link href="/me" className={item(isMe)} aria-current={isMe ? 'page' : undefined}>
-          <UserRound className="size-6" strokeWidth={isMe ? 2.5 : 2} aria-hidden />
+        <Link href="/me" className={item(current === 'me')} aria-current={current === 'me' ? 'page' : undefined}>
+          {current === 'me' && bar}
+          <UserRound className="size-6" strokeWidth={current === 'me' ? 2.5 : 2} aria-hidden />
           マイページ
         </Link>
       </div>

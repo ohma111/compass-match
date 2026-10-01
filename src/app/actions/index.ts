@@ -56,8 +56,9 @@ export async function onboardAction(_prev: ActionResult | null, fd: FormData): P
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return fail('ログインが必要です');
-  // 登録済みなら上書きしない (マイページの編集を使う)
-  const { data: existing } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  // 登録済みなら上書きしない (マイページの編集を使う)。取得エラーは「未登録」と扱わない
+  const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  if (lookupError) return fail('プロフィールを確認できませんでした。時間をおいてもう一度お試しください');
   if (!existing) {
     const { error } = await supabase.rpc('save_my_profile', {
       p_display_name: v.displayName,
@@ -103,7 +104,8 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return fail('ログインが必要です');
-  const { data: existing } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  if (lookupError) return fail('プロフィールを確認できませんでした。時間をおいてもう一度お試しください');
   if (!existing) return fail('先に初回登録を完了してください');
 
   const { error } = await supabase.rpc('save_my_profile', {

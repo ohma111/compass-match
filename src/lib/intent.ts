@@ -37,8 +37,11 @@ export function takeIntent(match: (i: Intent) => boolean, now: number = Date.now
   }
 }
 
-/** ログインが必要な操作の遷移先。プロフィール未作成なら初回登録へ */
+/**
+ * ログインが必要な操作の遷移先。未ログインなら登録画面 (ログインへのリンクあり)、
+ * Discord で入ってプロフィール未作成なら初回登録へ
+ */
 export function authGateHref(state: 'guest' | 'no-profile', next: string): string {
   const q = `next=${encodeURIComponent(next)}`;
-  return state === 'guest' ? `/login?${q}` : `/welcome?${q}`;
+  return state === 'guest' ? `/signup?${q}` : `/welcome?${q}`;
 }

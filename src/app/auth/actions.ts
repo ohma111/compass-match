@@ -1,13 +1,25 @@
 'use server';
 
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { siteUrl } from '@/lib/env';
+import { createAdminClient, createUserTokenClient } from '@/lib/supabase/admin';
+import { getServiceRoleKey, isAccountServiceConfigured, siteUrl } from '@/lib/env';
 import { safeNext } from '@/lib/safe-next';
+import { authEmailFor } from '@/lib/account';
+import { clientIp, generateRecoveryCode, hashRecoveryCode, rateKey } from '@/lib/account-server';
+import { firstError, recoverSchema, signupSchema } from '@/lib/validation/schemas';
+import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
+import { TERMS_VERSION } from '@/lib/constants';
+import { toUserMessage } from '@/lib/db-error';
+import type { ActionResult } from '@/lib/types';
 
-const providerSchema = z.enum(['discord', 'x']);
+// ---------------------------------------------------------------------
+// Discord (既存の管理者アカウント用に残している副ログイン。X は v3 で画面から外した)
+// ---------------------------------------------------------------------
+const providerSchema = z.enum(['discord']);
 
 export async function signInWithProvider(fd: FormData) {
   const provider = providerSchema.safeParse(fd.get('provider'));
@@ -20,9 +32,197 @@ export async function signInWithProvider(fd: FormData) {
     provider: provider.data,
     options: {
       redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      scopes: provider.data === 'discord' ? 'identify' : undefined,
+      scopes: 'identify',
     },
   });
   if (error || !data.url) redirect('/auth/error');
   redirect(data.url);
+}
+
+// ---------------------------------------------------------------------
+// ユーザーID + パスワード
+// ---------------------------------------------------------------------
+
+/** 同じ接続元からの登録: 1時間に3件、1日に10件まで */
+const SIGNUP_LIMITS = [
+  { limit: 3, windowSec: 3600 },
+  { limit: 10, windowSec: 86400 },
+] as const;
+/** 引き継ぎコードの試行: 接続元ごとに1時間10回、ユーザーIDごとに1時間5回まで */
+const RECOVER_IP_LIMIT = { limit: 10, windowSec: 3600 };
+const RECOVER_ID_LIMIT = { limit: 5, windowSec: 3600 };
+
+const NOT_CONFIGURED = 'サーバーの設定が完了していないため、現在は登録できません (運営者の設定待ちです)';
+const TOO_MANY = '短い時間に何度も試されたため、いったん止めています。1時間ほど待ってからもう一度お試しください';
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+async function underLimit(admin: Admin, kind: 'signup_ip' | 'recover_ip' | 'recover_id', key: string, limit: number, windowSec: number) {
+  const { data, error } = await admin.rpc('auth_rate_check', {
+    p_kind: kind,
+    p_key: key,
+    p_limit: limit,
+    p_window_seconds: windowSec,
+  });
+  if (error) throw new Error('rate check failed');
+  return data === true;
+}
+
+/** Supabase Auth のエラーを利用者向けの文に (内部情報は出さない) */
+function authErrorMessage(err: { code?: string; status?: number; message?: string } | null): string {
+  const code = err?.code ?? '';
+  if (code === 'email_exists' || code === 'user_already_exists' || /already (been )?registered/i.test(err?.message ?? ''))
+    return 'このユーザーIDはすでに使われています。別のIDにしてください';
+  if (code === 'weak_password') return 'パスワードが弱すぎます。もっと長く、推測されにくいものにしてください';
+  if (err?.status === 429 || code === 'over_request_rate_limit') return TOO_MANY;
+  return '登録できませんでした。時間をおいてもう一度お試しください';
+}
+
+export async function signupAction(
+  _prev: ActionResult<{ code: string; next: string }> | null,
+  fd: FormData,
+): Promise<ActionResult<{ code: string; next: string }>> {
+  const store = await cookies();
+  const parsed = signupSchema.safeParse({
+    loginId: fd.get('loginId') ?? '',
+    password: fd.get('password') ?? '',
+    displayName: fd.get('displayName') ?? '',
+    rankBand: fd.get('rankBand') ?? '',
+    playRoles: fd.getAll('playRoles').filter((v): v is string => typeof v === 'string'),
+    agreeTerms: fd.get('agreeTerms') === 'on',
+    src: sanitizeSrc(store.get(SRC_COOKIE)?.value),
+  });
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const next = safeNext(fd.get('next') as string | null, '/');
+  if (!isAccountServiceConfigured()) return { ok: false, error: NOT_CONFIGURED };
+
+  const secret = getServiceRoleKey()!;
+  const admin = createAdminClient();
+  const ipKey = rateKey(secret, 'signup_ip', clientIp(await headers()));
+  try {
+    for (const l of SIGNUP_LIMITS) {
+      if (!(await underLimit(admin, 'signup_ip', ipKey, l.limit, l.windowSec))) return { ok: false, error: TOO_MANY };
+    }
+  } catch {
+    return { ok: false, error: '登録できませんでした。時間をおいてもう一度お試しください' };
+  }
+
+  const email = authEmailFor(v.loginId);
+  // メールは送らない (確認済みとして作成)。パスワードは Supabase Auth がハッシュして保存する
+  const created = await admin.auth.admin.createUser({
+    email,
+    password: v.password,
+    email_confirm: true,
+    app_metadata: { login_id: v.loginId },
+  });
+  if (created.error || !created.data.user) return { ok: false, error: authErrorMessage(created.error) };
+  const userId = created.data.user.id;
+  const rollback = async () => {
+    await admin.auth.admin.deleteUser(userId).catch(() => {});
+  };
+
+  const code = generateRecoveryCode();
+  const reg = await admin.rpc('register_account', {
+    p_user_id: userId,
+    p_login_id: v.loginId,
+    p_recovery_hash: hashRecoveryCode(code),
+  });
+  if (reg.error) {
+    await rollback();
+    return { ok: false, error: reg.error.code === '23505' ? 'このユーザーIDはすでに使われています。別のIDにしてください' : authErrorMessage(null) };
+  }
+
+  // その場でログイン状態にする (セッションは cookie に保存される)
+  const supabase = await createClient();
+  const signed = await supabase.auth.signInWithPassword({ email, password: v.password });
+  if (signed.error || !signed.data.session) {
+    await rollback();
+    return { ok: false, error: authErrorMessage(signed.error) };
+  }
+
+  // プロフィールは本人の権限で作成 (同意の記録・URL禁止などは DB 側でも検証される)
+  const asUser = createUserTokenClient(signed.data.session.access_token);
+  const prof = await asUser.rpc('save_my_profile', {
+    p_display_name: v.displayName,
+    p_rank_band: v.rankBand,
+    p_play_roles: v.playRoles,
+    p_characters: [],
+    p_purposes: [],
+    p_vc: 'listen',
+    p_tags: [],
+    p_bio: '',
+    p_contact_discord: null,
+    p_contact_x: null,
+    p_contact_ingame: null,
+    p_agree_terms: true,
+    p_terms_version: TERMS_VERSION,
+    p_src: v.src,
+  });
+  if (prof.error) {
+    await supabase.auth.signOut().catch(() => {});
+    await rollback();
+    return { ok: false, error: toUserMessage(prof.error) };
+  }
+
+  revalidatePath('/', 'layout');
+  return { ok: true, data: { code, next } };
+}
+
+export async function recoverAction(
+  _prev: ActionResult<{ code: string; next: string }> | null,
+  fd: FormData,
+): Promise<ActionResult<{ code: string; next: string }>> {
+  const parsed = recoverSchema.safeParse({
+    loginId: fd.get('loginId') ?? '',
+    code: fd.get('code') ?? '',
+    password: fd.get('password') ?? '',
+  });
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const v = parsed.data;
+  const next = safeNext(fd.get('next') as string | null, '/');
+  if (!isAccountServiceConfigured()) return { ok: false, error: NOT_CONFIGURED };
+
+  const secret = getServiceRoleKey()!;
+  const admin = createAdminClient();
+  try {
+    const ipOk = await underLimit(admin, 'recover_ip', rateKey(secret, 'recover_ip', clientIp(await headers())), RECOVER_IP_LIMIT.limit, RECOVER_IP_LIMIT.windowSec);
+    const idOk = ipOk && (await underLimit(admin, 'recover_id', rateKey(secret, 'recover_id', v.loginId), RECOVER_ID_LIMIT.limit, RECOVER_ID_LIMIT.windowSec));
+    if (!ipOk || !idOk) return { ok: false, error: TOO_MANY };
+  } catch {
+    return { ok: false, error: '処理できませんでした。時間をおいてもう一度お試しください' };
+  }
+
+  const found = await admin.rpc('verify_recovery', { p_login_id: v.loginId, p_recovery_hash: hashRecoveryCode(v.code) });
+  const userId = (found.data as string | null) ?? null;
+  if (found.error || !userId) return { ok: false, error: 'ユーザーIDか引き継ぎコードが違います' };
+
+  const upd = await admin.auth.admin.updateUserById(userId, { password: v.password });
+  if (upd.error) return { ok: false, error: authErrorMessage(upd.error) };
+
+  // 使った引き継ぎコードは無効にして、新しいコードを1回だけ表示する
+  const code = generateRecoveryCode();
+  await admin.rpc('set_recovery_hash', { p_user_id: userId, p_recovery_hash: hashRecoveryCode(code) });
+
+  const supabase = await createClient();
+  const signed = await supabase.auth.signInWithPassword({ email: authEmailFor(v.loginId), password: v.password });
+  if (signed.error) return { ok: false, error: 'パスワードは変更しました。ログイン画面から入り直してください' };
+  // ほかの端末に残っているログインは切る (乗っ取られていた場合に備える)
+  await supabase.auth.signOut({ scope: 'others' }).catch(() => {});
+  revalidatePath('/', 'layout');
+  return { ok: true, data: { code, next } };
+}
+
+/** マイページ: 引き継ぎコードを作り直す (古いコードは使えなくなる) */
+export async function reissueRecoveryCodeAction(): Promise<ActionResult<{ code: string }>> {
+  if (!isAccountServiceConfigured()) return { ok: false, error: NOT_CONFIGURED };
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { ok: false, error: 'ログインが必要です' };
+  const admin = createAdminClient();
+  const code = generateRecoveryCode();
+  const res = await admin.rpc('set_recovery_hash', { p_user_id: data.user.id, p_recovery_hash: hashRecoveryCode(code) });
+  if (res.error) return { ok: false, error: '作り直せませんでした。時間をおいてもう一度お試しください' };
+  if (res.data !== true) return { ok: false, error: 'Discordで登録したアカウントには引き継ぎコードがありません' };
+  return { ok: true, data: { code } };
 }

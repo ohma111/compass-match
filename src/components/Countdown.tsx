@@ -1,20 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Clock } from 'lucide-react';
 import { countdownLabel, countdownTone } from '@/lib/time';
 
-/** 開始までのカウントダウン (30秒ごとに更新) */
+/** 開始までのカウントダウン (30秒ごとに更新)。まもなく・開催中は朱色 */
 export function Countdown({
   start,
   end,
   serverNow,
-  large = false,
+  size = 'md',
 }: {
   start: string;
   end: string;
   /** 初回描画はサーバーと同じ時刻で行い、ハイドレーションの不一致を避ける */
   serverNow: string;
-  large?: boolean;
+  size?: 'md' | 'lg' | 'xl';
 }) {
   const [now, setNow] = useState<Date>(() => new Date(serverNow));
   useEffect(() => {
@@ -22,19 +21,13 @@ export function Countdown({
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
-  const n = now;
-  const label = countdownLabel(start, end, n);
-  const tone = countdownTone(start, end, n);
-  const color = tone === 'live' ? 'text-ok' : tone === 'soon' ? 'text-brand' : 'text-fg';
+  const label = countdownLabel(start, end, now);
+  const tone = countdownTone(start, end, now);
+  const color = tone === 'later' ? 'text-ink' : 'text-signal';
+  const scale = size === 'xl' ? 'text-[40px] lg:text-[56px]' : size === 'lg' ? 'text-[28px]' : 'text-[22px]';
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 font-extrabold tabular-nums ${color} ${large ? 'text-lg' : 'text-sm'}`}
-    >
-      {tone === 'live' ? (
-        <span className="live-dot size-2 rounded-full bg-ok shadow-[0_0_8px_var(--color-ok)]" aria-hidden />
-      ) : (
-        <Clock className={large ? 'size-4.5' : 'size-3.5'} aria-hidden />
-      )}
+    <span className={`font-display inline-flex items-center gap-2 leading-none tabular-nums ${color} ${scale}`}>
+      {tone === 'live' && <span className="size-2.5 shrink-0 bg-signal" aria-hidden />}
       <span>{label}</span>
     </span>
   );

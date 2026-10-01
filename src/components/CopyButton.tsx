@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
-export function CopyButton({ text, label = 'コピー' }: { text: string; label?: string }) {
+export function CopyButton({ text, label = 'コピー', onInk = false }: { text: string; label?: string; onInk?: boolean }) {
   const [done, setDone] = useState(false);
   async function copy() {
     try {
@@ -22,10 +22,16 @@ export function CopyButton({ text, label = 'コピー' }: { text: string; label?
     setDone(true);
     setTimeout(() => setDone(false), 1800);
   }
+  const fill = onInk ? (done ? '#8fa2ff' : '#ffffff') : done ? 'var(--color-ok)' : 'var(--color-ally)';
   return (
-    <button type="button" onClick={copy} className={`btn-sm btn ${done ? 'bg-ok text-bg' : 'bg-brand text-brand-fg'} min-w-24`}>
+    <button
+      type="button"
+      onClick={copy}
+      className={`btn min-w-28 ${onInk ? 'text-ink' : 'text-white'}`}
+      style={{ background: `linear-gradient(315deg, transparent 10px, ${fill} 0)` }}
+    >
       {done ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-      <span aria-live="polite">{done ? 'コピー済み' : label}</span>
+      <span aria-live="polite">{done ? 'コピーしました' : label}</span>
     </button>
   );
 }

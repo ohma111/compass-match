@@ -13,6 +13,16 @@ import { containsUrl } from './url';
 import { sanitizeSrc } from '../src-param';
 import { isValidCapacity } from '../capacity';
 import { autoEnd, autoTitle, resolveStart, START_KEYS } from '../recruit';
+import {
+  LOGIN_ID_PATTERN,
+  LOGIN_ID_RULE,
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN,
+  isValidRecoveryCode,
+  normalizeLoginId,
+  normalizeRecoveryCode,
+  passwordByteLength,
+} from '../account';
 
 const NO_URL = 'URLは入力できません';
 
@@ -90,6 +100,38 @@ export const onboardingSchema = z.object({
   src: z.unknown().transform(sanitizeSrc),
 });
 export type OnboardingInput = z.input<typeof onboardingSchema>;
+
+// ---------------------------------------------------------------------
+// v3: ユーザーID + パスワード
+// ---------------------------------------------------------------------
+export const loginIdSchema = z
+  .string({ message: 'ユーザーIDを入力してください' })
+  .transform((s) => s.trim())
+  .pipe(z.string().min(1, 'ユーザーIDを入力してください').regex(LOGIN_ID_PATTERN, `ユーザーIDは${LOGIN_ID_RULE}です`))
+  .transform(normalizeLoginId);
+
+export const passwordSchema = z
+  .string({ message: 'パスワードを入力してください' })
+  .min(PASSWORD_MIN, `パスワードは${PASSWORD_MIN}文字以上にしてください`)
+  .refine((s) => passwordByteLength(s) <= PASSWORD_MAX_BYTES, 'パスワードが長すぎます (半角72文字まで)')
+  .refine((s) => s.trim() === s, 'パスワードの前後に空白は使えません');
+
+/** 登録(1画面): ユーザーID・パスワード・表示名・ランク帯・(任意)ロール・同意 */
+export const signupSchema = onboardingSchema.extend({
+  loginId: loginIdSchema,
+  password: passwordSchema,
+});
+export type SignupInput = z.input<typeof signupSchema>;
+
+/** パスワードを忘れたとき: ユーザーID + 引き継ぎコード + 新しいパスワード */
+export const recoverSchema = z.object({
+  loginId: loginIdSchema,
+  code: z
+    .string({ message: '引き継ぎコードを入力してください' })
+    .transform(normalizeRecoveryCode)
+    .refine(isValidRecoveryCode, '引き継ぎコードは16桁です (ハイフンはあってもなくても大丈夫です)'),
+  password: passwordSchema,
+});
 
 /** 募集作成(タップ式)の入力。開始時刻はチップのキーで受け取り、サーバーの現在時刻で解決する */
 export const recruitmentSchema = z

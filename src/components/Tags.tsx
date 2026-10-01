@@ -10,15 +10,11 @@ import {
   type RecruitVc,
 } from '@/lib/constants';
 
-/** 目的バッジ (目的ごとに色分け) */
+/** 目的 (色の付いた斜めの小さな札 + 文字) */
 export function PurposeBadge({ purpose, size = 'sm' }: { purpose: Purpose; size?: 'sm' | 'md' }) {
   return (
-    <span
-      className={`tone-${purpose} inline-flex items-center gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--tone)_45%,transparent)] bg-[color-mix(in_srgb,var(--tone)_14%,transparent)] font-extrabold text-[var(--tone)] ${
-        size === 'md' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs'
-      }`}
-    >
-      <span className="size-1.5 rounded-full bg-[var(--tone)] shadow-[0_0_8px_var(--tone)]" aria-hidden />
+    <span className={`tone-${purpose} inline-flex items-center gap-1.5 font-bold text-[var(--tone)] ${size === 'md' ? 'text-sm' : 'text-[13px]'}`}>
+      <span aria-hidden className={`${size === 'md' ? 'h-4 w-2' : 'h-3.5 w-1.5'} [transform:skewX(var(--seat-skew))] bg-[var(--tone)]`} />
       {PURPOSE_LABELS[purpose]}
     </span>
   );
@@ -38,7 +34,7 @@ export function MoodTags({ tags }: { tags: MoodTag[] }) {
 export function JoinModeBadge({ mode }: { mode: JoinMode }) {
   const Icon = mode === 'instant' ? Zap : Hand;
   return (
-    <span className={`inline-flex items-center gap-1 text-xs font-bold ${mode === 'instant' ? 'text-brand' : 'text-muted'}`}>
+    <span className={`inline-flex items-center gap-1 text-xs font-bold ${mode === 'instant' ? 'text-ally' : 'text-slate'}`}>
       <Icon className="size-3.5" aria-hidden />
       {JOIN_MODE_LABELS[mode]}
     </span>
@@ -47,12 +43,12 @@ export function JoinModeBadge({ mode }: { mode: JoinMode }) {
 
 const VC_ICON = { on: Mic, any: Headphones, off: MicOff } as const;
 
-export function VcBadge({ vc, withLabel = false }: { vc: RecruitVc; withLabel?: boolean }) {
+export function VcBadge({ vc }: { vc: RecruitVc }) {
   const Icon = VC_ICON[vc];
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted" title={RECRUIT_VC_LABELS[vc]}>
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-slate">
       <Icon className="size-3.5" aria-hidden />
-      {withLabel ? RECRUIT_VC_LABELS[vc] : <span className="sr-only">{RECRUIT_VC_LABELS[vc]}</span>}
+      {RECRUIT_VC_LABELS[vc]}
     </span>
   );
 }

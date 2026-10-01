@@ -1,51 +1,79 @@
 @import "tailwindcss";
 
-/* ダーク基調 + ネオンアクセント。目的ごとの色は --color-p-* */
+/*
+ * v3 「ロビー」: 試合前のチーム編成画面を、明るいアリーナの床とインクで描く。
+ * - 床 (floor) の上に白いシート、文字と太い罫はインク。
+ * - 味方 = コバルト (参加・募集・埋まった席)。シグナル = 朱 (開催中・まもなく・通知)。
+ * - 角丸はほぼ使わない。主ボタンとシートは右上/右下を斜めに切る。席は12度傾けた平行四辺形。
+ * 旧トークン名 (bg / surface / brand …) は互換のため残し、値だけ v3 に差し替えている。
+ */
 @theme {
-  --color-bg: #0a0c16;
-  --color-surface: #131729;
-  --color-surface-2: #1b2038;
-  --color-raise: #232a48;
-  --color-fg: #eef1ff;
-  --color-muted: #a3abcf;
-  --color-line: #2b3257;
-  --color-brand: #ffd23f;
-  --color-brand-fg: #1d1600;
-  --color-accent: #7c5cff;
-  --color-ok: #4ade80;
-  --color-warn: #fbbf24;
-  --color-danger: #ff6b7a;
+  --color-floor: #e6e8ee;
+  --color-sheet: #ffffff;
+  --color-tint: #f1f2f6;
+  --color-ink: #16161d;
+  --color-ink-2: #2a2b35;
+  --color-slate: #5a5f70;
+  --color-line: #c5c9d4;
+  --color-ally: #2340f0;
+  --color-ally-deep: #1a2fc0;
+  --color-ally-soft: #e3e8ff;
+  --color-ally-on-ink: #8fa2ff;
+  --color-signal: #d0341b;
+  --color-signal-deep: #b52d16;
+  --color-signal-on-ink: #ff8a73;
 
-  --color-p-rank: #22d3ee;
-  --color-p-enjoy: #4ade80;
-  --color-p-tournament: #fb923c;
-  --color-p-custom: #c084fc;
+  /* 互換 (v2 のクラス名で書かれた画面もそのまま v3 の色になる) */
+  --color-bg: var(--color-floor);
+  --color-surface: var(--color-sheet);
+  --color-surface-2: var(--color-tint);
+  --color-raise: #dfe2ea;
+  --color-fg: var(--color-ink);
+  --color-muted: var(--color-slate);
+  --color-brand: var(--color-ally);
+  --color-brand-fg: #ffffff;
+  --color-accent: var(--color-ally);
+  --color-ok: #0b7a51;
+  --color-warn: #a35b00;
+  --color-danger: var(--color-signal);
 
-  --font-sans: var(--font-mplus), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
-  --radius-card: 1.25rem;
+  /* 目的ごとの色 (白いシートの上で文字として AA を満たす濃さ) */
+  --color-p-rank: #1b3fd8;
+  --color-p-enjoy: #0b8457;
+  --color-p-tournament: #c2410c;
+  --color-p-custom: #7c3aed;
+
+  --font-sans: var(--font-text), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-text), "Hiragino Sans", sans-serif;
+  --radius-card: 6px;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --cut: 14px;
+  --seat-skew: -12deg;
 }
 
 html {
-  background: var(--color-bg);
+  background: var(--color-floor);
 }
 
 body {
-  background:
-    radial-gradient(60rem 28rem at 50% -12rem, rgb(124 92 255 / 0.22), transparent 70%),
-    radial-gradient(40rem 20rem at 110% 10%, rgb(34 211 238 / 0.08), transparent 70%),
-    var(--color-bg);
-  background-attachment: fixed;
-  color: var(--color-fg);
+  background: var(--color-floor);
+  color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: "palt" 1;
+  line-height: 1.7;
+  /* 見出し書体 (Dela Gothic One) は1ウェイトのみ。太字の疑似生成でつぶれないようにする */
+  font-synthesis: none;
+}
+
+h1, h2, h3 {
+  line-height: 1.35;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 3px solid var(--color-ink);
   outline-offset: 2px;
 }
 
@@ -55,40 +83,63 @@ body {
 .tone-tournament { --tone: var(--color-p-tournament); }
 .tone-custom { --tone: var(--color-p-custom); }
 
+/* 白いシート。右上だけ斜めに切る (カードゲームのカードの角) */
+@utility sheet {
+  background:
+    linear-gradient(225deg, transparent calc(var(--cut) * 0.7071), var(--color-sheet) 0);
+  position: relative;
+}
+
 @utility card {
-  @apply rounded-[var(--radius-card)] border border-line bg-surface p-4;
+  @apply rounded-[var(--radius-card)] border border-line bg-sheet p-4;
 }
 
 @utility btn {
-  @apply inline-flex min-h-11 select-none items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
+  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 px-4 text-sm font-bold transition-[background-color,color,transform] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
 }
 
+/* 主ボタン: コバルト、右下を斜めに切る (outline が切られないよう clip-path ではなく背景で切る) */
 @utility btn-primary {
-  @apply btn bg-brand text-brand-fg shadow-[0_0_0_1px_rgb(255_210_63/0.4),0_6px_24px_-6px_rgb(255_210_63/0.55)] hover:brightness-105;
+  @apply btn text-white;
+  background: linear-gradient(315deg, transparent 10px, var(--color-ally) 0);
+  &:hover:not(:disabled) {
+    background: linear-gradient(315deg, transparent 10px, var(--color-ally-deep) 0);
+  }
+  /* 押せないときは色を抜く (薄い青だと押せそうに見えるため) */
+  &:disabled {
+    opacity: 1;
+    color: var(--color-slate);
+    background: linear-gradient(315deg, transparent 10px, #d3d6df 0);
+  }
+}
+
+@utility btn-ink {
+  @apply btn text-white;
+  background: linear-gradient(315deg, transparent 10px, var(--color-ink) 0);
 }
 
 @utility btn-outline {
-  @apply btn border border-line bg-surface-2 text-fg hover:border-muted/60;
+  @apply btn rounded-[3px] border-2 border-ink bg-sheet text-ink hover:bg-tint;
 }
 
 @utility btn-ghost {
-  @apply btn text-muted hover:text-fg;
+  @apply btn text-slate underline-offset-4 hover:text-ink hover:underline;
 }
 
 @utility btn-danger {
-  @apply btn border border-danger/50 bg-danger/10 text-danger;
+  @apply btn rounded-[3px] border-2 border-signal bg-sheet text-signal-deep hover:bg-[#fdeeea];
 }
 
 @utility btn-sm {
-  @apply min-h-11 rounded-lg px-3 text-xs;
+  @apply min-h-11 px-3 text-[13px];
 }
 
 @utility btn-lg {
-  @apply min-h-14 rounded-2xl px-6 text-base;
+  @apply min-h-14 px-6 text-base;
 }
 
 @utility input {
-  @apply min-h-11 w-full rounded-xl border border-line bg-surface-2 px-3 py-2 text-base text-fg outline-none placeholder:text-muted/70 focus:border-brand;
+  @apply min-h-12 w-full rounded-[3px] border-2 border-line bg-sheet px-3 py-2 text-base text-ink outline-none placeholder:text-slate/80 focus:border-ink;
 }
 
 @utility label {
@@ -96,36 +147,37 @@ body {
 }
 
 @utility hint {
-  @apply mt-1 text-xs text-muted;
+  @apply mt-1.5 text-xs leading-relaxed text-slate;
 }
 
+/* 見出し (v2 の英字・字間広めのラベルは使わない) */
 @utility section-title {
-  @apply text-xs font-extrabold tracking-[0.15em] text-muted;
+  @apply font-display text-[17px] text-ink;
 }
 
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs text-muted;
+  @apply inline-flex items-center gap-1 rounded-[3px] bg-tint px-2 py-0.5 text-xs font-medium text-ink-2;
 }
 
 @utility chip-brand {
-  @apply inline-flex items-center gap-1 rounded-full bg-brand/15 px-2.5 py-1 text-xs font-bold text-brand;
+  @apply inline-flex items-center gap-1 rounded-[3px] bg-ally-soft px-2 py-0.5 text-xs font-bold text-ally;
 }
 
-/* タップで選ぶチップ (radio / checkbox を内包する label) */
+/* タップで選ぶチップ (radio / checkbox を内包する label)。選択中はインクで塗る */
 @utility pick {
-  @apply inline-flex min-h-11 cursor-pointer select-none items-center justify-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3.5 text-sm font-bold text-muted transition active:scale-[0.97] has-[:checked]:border-[var(--tone,var(--color-brand))] has-[:checked]:bg-[color-mix(in_srgb,var(--tone,var(--color-brand))_16%,transparent)] has-[:checked]:text-[var(--tone,var(--color-brand))] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand;
+  @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-1.5 rounded-[3px] border-2 border-line bg-sheet px-3.5 text-sm font-bold text-ink-2 transition-colors hover:border-slate has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink;
 }
 
 @utility link {
-  @apply text-brand underline underline-offset-2;
+  @apply font-bold text-ally underline underline-offset-3;
 }
 
 @utility alert-error {
-  @apply rounded-xl border border-danger/40 bg-danger/10 px-3 py-2.5 text-sm text-danger;
+  @apply border-l-4 border-signal bg-sheet px-3 py-2.5 text-sm font-medium text-signal-deep;
 }
 
 @utility alert-ok {
-  @apply rounded-xl border border-ok/40 bg-ok/10 px-3 py-2.5 text-sm text-ok;
+  @apply border-l-4 border-ok bg-sheet px-3 py-2.5 text-sm font-medium text-ok;
 }
 
 @utility no-scrollbar {
@@ -135,13 +187,36 @@ body {
   }
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.45; transform: scale(0.8); }
+/* 空き席の斜線 */
+@utility hatch {
+  background-color: var(--color-tint);
+  background-image: repeating-linear-gradient(
+    -48deg,
+    transparent 0 7px,
+    color-mix(in srgb, var(--color-line) 70%, transparent) 7px 9px
+  );
 }
 
-@utility live-dot {
-  animation: pulse-dot 1.4s ease-in-out infinite;
+/* ---------------------------------------------------------------
+ * 動きはここ1か所だけ: 参加が確定した瞬間 (席が滑り込み、判が押される)
+ * --------------------------------------------------------------- */
+@keyframes seat-lock {
+  0% { transform: translateX(70%) skewX(var(--seat-skew)); opacity: 0; }
+  55% { transform: translateX(-4%) skewX(var(--seat-skew)); opacity: 1; }
+  75% { transform: translateX(1.5%) skewX(var(--seat-skew)); }
+  100% { transform: translateX(0) skewX(var(--seat-skew)); }
+}
+@keyframes stamp {
+  0%, 45% { transform: rotate(-8deg) scale(1.9); opacity: 0; }
+  70% { transform: rotate(-8deg) scale(0.94); opacity: 1; }
+  100% { transform: rotate(-8deg) scale(1); opacity: 1; }
+}
+
+.seat-enter {
+  animation: seat-lock 620ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.lineup-stamp {
+  animation: stamp 900ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

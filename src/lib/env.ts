@@ -18,6 +18,20 @@ export function getSupabaseEnv(): { url: string; anonKey: string } {
   return { url, anonKey };
 }
 
+/**
+ * サーバー専用の service_role キー (ユーザーID登録・引き継ぎコードで使用)。
+ * NEXT_PUBLIC_ を付けないこと。ブラウザに埋め込まれると全データを読み書きできてしまう。
+ */
+export function getServiceRoleKey(): string | null {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return key && key.trim() ? key.trim() : null;
+}
+
+/** ユーザーIDでの登録・引き継ぎが使えるか (URL・anonキー・service_roleキーがそろっている) */
+export function isAccountServiceConfigured(): boolean {
+  return isSupabaseConfigured() && getServiceRoleKey() !== null;
+}
+
 export function isSupabaseConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 }

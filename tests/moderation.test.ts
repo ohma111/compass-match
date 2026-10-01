@@ -28,3 +28,23 @@ describe('report auto-hide', () => {
     expect(shouldAutoHide(reports, null, Number.NaN)).toBe(false);
   });
 });
+
+describe('v3: reporter account age', () => {
+  const day = 24 * 60 * 60 * 1000;
+  const at = new Date('2026-10-01T12:00:00Z');
+  const old = new Date(at.getTime() - 2 * day);
+  const fresh = new Date(at.getTime() - 3 * 60 * 60 * 1000);
+  it('does not count reports from accounts younger than 24h', () => {
+    const reports = [
+      { reporterId: 'a', reportedAt: at, reporterCreatedAt: old },
+      { reporterId: 'b', reportedAt: at, reporterCreatedAt: old },
+      { reporterId: 'c', reportedAt: at, reporterCreatedAt: fresh },
+    ];
+    expect(distinctReporterCount(reports)).toBe(2);
+    expect(shouldAutoHide(reports)).toBe(false);
+  });
+  it('counts an account exactly 24h old', () => {
+    const r = { reporterId: 'a', reportedAt: at, reporterCreatedAt: new Date(at.getTime() - day) };
+    expect(distinctReporterCount([r])).toBe(1);
+  });
+});

@@ -103,3 +103,49 @@
 - Instant joins are not announced to other participants in real time. Pages update on navigation or refresh.
 - The countdown uses the device clock after the first render.
 - The ひとこと length check in zod counts UTF-16 units, while the DB counts code points. Emoji-heavy titles may be rejected a little early.
+
+---
+
+# v3 (REDESIGN_V3.md)
+
+## 1. Bug: registered users sent back to /welcome
+- **Cause** (as stated in the spec, confirmed): `getViewer()` and `/users/[id]` ran `profiles.select('*')`. `signup_src` has no column privilege for `authenticated`, so PostgREST returned a permission error, `data` was `null`, and the code read that as "no profile" → redirect to `/welcome`.
+- **Fix**: one column list, `src/lib/profile-columns.ts` (`PROFILE_COLUMNS` / `PROFILE_SELECT`), used everywhere profiles are read. Errors are no longer treated as "no profile": `getViewer()` throws `ProfileLoadError` (shown by the error boundary with a reload button), `getViewerSafe()` no longer swallows errors (only the layout header does), and the OAuth callback / `onboardAction` / `saveProfileAction` check `error` before deciding a profile is missing.
+- **Audit**: every `.select()` in `src/` was checked against the grants. Only the two `select('*')` calls were wrong; embeds of `profiles` use columns inside the `authenticated` grant (and `anon` only reads `id, display_name, rank_band`).
+- **Regression tests**: `db:verify` section 0 runs, as `authenticated`, `select * from profiles` (must fail) and `select <PROFILE_SELECT>` (must succeed). `scripts/db-verify.sh` reads `PROFILE_SELECT` from the TS file with `node --experimental-strip-types` and passes it to psql, so the SQL test uses the same constant as the app. `tests/profile-columns.test.ts` checks the list against the grant parsed from the migration and fails if any source file uses `select('*')`.
+
+## 2. Auth: user ID + password
+- **How it works**: Supabase Auth email/password with a synthetic address `<login_id lowercased>@example.edu` (`src/lib/account.ts`). The app never stores or hashes passwords; GoTrue does.
+- **Why `example.edu`** (checked against github.com/supabase/auth at commit `ce9a8ee`, 2026-09-22):
+  - Sign-up/admin create only call `checkmail.ValidateFormat` (`internal/api/mail.go` `validateEmail`) → format check only. The address passes the same regex (unit-tested).
+  - The extended validator (`internal/mailer/validateclient/validateclient.go`, used only when GoTrue sends mail) rejects the suffixes `.test .example .invalid .local .localhost` and the hosts `example.com/.net/.org`, `test.com`, `email.com`, etc., then requires DNS (MX or A) and checks blocked MX hosts. `example.edu` is not on any list and resolves.
+  - `example.edu` publishes a Null MX (`MX 0 .`, RFC 7505) and `v=spf1 -all`, served by the same IANA-style Cloudflare setup as `example.com` → no mail can be delivered to anyone. (`.invalid` etc. would also be undeliverable, but fail the extended validator, which the spec asks us to pass.)
+  - With "Confirm email" OFF and users created with `email_confirm: true`, no mail is ever attempted anyway.
+- **Sign-up** (`signupAction`, server): zod → per-IP limit (3/hour, 10/day; IP from Vercel's `x-forwarded-for`, stored only as HMAC-SHA256 keyed with the service-role key) → `auth.admin.createUser` (service role) → `register_account` (login ID + recovery-code hash) → `signInWithPassword` on the cookie client (session set immediately) → `save_my_profile` as the user. Any failure after the user is created deletes the user again. The recovery code is shown once, then the user continues to `next` (the saved join/post intent resumes as in v2).
+- **Login** (`LoginForm`, browser): `signInWithPassword` straight from the browser, so GoTrue's per-IP limits apply to the real client IP instead of Vercel's.
+- **Recovery code**: 16 chars from a 32-symbol alphabet without 0/O/1/I (80 bits), only SHA-256 stored (`accounts.recovery_hash`, not readable even by the owner). `recoverAction`: per-IP 10/hour and per-ID 5/hour limits → `verify_recovery` → `auth.admin.updateUserById` → new code issued (old one invalid) → sign in → other sessions signed out. マイページ can re-issue a code.
+- **service_role** is needed for creating users without the public sign-up limiter, for setting another user's password during recovery, and for the server-only RPCs. It lives only in `SUPABASE_SERVICE_ROLE_KEY` (server), used by `src/lib/supabase/admin.ts`.
+- **Discord** stays as a small「Discordでも入れる」link on login/sign-up. X is removed from the UI and from the `signInWithProvider` allow-list.
+- Guests who press 参加する/募集する now go to `/signup` (with a link to `/login`) instead of `/login`.
+
+## 3. Abuse controls (DB)
+- `submit_report` counts a reporter only if, **at the time of the report**, their profile was at least 24 hours old (`reports.created_at >= profiles.created_at + 24h`). Fresh reports are still stored and shown to the admin. Profile creation time is used (always ≥ auth user creation), and the check is not retroactive. `src/lib/moderation.ts` mirrors it.
+- Raw Supabase sign-ups (someone calling `/auth/v1/signup` directly with the anon key) get `provider = email` but no `accounts` row; a `before insert` trigger on `profiles` rejects them, so they cannot use the app or bypass our IP limit. Discord users and the ID flow are unaffected.
+
+## 4. Migration `20261001000006_v3.sql`
+`accounts` table (RLS, owner can read `user_id, login_id, recovery_issued_at, created_at` only), `private.auth_attempts` + `auth_rate_check`, `register_account`, `verify_recovery`, `set_recovery_hash` (execute revoked from `public/anon/authenticated`, granted to `service_role`), the profile trigger, and the new `submit_report`. Idempotent (`if not exists`, `create or replace`, `drop ... if exists`); `db-verify.sh` now applies the latest migration twice. No seed.
+
+## 5. Design ("ロビー")
+Plan, review against generic defaults, and the 6 scored rounds are in `docs/design-review.md`; final screenshots in `docs/screenshots/`. In short: light arena floor + ink + cobalt (ally) + vermilion (signal), Dela Gothic One for display and numbers, Zen Kaku Gothic New for text, chamfered sheets/buttons instead of rounded cards, and one recurring shape — the slanted 3-seat lineup (`src/components/Lineup.tsx`) used in the feed, detail, create preview and sign-up preview. Motion only when your join is confirmed (seat slides in, stamp). The soonest joinable recruitment is shown larger. Pages are split into data loaders (`src/app/(site)/...`) and views (`src/components/views/*`) so the preview can render the same views with fixtures.
+
+## 6. Dev-only preview
+`/dev/preview/[screen]` (`src/app/dev/**/*.dev.tsx`, fixtures in `src/lib/fixtures.ts`). `next.config.ts` adds `dev.tsx` to `pageExtensions` only when `NODE_ENV=development`; the page also checks `isPreviewEnabled()`. Guarded by `tests/preview-guard.test.ts` and by `postbuild` (`scripts/check-no-preview.mjs` fails the build if any `/dev` route exists).
+
+## Known gaps (v3)
+- **X-only accounts** from v1/v2 cannot log in from the UI any more. There is no self-service migration to an ID; the operator has to handle requests manually (or temporarily re-add the button).
+- Discord users cannot add a user ID/password to their account (they keep using Discord).
+- Login brute force relies on GoTrue's per-IP limits (login is browser-side on purpose); there is no per-ID lockout.
+- Someone calling GoTrue's sign-up API directly can still occupy a login ID (the account is useless because it cannot create a profile, but the ID shows as taken). The operator can delete such users in the dashboard.
+- The signup IP limit trusts Vercel's `x-forwarded-for`; elsewhere a proxy could share one bucket.
+- Screenshots were taken with `next dev --webpack` (Turbopack's dev font fetch failed through the sandbox proxy); `npm run build` (Turbopack) succeeded.
+- Instant joins by others still appear on refresh only (unchanged from v2).

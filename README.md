@@ -1,4 +1,4 @@
-# コンパス遊び相手さがし (v2)
+# コンパス遊び相手さがし (v3)
 
 
 「#コンパス」で、今この時間に一緒に遊べる人を見つけるための募集掲示板です(非公式のファンサービス)。
@@ -8,6 +8,38 @@ Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Auth / Postgres / R
 - 実装内容・仕様との差分: `IMPLEMENTATION_NOTES.md`
 
 ---
+
+## v3 へのアップデート手順(v2 を公開している場合)
+
+v3 では、メールアドレスを使わない **ユーザーID + パスワード** の登録・ログインに変わります。運営者の作業は次の4つだけです。この順番で行ってください(マイグレーションより先にデプロイすると、登録画面がエラーになります)。
+
+1. **マイグレーションを1ファイル適用する**(無料)
+   - Supabase ダッシュボード → SQL Editor に `supabase/migrations/20261001000006_v3.sql` の中身をすべて貼り付けて「Run」
+   - 追加されるもの: ユーザーIDと引き継ぎコード(ハッシュのみ)を保存する `accounts` テーブル、登録・パスワード再設定の回数制限、メールで直接作られたアカウントがプロフィールを作れないようにする仕組み、通報の「作成24時間未満のアカウントは数えない」ルール
+   - 2回実行しても壊れません。シードデータは含みません
+2. **Supabase の認証設定**(無料。Authentication → Sign In / Providers)
+   - **Email** を開いて次のとおりにして「Save」
+     - Enable Email provider: **ON**
+     - Confirm email: **OFF**(内部用のアドレスにはメールが届かないため。OFF にしても確認メールは送られません)
+     - Minimum password length: **8**
+   - User Signups の **Allow new users to sign up: ON のまま**(Discord で新しく入る人のため。ユーザーIDの登録はサーバーが管理者APIで作るので、この設定に関係なく動きます)
+   - **X / Twitter (OAuth 2.0)** は画面から外したので、無効にしてかまいません(既存の X だけで登録した人は入れなくなります。下の「注意」参照)
+   - Discord の設定はそのままにしてください(管理者アカウントが Discord のため)
+   - 💰 「Leaked password protection(漏えいパスワードの確認)」は Pro プラン以上の機能です。**有効にしなくても動きます**。
+3. **Vercel に環境変数を1つ追加する**(無料。Settings → Environment Variables)
+   | 変数名 | 値 | 環境 |
+   | --- | --- | --- |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API Keys の **service_role**(または Secret key `sb_secret_...`) | Production(プレビューでも試すなら Preview も) |
+   - ⚠️ **名前に `NEXT_PUBLIC_` を付けないでください。** 付けるとブラウザに埋め込まれ、誰でも全データを読み書きできるようになります。サーバーだけで使います(登録・引き継ぎコードの確認・パスワードの再設定)
+   - ⚠️ この値はチャット・GitHub・スクリーンショットに貼らないでください。漏れたら Supabase で再発行(Rotate)してください
+4. **再デプロイする**(Deployments → 最新のデプロイ → Redeploy。環境変数は再デプロイ後に反映されます)
+
+確認: 本番サイトで「はじめる」→ ユーザーID・パスワード・表示名・ランク帯を入れて登録 → 引き継ぎコードが表示される → マイページにユーザーIDが出ていれば完了です。
+
+注意:
+- **既存の Discord のアカウントはそのまま使えます**(ログイン画面の「Discordでも入れる」)。
+- **X だけで登録していた人は、v3 では画面からログインできません。** 必要ならフィードバックで連絡してもらい、ダッシュボードから案内してください(IMPLEMENTATION_NOTES の Known gaps 参照)。
+- パスワードを忘れた人は、登録時に表示された「引き継ぎコード」で再設定できます(ログイン画面 →「パスワードを忘れた」)。コードもなくした人は、運営者が Supabase → Authentication → Users でそのユーザーを探し、パスワードを再設定するか削除してください(内部用のアドレスは `<ユーザーID>@example.edu` の形です。このアドレスにメールは届きません)。
 
 ## v2 へのアップデート手順(すでに v1 を公開している場合)
 
@@ -42,7 +74,7 @@ v1 の4つのマイグレーションは本番に適用済みなので、**追�
 2. 作成後、Project Settings → API で次の2つを控えます。
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
    - anon (public) キー、または Publishable key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - ⚠️ `service_role` / Secret キーはこのアプリでは使いません。どこにも設定しないでください。
+   - Project Settings → API Keys の **service_role**(または Secret key)→ `SUPABASE_SERVICE_ROLE_KEY`(v3 から使用。サーバー専用。`NEXT_PUBLIC_` を付けないこと)
 
 ### 2. データベースにマイグレーションを適用する
 次のどちらかの方法で、`supabase/migrations/` の SQL を **ファイル名の順番どおりに** 実行します。
@@ -54,6 +86,7 @@ v1 の4つのマイグレーションは本番に適用済みなので、**追�
   3. `20260930000003_rls.sql`
   4. `20260930000004_settings_and_cron.sql`
   5. `20261001000005_join_mode.sql`
+  6. `20261001000006_v3.sql`
 - **方法B: Supabase CLI**
   ```bash
   npx supabase login
@@ -73,7 +106,11 @@ v1 の4つのマイグレーションは本番に適用済みなので、**追�
 3. OAuth2 画面の **Client ID** と **Client Secret** を控えます。
 4. Supabase ダッシュボード → Authentication → Sign In / Providers → **Discord** を有効化し、Client ID と Client Secret を貼り付けて保存します。
 
-### 4. X(Twitter) ログインを設定する
+### 4. ユーザーID + パスワードの設定(v3 から。無料)
+Authentication → Sign In / Providers → **Email** を Enable ON、Confirm email OFF、Minimum password length 8 にして保存します(上の「v3 へのアップデート手順」の2と同じ)。
+
+### (v2 まで) X(Twitter) ログイン — v3 では不要
+v3 で画面から外したため、設定しなくてかまいません。以下は v2 の記録です。
 1. https://developer.x.com でデベロッパーアカウントを作成し、Project と App を作成します。
    - 💰 **X API は Free プランで作成してください。** ログイン(OAuth 2.0)用途だけなら有料プラン(Basic 等)は不要な想定ですが、X の料金体系は頻繁に変わるため、登録時に「ログインだけなら無料で使えるか」を必ず確認してください。有料が必要と表示された場合は X ログインをあとまわしにし、Discord ログインだけで公開できます(X ボタンは押してもエラー画面になるだけです)。
 2. App の「User authentication settings」で次を設定します。
@@ -98,7 +135,7 @@ cp .env.example .env.local
 # .env.local を開き、手順1で控えた値を入れる
 npm run dev
 ```
-http://localhost:3000 を開いて、ログイン → 初回登録(表示名・ランク帯・同意) → 募集作成 ができれば OK です。
+http://localhost:3000 を開いて、「はじめる」でユーザーID登録 → 募集作成 ができれば OK です。
 
 | 変数名 | 内容 | 例 |
 | --- | --- | --- |
@@ -107,12 +144,13 @@ http://localhost:3000 を開いて、ログイン → 初回登録(表示名・�
 | `NEXT_PUBLIC_SITE_URL` | 公開URL(末尾スラッシュなし) | `https://your-app.vercel.app` |
 | `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW` | 「今から遊べる」機能。**初期は `false`** | `false` |
 | `NOW_LIST_MIN_USERS` | 「今から遊べる」で人数を出す閾値 | `30` |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role キー。**サーバー専用・`NEXT_PUBLIC_` を付けない** | (ダッシュボードの値) |
 
 ### 7. Vercel にデプロイする
 1. このフォルダを GitHub の(できれば **Private**)リポジトリに push します。`.env.local` は `.gitignore` 済みなので push されません。
 2. https://vercel.com で GitHub 連携してリポジトリを Import します。
    - 💰 **Hobby(無料)プランで作成してください。** 注意: Vercel の Hobby プランは **非商用利用のみ** です。将来、課金機能や広告を入れる場合は Pro プラン(月額 $20〜)への切り替えが必要になります。
-3. Settings → Environment Variables に、手順6の表の5つを登録します(`NEXT_PUBLIC_SITE_URL` は Vercel の本番URL)。
+3. Settings → Environment Variables に、手順6の表の6つを登録します(`NEXT_PUBLIC_SITE_URL` は Vercel の本番URL)。
 4. Deploy します。デプロイ後のURLを手順5の Site URL / Redirect URLs と、X の Website URL に反映してください。
    - 💰 独自ドメインを使う場合はドメイン代がかかります(Vercel の `*.vercel.app` のままなら無料)。
 
@@ -143,7 +181,11 @@ npm run build      # 本番ビルド (Supabase 環境変数なしでも成功す
 npm test           # Vitest (検証・URLブロック・通報・JST・開始チップ・定員・参加方式・自動タイトル)
 npm run typecheck  # 型チェック
 npm run db:verify  # ローカルの PostgreSQL 16 でマイグレーション + RLS テストを実行 (Supabaseには接続しない)
+npm run preview:shots  # (npm run dev 起動中に) /dev/preview の主要画面を 375px / 1440px で撮影して docs/screenshots へ
 ```
+
+- `/dev/preview` は **`npm run dev` のときだけ存在する** ダミーデータの画面です(Supabase に接続しない)。`*.dev.tsx` は本番ビルドでルートにならず、`npm run build` の後に `scripts/check-no-preview.mjs` が含まれていないことを確認します。
+- `npm run preview:shots` はグローバルの `playwright` と、`PLAYWRIGHT_BROWSERS_PATH` の Chromium を使います(リポジトリの依存には入れていません)。
 
 - `npm run db:verify` には PostgreSQL 16 以上のサーバーバイナリ(`initdb`, `pg_ctl`, `psql`)が必要です。`PGBIN=/usr/lib/postgresql/16/bin` のように場所を指定できます。Supabase の `auth` スキーマ等は `supabase/tests/00_supabase_shim.sql` で最小限を再現しています。
 - ローカルで Supabase 一式を動かしたい場合は Docker と `npx supabase start` を使います(`supabase/seed.sql` が投入されます)。
@@ -153,6 +195,7 @@ npm run db:verify  # ローカルの PostgreSQL 16 でマイグレーション +
 | --- | --- | --- |
 | 通報で自動非表示にする人数 | DB `app_settings.report_auto_hide_threshold` | 3 |
 | チャット保持時間(募集終了後) | DB `app_settings.chat_retention_hours` | 6 |
+| 登録・パスワード再設定の回数制限 | `src/app/auth/actions.ts`(`SIGNUP_LIMITS` など。記録は DB の `private.auth_attempts`) | 登録: 同じ接続元から1時間3件・1日10件。再設定: 接続元ごと1時間10回、ユーザーIDごと1時間5回 |
 | レート制限 | DB 関数内(`20260930000002_functions.sql`)。`src/lib/constants.ts` の `RATE_LIMITS` は表示・ドキュメント用 | 募集 3件/時・同時3件、申請 10件/10分、チャット 2秒に1件かつ30秒に5件、通報 10件/日 |
 
 DB の設定値は SQL Editor で変更できます:

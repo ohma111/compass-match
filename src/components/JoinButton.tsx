@@ -24,6 +24,7 @@ export function JoinButton({
   joined,
   src,
   size = 'md',
+  hideWhenJoined = false,
 }: {
   recruitmentId: string;
   joinMode: JoinMode;
@@ -34,14 +35,17 @@ export function JoinButton({
   joined: boolean;
   src?: string | null;
   size?: 'md' | 'lg';
+  /** 詳細ページでは参加済みならボタンを出さない (同じページへのリンクになるため) */
+  hideWhenJoined?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const detail = `/recruitments/${recruitmentId}`;
-  const sizing = size === 'lg' ? 'btn-lg w-full' : 'w-full min-h-12 text-base';
+  const sizing = size === 'lg' ? 'btn-lg w-full text-base' : 'w-full min-h-12 text-[15px]';
 
+  if (joined && hideWhenJoined) return null;
   if (isOwner || joined) {
     return (
       <Link href={detail} className={`btn-outline ${sizing}`}>
@@ -51,11 +55,11 @@ export function JoinButton({
     );
   }
   if (done) {
-    return <p className={`btn border border-ok/40 bg-ok/10 text-ok ${sizing}`} role="status">{done}</p>;
+    return <p className={`btn border-2 border-ok bg-sheet text-ok ${sizing}`} role="status">{done}</p>;
   }
   if (!canJoin || auth === 'restricted') {
     return (
-      <p className={`btn border border-line bg-surface-2 text-muted ${sizing}`} aria-disabled="true">
+      <p className={`btn hatch text-ink-2 ${sizing}`} aria-disabled="true">
         {auth === 'restricted' ? '現在ご利用いただけません' : reason}
       </p>
     );
@@ -91,7 +95,7 @@ export function JoinButton({
         {pending ? '処理中…' : joinButtonLabel(joinMode)}
       </button>
       {error && (
-        <p className="text-xs text-danger" role="alert">
+        <p className="text-[13px] font-medium text-signal-deep" role="alert">
           {error}
         </p>
       )}
