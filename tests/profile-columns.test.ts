@@ -5,13 +5,16 @@ import { PROFILE_COLUMNS, PROFILE_SELECT } from '@/lib/profile-columns';
 
 const root = path.resolve(__dirname, '..');
 
-/** マイグレーションの `grant select (...) on public.profiles to authenticated;` から列を取り出す */
+/** 全マイグレーションの `grant select (...) on public.profiles to <role>;` から列を取り出す */
 function grantedProfileColumns(role: 'authenticated' | 'anon'): string[] {
-  const sql = readFileSync(path.join(root, 'supabase/migrations/20260930000003_rls.sql'), 'utf8');
-  const re = new RegExp(`grant select \\(([^)]*)\\) on public\\.profiles to ${role};`, 'm');
-  const m = sql.match(re);
-  if (!m) throw new Error(`grant for ${role} not found`);
-  return m[1].split(',').map((s) => s.trim()).filter(Boolean);
+  const dir = path.join(root, 'supabase/migrations');
+  const re = new RegExp(`grant select \\(([^)]*)\\) on public\\.profiles to ${role};`, 'g');
+  const cols: string[] = [];
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.sql')).sort()) {
+    for (const m of readFileSync(path.join(dir, f), 'utf8').matchAll(re)) cols.push(...m[1].split(',').map((s) => s.trim()).filter(Boolean));
+  }
+  if (cols.length === 0) throw new Error(`grant for ${role} not found`);
+  return cols;
 }
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -11,6 +11,7 @@ import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { LoginView, SignupView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
 import { ME_ID, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
+import { RankPromptDemo } from '../RankPromptDemo.dev';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'プレビュー', robots: { index: false } };
@@ -43,6 +44,31 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'new';
       body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" />;
       break;
+    case 'join-rank': {
+      // ユーザーIDで登録した直後に「参加する」を押したとき (ランク帯を1タップで選ぶ)
+      const d = detail(now, false);
+      body = (
+        <div className="space-y-6">
+          <div className="mx-auto max-w-xl">
+            <RankPromptDemo />
+          </div>
+          <RecruitmentDetailView
+            r={d.r}
+            now={now}
+            auth="needs-rank"
+            viewerId={ME_ID}
+            participations={d.participations}
+            myState={d.myState}
+            roomCode={null}
+            contacts={[]}
+            messages={[]}
+            src={null}
+            siteUrl="http://localhost:3000"
+          />
+        </div>
+      );
+      break;
+    }
     case 'detail':
     case 'detail-joined': {
       const joined = screen === 'detail-joined';

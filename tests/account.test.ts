@@ -60,7 +60,7 @@ describe('recovery code', () => {
 });
 
 describe('signup / recover schemas', () => {
-  const base = { loginId: 'Taro_01', password: 'correct horse', displayName: 'たろう', rankBand: 's4_6', playRoles: ['tank'], agreeTerms: true, src: null };
+  const base = { loginId: 'Taro_01', password: 'correct horse', agreeTerms: true, src: null };
   it('accepts a valid signup and lowercases the id', () => {
     const r = signupSchema.safeParse(base);
     expect(r.success).toBe(true);

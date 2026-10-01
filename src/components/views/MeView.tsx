@@ -69,7 +69,7 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
         </nav>
       </aside>
 
-      <div className="mt-10 space-y-10 lg:mt-0">
+      <div className="mt-10 space-y-10 lg:mt-0 xl:grid xl:grid-cols-2 xl:items-start xl:gap-8 xl:space-y-0">
         <section className="space-y-3" aria-labelledby="mine-title">
           <h2 id="mine-title" className="section-title">自分の募集</h2>
           {mine.length === 0 ? (
@@ -77,7 +77,7 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
               進行中の募集はありません。<Link href="/recruitments/new" className="link">募集する</Link>
             </p>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4">
               {mine.map((r) => (
                 <RecruitmentCard key={r.id} r={r} now={now} auth="ready" viewerId={userId} />
               ))}
@@ -90,7 +90,7 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
           {joined.length === 0 ? (
             <p className="text-sm text-slate">参加中・申請中の募集はありません。</p>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4">
               {joined.map((p) => (
                 <RecruitmentCard key={p.recruitment.id} r={p.recruitment} now={now} auth="ready" viewerId={userId} myState={p.status} />
               ))}
@@ -98,7 +98,7 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
           )}
         </section>
 
-        <nav className="divide-y divide-line border-y-2 border-ink lg:hidden" aria-label="アカウント">
+        <nav className="divide-y divide-line border-y-2 border-ink lg:hidden xl:col-span-2" aria-label="アカウント">
           <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} />
         </nav>
       </div>

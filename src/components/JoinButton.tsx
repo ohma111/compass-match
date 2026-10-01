@@ -7,14 +7,19 @@ import { requestJoinAction } from '@/app/actions';
 import { authGateHref, saveIntent } from '@/lib/intent';
 import { joinButtonLabel } from '@/lib/capacity';
 import type { JoinMode } from '@/lib/constants';
+import { RankPrompt } from './RankPrompt';
 
-export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted';
+export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted' | 'needs-rank';
 
 export interface JoinControl {
   join: () => void;
   pending: boolean;
   error: string | null;
   done: string | null;
+  /** ランク帯を聞いている途中 */
+  asking: boolean;
+  /** ランク帯を選んだあとに呼ぶ (そのまま参加する) */
+  afterRank: () => void;
 }
 
 /**
@@ -22,11 +27,13 @@ export interface JoinControl {
  * そのあと詳細ページで自動的に参加を再開する (IntentRunner)。
  * 文字のボタンと、ロビーの空き席の両方から同じものを使う。
  */
-export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null): JoinControl {
+export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null, opts: { compact?: boolean } = {}): JoinControl {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
+  const [rankOk, setRankOk] = useState(false);
   const detail = `/recruitments/${recruitmentId}`;
 
   function join() {
@@ -37,6 +44,26 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       router.push(authGateHref(auth, detail));
       return;
     }
+    // 初めての参加: ランク帯を1タップで選んでから続ける (一覧のカードは狭いので詳細で聞く)
+    if (auth === 'needs-rank' && !rankOk) {
+      if (opts.compact) {
+        saveIntent({ kind: 'join', recruitmentId });
+        router.push(detail);
+        return;
+      }
+      setAsking(true);
+      return;
+    }
+    doJoin();
+  }
+
+  function afterRank() {
+    setRankOk(true);
+    setAsking(false);
+    doJoin();
+  }
+
+  function doJoin() {
     start(async () => {
       const r = await requestJoinAction(recruitmentId, src ?? null);
       if (!r.ok) {
@@ -51,7 +78,7 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       }
     });
   }
-  return { join, pending, error, done };
+  return { join, pending, error, done, asking, afterRank };
 }
 
 /** 「参加する」ボタン */
@@ -72,8 +99,8 @@ export function JoinButton(props: {
   /** 一覧のカード内で、席の横に置く短い表示 */
   compact?: boolean;
 }) {
-  const own = useJoin(props.recruitmentId, props.auth, props.src);
-  const { join, pending, error, done } = props.control ?? own;
+  const own = useJoin(props.recruitmentId, props.auth, props.src, { compact: props.compact });
+  const { join, pending, error, done, asking, afterRank } = props.control ?? own;
   const { recruitmentId, joinMode, auth, canJoin, reason, isOwner, joined, size = 'md', hideWhenJoined = false } = props;
   const detail = `/recruitments/${recruitmentId}`;
   const sizing = size === 'lg' ? 'btn-lg w-full text-base' : props.compact ? 'w-full min-h-12 px-2 text-[14px]' : 'w-full min-h-12 text-[15px]';
@@ -82,7 +109,7 @@ export function JoinButton(props: {
   if (isOwner || joined) {
     return (
       <Link href={detail} className={`btn-outline ${sizing}`}>
-        {props.compact ? (isOwner ? '自分の募集' : '参加中') : isOwner ? '自分の募集をひらく' : '参加中・部屋番号を見る'}
+        {props.compact ? (isOwner ? '管理する' : '参加中') : isOwner ? '自分の募集をひらく' : '参加中・部屋番号を見る'}
         <ChevronRight className="size-4" aria-hidden />
       </Link>
     );
@@ -99,6 +126,7 @@ export function JoinButton(props: {
   }
 
   const Icon = joinMode === 'instant' ? Zap : Hand;
+  if (asking) return <RankPrompt verb={joinMode === 'instant' ? '参加' : '申請'} onConfirmed={afterRank} />;
   return (
     <div className="space-y-1.5">
       <button type="button" onClick={join} disabled={pending} className={`btn-primary ${sizing}`}>

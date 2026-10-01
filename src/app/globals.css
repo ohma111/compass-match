@@ -40,7 +40,8 @@
   /* 目的ごとの色 (白いシートの上で文字として AA を満たす濃さ) */
   --color-p-rank: #1b3fd8;
   --color-p-enjoy: #0b8457;
-  --color-p-tournament: #c2410c;
+  /* 大会練習は朱(まもなく・開催中)と見分けられるよう黄土色に */
+  --color-p-tournament: #8a6100;
   --color-p-custom: #7c3aed;
 
   --font-sans: var(--font-text), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;

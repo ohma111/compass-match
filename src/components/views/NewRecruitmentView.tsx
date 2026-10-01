@@ -7,7 +7,7 @@ export function NewRecruitmentView({
   src,
   ownerName,
 }: {
-  auth: 'guest' | 'no-profile' | 'ready';
+  auth: 'guest' | 'no-profile' | 'ready' | 'needs-rank';
   serverNow: string;
   src: string;
   ownerName?: string | null;

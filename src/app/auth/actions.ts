@@ -10,7 +10,7 @@ import { getServiceRoleKey, isAccountServiceConfigured, siteUrl } from '@/lib/en
 import { safeNext } from '@/lib/safe-next';
 import { authEmailFor } from '@/lib/account';
 import { clientIp, generateRecoveryCode, hashRecoveryCode, rateKey } from '@/lib/account-server';
-import { firstError, recoverSchema, signupSchema } from '@/lib/validation/schemas';
+import { DEFAULT_RANK_BAND, firstError, recoverSchema, signupSchema } from '@/lib/validation/schemas';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
 import { TERMS_VERSION } from '@/lib/constants';
 import { toUserMessage } from '@/lib/db-error';
@@ -86,9 +86,6 @@ export async function signupAction(
   const parsed = signupSchema.safeParse({
     loginId: fd.get('loginId') ?? '',
     password: fd.get('password') ?? '',
-    displayName: fd.get('displayName') ?? '',
-    rankBand: fd.get('rankBand') ?? '',
-    playRoles: fd.getAll('playRoles').filter((v): v is string => typeof v === 'string'),
     agreeTerms: fd.get('agreeTerms') === 'on',
     src: sanitizeSrc(store.get(SRC_COOKIE)?.value),
   });
@@ -141,12 +138,13 @@ export async function signupAction(
     return { ok: false, error: authErrorMessage(signed.error) };
   }
 
-  // プロフィールは本人の権限で作成 (同意の記録・URL禁止などは DB 側でも検証される)
+  // プロフィールは本人の権限で作成 (同意の記録などは DB 側でも検証される)。
+  // 表示名はユーザーIDで始め、ランク帯は仮の値 (DB が「未確定」として記録し、初めての募集・参加のときに聞く)
   const asUser = createUserTokenClient(signed.data.session.access_token);
   const prof = await asUser.rpc('save_my_profile', {
-    p_display_name: v.displayName,
-    p_rank_band: v.rankBand,
-    p_play_roles: v.playRoles,
+    p_display_name: v.loginId,
+    p_rank_band: DEFAULT_RANK_BAND,
+    p_play_roles: [],
     p_characters: [],
     p_purposes: [],
     p_vc: 'listen',

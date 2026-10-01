@@ -25,7 +25,8 @@ function initialOf(name?: string): string {
 const SEAT_BG: Record<Seat['kind'], string> = {
   owner: 'bg-ink text-white',
   member: 'bg-ally text-white',
-  anon: 'bg-ink-2 text-white/90',
+  // 名前が見えない参加者も、埋まった席は同じ色 (黒は募集者だけ)
+  anon: 'bg-ally text-white',
   empty: 'hatch text-slate',
 };
 
@@ -114,7 +115,7 @@ export function Lineup({
                   <div className="min-w-0">
                     <p className="font-display text-[44px] leading-none sm:text-[56px]" aria-hidden>{initialOf(s.name)}</p>
                     <p className="mt-2 truncate text-[13px] font-bold sm:text-sm">{s.name}</p>
-                    <p className="flex items-center gap-1.5 text-xs text-white/80">
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-white/90">
                       {s.rank && <span className="whitespace-nowrap">{RANK_LABELS[s.rank]}</span>}
                       {s.roles?.map((r) => <RoleIcon key={r} role={r} className="size-3.5" />)}
                     </p>

@@ -40,10 +40,14 @@ export function RecoveryCodePanel({
           </p>
         )}
         <p className="mt-2 text-sm text-white/80">引き継ぎコード</p>
-        <p className="font-display mt-1 text-[26px] leading-tight tracking-[0.06em] sm:text-[34px]" aria-label={`引き継ぎコード ${formatted.split('').join(' ')}`}>
-          {/* 8桁ずつ2行に分かれても読みやすいよう、前半と後半で折り返す */}
-          <span className="inline-block whitespace-nowrap">{formatted.slice(0, 10)}</span>
-          <span className="inline-block whitespace-nowrap">{formatted.slice(10)}</span>
+        {/* 4文字ずつのまとまりを崩さない (スマホは2×2、広い画面は1行) */}
+        <p
+          className="font-display mt-2 grid grid-cols-2 gap-x-5 gap-y-1 text-[28px] leading-tight tracking-[0.08em] sm:grid-cols-4 sm:text-[34px]"
+          aria-label={`引き継ぎコード ${formatted.split('').join(' ')}`}
+        >
+          {formatted.split("-").map((g, i) => (
+            <span key={i} className="whitespace-nowrap">{g}</span>
+          ))}
         </p>
         <div className="mt-4">
           <CopyButton text={formatted} onInk />

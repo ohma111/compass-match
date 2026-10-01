@@ -94,10 +94,12 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           </div>
         )}
         {r.hidden_at && <p className="alert-error">この募集は通報により一時的に非表示になっています。</p>}
-        {auth === 'ready' && !isOwner && <IntentRunner recruitmentId={id} canJoin={join.ok} src={src} />}
+        {(auth === 'ready' || auth === 'needs-rank') && !isOwner && (
+          <IntentRunner recruitmentId={id} canJoin={join.ok} src={src} needsRank={auth === 'needs-rank'} />
+        )}
       </div>
 
-      <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:items-start lg:gap-14">
+      <div className={`mt-4 lg:grid lg:items-start lg:gap-14 ${isMember || isOwner ? 'lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]' : 'lg:grid-cols-[minmax(0,1fr)_340px]'}`}>
         {/* 左: 募集の内容と席 */}
         <section aria-labelledby="r-title" className={`tone-${r.purpose}`}>
           <div className="flex items-center justify-between gap-3">
@@ -181,7 +183,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
         </section>
 
         {/* 右: 参加した人だけが使うもの */}
-        <div className="mt-10 space-y-6 lg:mt-0">
+        <div className="mt-10 space-y-6 lg:sticky lg:top-24 lg:mt-0">
           {isOwner && (pending.length > 0 || r.join_mode === 'approval') && (
             <section className="space-y-3" aria-labelledby="requests-title">
               <h2 id="requests-title" className="section-title">

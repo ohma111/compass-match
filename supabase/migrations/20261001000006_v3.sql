@@ -1,5 +1,5 @@
 -- =====================================================================
--- v3: ユーザーID + パスワード登録 / 引き継ぎコード / 登録・引き継ぎのレート制限 /
+-- v3: ユーザーID + パスワード登録 / 引き継ぎコード / ランク帯は初回の募集・参加時に選ぶ / 登録・引き継ぎのレート制限 /
 --     作成24時間未満のアカウントの通報を自動非表示の人数に数えない
 -- SQL Editor に貼って1回実行する。2回実行しても壊れない。シードなし。
 -- 既存の RLS・連絡先の開示範囲・ブロック・レート制限は変更しない。
@@ -122,6 +122,37 @@ grant execute on function public.verify_recovery(text, text) to service_role;
 grant execute on function public.set_recovery_hash(uuid, text) to service_role;
 
 -- ---------------------------------------------------------------------
+-- 2a) ランク帯をまだ自分で選んでいないか (ユーザーID登録ではランク帯を聞かず、仮の値で作る)。
+--     既存のプロフィールは選択済み (true)。初めて募集・参加するときに1タップで選んでもらう。
+-- ---------------------------------------------------------------------
+alter table public.profiles add column if not exists rank_confirmed boolean not null default true;
+grant select (rank_confirmed) on public.profiles to authenticated;
+
+create or replace function public.confirm_my_rank(p_rank_band text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'ログインが必要です' using errcode = '28000';
+  end if;
+  if p_rank_band is null or p_rank_band not in ('fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p') then
+    raise exception 'ランク帯を選んでください' using errcode = '22023';
+  end if;
+  update public.profiles set rank_band = p_rank_band, rank_confirmed = true where id = v_uid;
+  if not found then
+    raise exception '先に登録を完了してください' using errcode = 'P0002';
+  end if;
+end;
+$$;
+revoke execute on function public.confirm_my_rank(text) from public, anon;
+grant execute on function public.confirm_my_rank(text) to authenticated;
+
+-- ---------------------------------------------------------------------
 -- 2b) メールアドレスで直接作られたアカウント (Supabase の signup API を直接呼んだもの) は
 --     プロフィールを作れない。ユーザーID登録はサーバーが accounts を先に作るので通る。
 --     Discord で入った人 (provider = discord) と既存のプロフィールには影響しない。
@@ -139,6 +170,10 @@ begin
      )
      and not exists (select 1 from public.accounts a where a.user_id = new.id) then
     raise exception 'このアカウントではプロフィールを作成できません。ユーザーIDで登録してください' using errcode = '42501';
+  end if;
+  -- ユーザーIDで登録した人は、ランク帯をまだ選んでいない状態で始まる
+  if exists (select 1 from public.accounts a where a.user_id = new.id) then
+    new.rank_confirmed := false;
   end if;
   return new;
 end;

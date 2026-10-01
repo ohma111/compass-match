@@ -363,6 +363,17 @@ select public.save_my_profile('Discord', 'fc', '{}', '{}', '{}', 'no', '{}', '',
 reset role;
 select pg_temp.assert((select count(*) from public.profiles where id in ('00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000014')) = 2, 'id-registered and discord users can create profiles');
 select pg_temp.assert((select count(*) from public.profiles where id = '00000000-0000-4000-8000-000000000012') = 0, 'no profile for raw email signup');
+-- ユーザーIDで登録した人はランク帯が未確定で始まり、confirm_my_rank で確定する。Discord の人は確定済み
+select pg_temp.assert((select rank_confirmed from public.profiles where id = '00000000-0000-4000-8000-000000000013') = false, 'id signup starts with unconfirmed rank');
+select pg_temp.assert((select rank_confirmed from public.profiles where id = '00000000-0000-4000-8000-000000000014') = true, 'discord signup rank confirmed');
+select pg_temp.as_user('00000000-0000-4000-8000-000000000013');
+select pg_temp.expect_error($$select public.confirm_my_rank('zz')$$, 'invalid rank rejected');
+select public.confirm_my_rank('s7_9');
+select pg_temp.assert((select rank_confirmed and rank_band = 's7_9' from public.profiles where id = '00000000-0000-4000-8000-000000000013'), 'rank confirmed');
+reset role;
+select pg_temp.as_user(null);
+select pg_temp.expect_error($$select public.confirm_my_rank('fc')$$, 'anon cannot confirm rank');
+reset role;
 
 -- 16. v3: 通報時点で作成24時間未満のアカウントの通報は自動非表示の人数に数えない
 insert into auth.users (id) values

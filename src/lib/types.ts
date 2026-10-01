@@ -14,6 +14,8 @@ export interface Profile {
   suspended_at: string | null;
   banned_at: string | null;
   created_at: string;
+  /** false = ユーザーIDで登録して、まだランク帯を選んでいない */
+  rank_confirmed?: boolean;
 }
 
 export interface Recruitment {

@@ -30,6 +30,9 @@ export const PURPOSE_LABELS: Record<Purpose, string> = {
   custom: 'カスタム',
 };
 
+/** 仮のランク帯 (ユーザーID登録時)。初めての募集・参加のときに本人が1タップで選び直す */
+export const DEFAULT_RANK_BAND: RankBand = 's1_3';
+
 /** 募集条件「S4〜」のような短い下限表記 */
 export const RANK_MIN_LABELS: Record<RankBand, string> = {
   fc: 'F〜',

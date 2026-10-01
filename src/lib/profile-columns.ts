@@ -18,6 +18,8 @@ export const PROFILE_COLUMNS = [
   'suspended_at',
   'banned_at',
   'created_at',
+  // v3 (20261001000006_v3.sql): ランク帯を本人がもう選んだか
+  'rank_confirmed',
 ] as const;
 
 export const PROFILE_SELECT = PROFILE_COLUMNS.join(', ');

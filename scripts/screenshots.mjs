@@ -21,7 +21,7 @@ function loadPlaywright() {
 const { chromium } = loadPlaywright();
 const BASE = process.env.BASE ?? 'http://localhost:3000';
 const OUT = process.env.OUT ?? 'docs/screenshots';
-const ALL = ['home', 'home-empty', 'new', 'detail', 'detail-joined', 'signup', 'signup-done', 'login', 'me'];
+const ALL = ['home', 'home-empty', 'new', 'detail', 'detail-joined', 'signup', 'signup-done', 'login', 'me', 'join-rank'];
 const screens = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const viewports = [
   { name: '375', width: 375, height: 812, mobile: true },
@@ -60,9 +60,17 @@ for (const vp of viewports) {
       return Math.max(page, clipped);
     });
     const file = path.join(OUT, `${s}-${vp.name}.png`);
-    await page.screenshot({ path: file, fullPage: true });
-    // 最初に見える範囲 (固定ヘッダー・タブバーの重なりを正しく確認するため)
     if (vp.mobile) await page.screenshot({ path: path.join(OUT, `${s}-${vp.name}-fold.png`) });
+    // 全体の画像では、固定のヘッダー・タブバー・募集ボタンの帯がページの途中に写り込んで内容を隠すため、
+    // その撮影の間だけ通常の配置に戻す (最初に見える範囲の画像 *-fold.png は実際の見え方のまま)
+    const unfix = vp.mobile
+      ? await page.addStyleTag({
+          content: 'header,nav[aria-label="メインメニュー"],.fixed{position:static!important}',
+        })
+      : null;
+    await page.screenshot({ path: file, fullPage: true });
+    if (unfix) await unfix.evaluate((el) => el.remove());
+    // 最初に見える範囲 (固定ヘッダー・タブバーの重なりを正しく確認するため)
     console.log(`${file}${overflow > 0 ? `  ⚠ horizontal overflow (${overflow})` : ''}`);
   }
   await ctx.close();

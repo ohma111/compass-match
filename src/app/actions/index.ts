@@ -21,6 +21,7 @@ import {
   buildRecruitment,
   reportSchema,
   uuidSchema,
+  rankBandSchema,
 } from '@/lib/validation/schemas';
 
 async function srcFromCookie(explicit?: unknown): Promise<string | null> {
@@ -125,6 +126,8 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     p_src: null,
   });
   if (error) return fail(toUserMessage(error));
+  // マイページでランク帯を保存したら「選択済み」にする
+  await supabase.rpc('confirm_my_rank', { p_rank_band: v.rankBand });
   revalidatePath('/', 'layout');
   return { ok: true, message: 'プロフィールを保存しました' };
 }
@@ -387,4 +390,16 @@ export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/');
+}
+
+// ---------------------------------------------------------------------
+// v3: ランク帯 (ユーザーID登録の人は、初めての募集・参加のときに選ぶ)
+// ---------------------------------------------------------------------
+export async function confirmRankAction(rankBand: string): Promise<ActionResult> {
+  const parsed = rankBandSchema.safeParse(rankBand);
+  if (!parsed.success) return fail('ランク帯を選んでください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('confirm_my_rank', { p_rank_band: parsed.data });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true };
 }

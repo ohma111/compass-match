@@ -62,7 +62,7 @@ export function LobbyLineup(props: {
 
   return (
     <div>
-      <div className="mb-3 flex min-h-10 items-center justify-between gap-3">
+      <div className={`flex min-h-10 items-center justify-between gap-3 ${props.stamp ? 'mb-6' : 'mb-3'}`}>
         <h2 className="section-title">パーティ</h2>
         {props.stamp ? (
           <p
