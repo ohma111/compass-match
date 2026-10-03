@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { onboardAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
+import { RoleIcon } from '@/components/RoleIcon';
 import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_LABELS, type RankBand } from '@/lib/constants';
 
 export function OnboardingForm({ next, suggestedName }: { next: string; suggestedName: string }) {
@@ -29,12 +30,11 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
           className="input text-lg font-bold"
           placeholder="みんなに表示される名前"
         />
-        {suggestedName && <p className="hint">Discordの名前を入れています。変えても大丈夫です。</p>}
       </div>
 
       <fieldset>
         <legend className="label">ランク帯</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {RANK_BANDS.map((r) => (
             <label key={r} className="pick">
               <input type="radio" name="rankBand" value={r} checked={rank === r} onChange={() => setRank(r)} required className="sr-only" />
@@ -46,12 +46,13 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
 
       <fieldset>
         <legend className="label">
-          得意ロール <span className="text-xs font-medium text-slate">(任意・いくつでも)</span>
+          得意ロール <span className="text-xs font-medium text-slate">(任意)</span>
         </legend>
         <div className="grid grid-cols-2 gap-2">
           {PLAY_ROLES.map((r) => (
             <label key={r} className="pick">
               <input type="checkbox" name="playRoles" value={r} className="sr-only" />
+              <RoleIcon role={r} className="size-4" />
               {PLAY_ROLE_LABELS[r]}
             </label>
           ))}

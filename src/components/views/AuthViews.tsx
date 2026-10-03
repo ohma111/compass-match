@@ -9,33 +9,28 @@ function DiscordOption({ next, configured }: { next: string; configured: boolean
   return (
     <form action={signInWithProvider} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate">
       <input type="hidden" name="next" value={next} />
-      <span>Discordで登録した方は</span>
       <button
         name="provider"
         value="discord"
         className="inline-flex min-h-11 items-center font-bold text-ink underline underline-offset-4 disabled:opacity-50"
         disabled={!configured}
       >
-        Discordでも入れる
+        Discordでログイン
       </button>
     </form>
   );
 }
 
 /** 右側の「席」の絵 (PC のみ) */
-function LobbyAside({ heading, body }: { heading: string; body: string }) {
+function LobbyAside() {
   return (
-    <aside className="sheet hidden flex-col justify-between p-12 lg:flex" aria-label="このサイトでできること">
+    <aside className="sheet hidden items-center p-12 lg:flex" aria-hidden>
       <div className="-mx-2">
         <Lineup
           seats={[{ kind: 'owner', name: '募集者' }, { kind: 'member', name: 'あなた', you: true }, { kind: 'empty' }]}
           size="lg"
           label="募集者とあなたの席、空いている1つの席"
         />
-      </div>
-      <div className="mt-12">
-        <p className="font-display text-[26px] leading-snug text-balance">{heading}</p>
-        <p className="mt-3 text-sm leading-relaxed text-slate">{body}</p>
       </div>
     </aside>
   );
@@ -47,17 +42,15 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
         <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
-        <p className="mt-2 text-sm text-slate">別の端末で作った引き継ぎコードを入れると、同じプロフィールで続けられます。</p>
-        {!configured && <p className="alert-error mt-4">サーバーの設定が終わっていないため、今は引き継げません。</p>}
+        {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
         <div className="mt-6">
           <TransferRedeem configured={configured} hasProfileHere={hasProfileHere} />
         </div>
-        <p className="mt-6 border-t border-line pt-4 text-sm text-slate">
-          コードがない場合は、もとの端末のマイページ →「別の端末でも使う」で作れます。
-          v3 でユーザーIDを作った方は <Link href="/login" className="link">以前の方法でログイン</Link>
+        <p className="mt-6 border-t border-line pt-4 text-sm">
+          <Link href="/login" className="inline-flex min-h-11 items-center underline underline-offset-4">以前の方法でログイン</Link>
         </p>
       </div>
-      <LobbyAside heading="同じ席で、どの端末からでも。" body="引き継ぐと、募集・参加中の予定・チャットがそのまま見られます。" />
+      <LobbyAside />
     </div>
   );
 }
@@ -65,15 +58,12 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
 /** 以前の方法でログイン: v3 のユーザーID + パスワードと、Discord (管理者用) */
 export function LoginView({ next, configured, resuming }: { next: string; configured: boolean; resuming: boolean }) {
   const q = `next=${encodeURIComponent(next)}`;
+  void resuming;
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
         <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">以前の方法でログイン</h1>
-        <p className="mt-2 text-sm text-slate">
-          {resuming ? 'ログインすると、さっきの操作に戻ります。' : 'ユーザーIDを作った方 (v3) はこちら。'}
-          はじめての方は、ログインしなくても「参加する」「募集する」からそのまま始められます。
-        </p>
-        {!configured && <p className="alert-error mt-4">サーバーの設定が終わっていないため、今はログインできません。</p>}
+        {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
         <div className="mt-6">
           <LoginForm next={next} configured={configured} />
         </div>
@@ -89,7 +79,7 @@ export function LoginView({ next, configured, resuming }: { next: string; config
           <DiscordOption next={next} configured={configured} />
         </div>
       </div>
-      <LobbyAside heading="空いてる席に入れば、そのまま3人で回せます。" body="部屋番号とチャットは、パーティのメンバーにだけ出ます。" />
+      <LobbyAside />
     </div>
   );
 }
@@ -98,7 +88,6 @@ export function RecoverView({ next, configured }: { next: string; configured: bo
   return (
     <div className="mx-auto max-w-md">
       <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">パスワードを忘れたとき</h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate">ユーザーIDを作ったときに保存した引き継ぎコード (16文字) で、新しいパスワードを決められます。</p>
       <div className="mt-6">
         <RecoverForm next={next} configured={configured} />
       </div>

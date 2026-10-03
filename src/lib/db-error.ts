@@ -9,7 +9,7 @@ export interface PgLikeError {
 const JAPANESE = /[぀-ヿ一-龯]/;
 
 export function toUserMessage(err: PgLikeError | null | undefined): string {
-  if (!err) return 'うまくいきませんでした。少し待ってから、もう一度押してください';
+  if (!err) return 'うまくいきませんでした。もう一度押してください';
   const code = err.code ?? '';
   const msg = err.message ?? '';
   if (['P0001', 'P0002', 'P0429', '22023', '28000', '42501'].includes(code) && JAPANESE.test(msg)) return msg;
@@ -17,5 +17,5 @@ export function toUserMessage(err: PgLikeError | null | undefined): string {
   if (code === '23505') return 'すでに登録されています';
   if (code === '42501') return 'この操作を行う権限がありません';
   if (code === 'PGRST301' || code === '28000') return 'ログインが必要です';
-  return 'うまくいきませんでした。少し待ってから、もう一度押してください';
+  return 'うまくいきませんでした。もう一度押してください';
 }

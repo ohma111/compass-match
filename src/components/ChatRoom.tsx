@@ -86,10 +86,10 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <span className="text-xs text-slate">終わって6時間で消えます</span>
+        <span className="text-xs text-slate">6時間後に消えます</span>
       </div>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
-        {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだ誰も話していません。「よろしく!」からどうぞ。</p>}
+        {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだ会話なし</p>}
         {messages.map((m) => {
           const mine = m.user_id === viewerId;
           return (
@@ -128,7 +128,7 @@ export function ChatRoom({
               rows={1}
               maxLength={LIMITS.message + 50}
               className="input field-sizing-content max-h-32 resize-none"
-              placeholder="メッセージ (URLは送れません)"
+              placeholder="メッセージ"
               aria-label="メッセージ"
             />
             <button
@@ -147,7 +147,7 @@ export function ChatRoom({
           </div>
         </form>
       ) : (
-        <p className="text-sm text-slate">この募集は終わったので、チャットは送れません。</p>
+        <p className="text-sm text-slate">終了した募集です</p>
       )}
     </section>
   );

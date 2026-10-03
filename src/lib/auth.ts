@@ -14,7 +14,7 @@ export interface Viewer {
 /** プロフィール取得の失敗。「プロフィールなし」とは区別する (初回登録へ戻さない) */
 export class ProfileLoadError extends Error {
   constructor() {
-    super('プロフィールを読み込めませんでした。時間をおいて再読み込みしてください');
+    super('プロフィールを読み込めませんでした。再読み込みしてください');
     this.name = 'ProfileLoadError';
   }
 }

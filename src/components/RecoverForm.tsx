@@ -52,7 +52,7 @@ export function RecoverForm({ next, configured }: { next: string; configured: bo
           placeholder="XXXX-XXXX-XXXX-XXXX"
           aria-describedby="code-hint"
         />
-        <p id="code-hint" className="hint">登録したときに表示された16桁のコードです。ハイフンはなくても大丈夫です。</p>
+        <p id="code-hint" className="hint">16文字</p>
       </div>
       <div>
         <label className="label" htmlFor="password">新しいパスワード</label>
@@ -61,11 +61,8 @@ export function RecoverForm({ next, configured }: { next: string; configured: bo
       </div>
       {state && !state.ok && <p className="alert-error" role="alert">{state.error}</p>}
       <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured}>
-        {pending ? '確認しています…' : '新しいパスワードにする'}
+        {pending ? '確認中…' : '新しいパスワードにする'}
       </button>
-      <p className="text-xs leading-relaxed text-slate">
-        何度も間違えると、しばらく試せなくなります。引き継ぎコードも分からない場合は、フィードバックから運営者に連絡してください。
-      </p>
     </form>
   );
 }

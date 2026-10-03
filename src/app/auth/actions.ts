@@ -45,7 +45,7 @@ const RECOVER_IP_LIMIT = { limit: 10, windowSec: 3600 };
 const RECOVER_ID_LIMIT = { limit: 5, windowSec: 3600 };
 
 const NOT_CONFIGURED = 'サーバーの設定が終わっていないため、今は使えません (運営者の設定待ちです)';
-const TOO_MANY = '短い時間に何度も試されたため、いったん止めています。1時間ほど待ってからもう一度お試しください';
+const TOO_MANY = '試しすぎです。1時間ほど待ってから';
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -64,10 +64,10 @@ async function underLimit(admin: Admin, kind: 'signup_ip' | 'recover_ip' | 'reco
 function authErrorMessage(err: { code?: string; status?: number; message?: string } | null): string {
   const code = err?.code ?? '';
   if (code === 'email_exists' || code === 'user_already_exists' || /already (been )?registered/i.test(err?.message ?? ''))
-    return 'このユーザーIDはすでに使われています。別のIDにしてください';
-  if (code === 'weak_password') return 'パスワードが弱すぎます。もっと長く、推測されにくいものにしてください';
+    return 'このユーザーIDは使われています';
+  if (code === 'weak_password') return 'パスワードが弱すぎます';
   if (err?.status === 429 || code === 'over_request_rate_limit') return TOO_MANY;
-  return '登録できませんでした。時間をおいてもう一度お試しください';
+  return 'うまくいきませんでした。もう一度';
 }
 
 export async function recoverAction(
@@ -91,7 +91,7 @@ export async function recoverAction(
     const idOk = ipOk && (await underLimit(admin, 'recover_id', rateKey(secret, 'recover_id', v.loginId), RECOVER_ID_LIMIT.limit, RECOVER_ID_LIMIT.windowSec));
     if (!ipOk || !idOk) return { ok: false, error: TOO_MANY };
   } catch {
-    return { ok: false, error: '処理できませんでした。時間をおいてもう一度お試しください' };
+    return { ok: false, error: 'うまくいきませんでした。もう一度' };
   }
 
   const found = await admin.rpc('verify_recovery', { p_login_id: v.loginId, p_recovery_hash: hashRecoveryCode(v.code) });
@@ -107,7 +107,7 @@ export async function recoverAction(
 
   const supabase = await createClient();
   const signed = await supabase.auth.signInWithPassword({ email: authEmailFor(v.loginId), password: v.password });
-  if (signed.error) return { ok: false, error: 'パスワードは変更しました。ログイン画面から入り直してください' };
+  if (signed.error) return { ok: false, error: 'パスワードは変えました。ログインし直してください' };
   // ほかの端末に残っているログインは切る (乗っ取られていた場合に備える)
   await supabase.auth.signOut({ scope: 'others' }).catch(() => {});
   revalidatePath('/', 'layout');
@@ -123,7 +123,7 @@ export async function reissueRecoveryCodeAction(): Promise<ActionResult<{ code: 
   const admin = createAdminClient();
   const code = generateRecoveryCode();
   const res = await admin.rpc('set_recovery_hash', { p_user_id: data.user.id, p_recovery_hash: hashRecoveryCode(code) });
-  if (res.error) return { ok: false, error: '作り直せませんでした。時間をおいてもう一度お試しください' };
+  if (res.error) return { ok: false, error: '作り直せませんでした。もう一度' };
   if (res.data !== true) return { ok: false, error: 'Discordで登録したアカウントには引き継ぎコードがありません' };
   return { ok: true, data: { code } };
 }

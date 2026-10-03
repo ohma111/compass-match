@@ -198,3 +198,13 @@ What was verified, in code:
 - Clearing browser data without a transfer code loses the profile (the UI warns on マイページ and at logout).
 - Redeeming a code on a device that already has an anonymous profile switches to the other profile. The UI asks for confirmation; the old one stays reachable only if it has its own code.
 - Anonymous users count toward Supabase MAU (Free: 50,000/month).
+
+
+---
+
+# v4.1
+
+- **Rank bands**: 4 codes, `fa` / `s1_4` / `s5_7` / `s8p` (F〜A, S1〜S4, S5〜S7, S8以上), which the operator says apply in both the season and enjoy periods. `20261003000008_v41.sql` runs in one transaction: it drops `profiles_rank_band_chk` and `recruitments_min_rank_chk`, maps the existing rows (fc,ba→fa; s1_3→s1_4; s4_6,s7_9→s5_7; s10p→s8p), adds the new constraints, and replaces `confirm_my_rank` with the new list. Running it twice is a no-op, because the updates only touch old codes and the constraints are dropped and re-added. `db-verify.sh` now applies every migration except the latest, inserts old-code rows (`supabase/tests/05_before_latest.sql`), applies the latest twice, and checks the mapping and that old codes are rejected (`06_after_latest.sql`). No other function had a hardcoded list; `save_my_profile` and `create_recruitment` rely on the constraints. The default rank (now unused by the UI) is `s1_4`.
+- **Role icons**: ガンナー uses a small custom pistol SVG (24px, stroke 2, round caps, like lucide; no official art). スプリンター uses lucide `Footprints`. They appear everywhere roles are shown: the sheet, profile edit, Discord onboarding, seats, my page and the user page.
+- **Chat limit**: anonymous accounts younger than 10 minutes can send 10 messages (previously 3). The trigger function was replaced with new error copy, and db:verify checks the exact message.
+- **Copy**: explanations, reassurance and taglines are cut throughout; only labels, buttons, real errors and the legal lines remain. Errors are short and casual.

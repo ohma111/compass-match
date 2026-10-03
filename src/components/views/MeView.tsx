@@ -66,8 +66,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         {!hasContacts && (
           <Link href="/profile/edit#contacts" className="flex items-center gap-3 border-l-4 border-ally bg-sheet p-3">
             <span className="min-w-0 flex-1 text-sm">
-              <span className="block font-bold">連絡先を追加する (任意)</span>
-              <span className="text-xs text-slate">パーティが決まった相手にだけ見えます</span>
+              <span className="block font-bold">連絡先を追加</span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-slate" aria-hidden />
           </Link>
@@ -90,7 +89,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           <h2 id="mine-title" className="section-title">自分の募集</h2>
           {mine.length === 0 ? (
             <p className="text-sm text-slate">
-              今出している募集はありません。<Link href="/recruitments/new" className="link">募集を出す</Link>
+              なし
             </p>
           ) : (
             <div className="grid gap-4">
@@ -104,7 +103,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         <section className="space-y-3" aria-labelledby="joined-title">
           <h2 id="joined-title" className="section-title">参加中・申請中</h2>
           {joined.length === 0 ? (
-            <p className="text-sm text-slate">参加中・申請中の募集はありません。気になる募集の席に入ってみてください。</p>
+            <p className="text-sm text-slate">なし</p>
           ) : (
             <div className="grid gap-4">
               {joined.map((p) => (
@@ -140,7 +139,7 @@ function AccountMenu({
     <>
       <Link href={`/users/${userId}`} className={menu}>
         <UserRound className={icon} aria-hidden />
-        <span className="flex-1">ほかの人から見えるプロフィール</span>
+        <span className="flex-1">公開プロフィール</span>
         <ChevronRight className="size-4 text-slate" aria-hidden />
       </Link>
       {loginId && <ReissueRecoveryCode loginId={loginId} />}

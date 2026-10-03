@@ -107,10 +107,10 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
         if (err) {
           setError(
             err.status === 429
-              ? '今は混み合っています。1分ほど待ってから、もう一度「はじめる」を押してください'
+              ? '混んでます。1分くらい待ってもう一度'
               : err.code === 'anonymous_provider_disabled'
-                ? '今は新しく始められません (運営者の設定待ちです)。'
-                : '始められませんでした。通信を確かめて、もう一度押してください',
+                ? '今は始められません (設定待ち)'
+                : '始められませんでした。もう一度押してください',
           );
           setPending(false);
           return;
@@ -125,7 +125,7 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
       router.refresh();
       onDone();
     } catch {
-      setError('始められませんでした。通信を確かめて、もう一度押してください');
+      setError('始められませんでした。もう一度押してください');
       setPending(false);
     }
   }
@@ -151,13 +151,8 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
           </button>
         </div>
         <form onSubmit={submit} className="space-y-6 px-4 pt-4">
-          <div className="flex items-center gap-3">
-            <div className="w-28 shrink-0">
-              <Lineup seats={[seat, { kind: 'empty' }, { kind: 'empty' }]} label="" />
-            </div>
-            <p className="text-[13px] leading-snug text-ink-2">
-              登録はいりません。この端末に覚えておくので、次からはそのまま{verb}できます。
-            </p>
+          <div className="w-28" aria-hidden>
+            <Lineup seats={[seat, { kind: 'empty' }, { kind: 'empty' }]} label="" />
           </div>
 
           <div>
@@ -171,7 +166,6 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
               autoComplete="nickname"
               enterKeyHint="next"
               className="input text-lg font-bold"
-              placeholder="ゲーム内の名前など"
               aria-describedby={nameError ? 'sheet-name-error' : undefined}
             />
             {nameError && <p id="sheet-name-error" className="hint font-bold text-signal-deep">{nameError}</p>}
@@ -179,7 +173,7 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
 
           <fieldset>
             <legend className="label">ランク帯</legend>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {RANK_BANDS.map((r) => (
                 <label key={r} className="pick">
                   <input type="radio" name="sheet-rank" value={r} checked={rank === r} onChange={() => setRank(r)} className="sr-only" />
@@ -191,7 +185,7 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
 
           <fieldset>
             <legend className="label">
-              得意なロール <span className="text-xs font-medium text-slate">(なくてもOK)</span>
+              得意なロール <span className="text-xs font-medium text-slate">(任意)</span>
             </legend>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {PLAY_ROLES.map((r) => (
@@ -223,13 +217,13 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
           <div className="sticky bottom-0 -mx-4 space-y-2 border-t-2 border-ink bg-floor px-4 pt-3 pb-3">
             {error && <p className="alert-error" role="alert">{error}</p>}
             <button className="btn-primary btn-lg w-full text-base" disabled={pending || missing > 0}>
-              {pending ? '準備しています…' : missing > 0 ? `はじめる (あと${missing}項目)` : 'はじめる'}
+              {pending ? '準備中…' : missing > 0 ? `はじめる (あと${missing}項目)` : 'はじめる'}
               {!pending && missing === 0 && <ArrowRight className="size-5" aria-hidden />}
             </button>
           </div>
           <p className="flex flex-wrap justify-between gap-x-4 text-[13px]">
             <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
-              引き継ぎコードを持っている
+              引き継ぐ
             </Link>
             <Link href="/login" className="inline-flex min-h-11 items-center text-slate underline underline-offset-4">
               以前の方法でログイン

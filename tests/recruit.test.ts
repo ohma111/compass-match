@@ -64,10 +64,10 @@ describe('auto end / title / preview', () => {
     expect(autoEnd(at('2026-10-01T12:00:00Z')).toISOString()).toBe('2026-10-01T13:00:00.000Z');
   });
   it('builds a title from purpose, rank and remaining slots', () => {
-    expect(autoTitle({ purpose: 'rank', minRank: 's4_6', capacity: 2 })).toBe('ランク S4〜の募集');
+    expect(autoTitle({ purpose: 'rank', minRank: 's5_7', capacity: 2 })).toBe('ランク S5〜の募集');
     expect(autoTitle({ purpose: 'enjoy', minRank: null, capacity: 3 })).toBe('エンジョイの募集');
     expect(autoTitle({ purpose: 'custom', minRank: null, capacity: 6 })).toBe('カスタムの募集');
-    expect(autoTitle({ purpose: 'tournament', minRank: 's10p', capacity: 3 })).toBe('大会練習 S10〜の募集');
+    expect(autoTitle({ purpose: 'tournament', minRank: 's8p', capacity: 3 })).toBe('大会練習 S8〜の募集');
     // 残り人数はタイトルに入れない (満員になっても食い違わない)
     expect(autoTitle({ purpose: 'rank', minRank: null, capacity: 3 })).not.toMatch(/あと/);
   });

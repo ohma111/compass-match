@@ -33,17 +33,17 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
       if (err) {
         setError(
           err.status === 429
-            ? 'ログインの試行が多すぎます。しばらく待ってからもう一度お試しください'
+            ? '試しすぎです。少し待ってから'
             : err.code === 'invalid_credentials' || err.status === 400
               ? 'ユーザーIDかパスワードが違います'
-              : 'ログインできませんでした。時間をおいてもう一度お試しください',
+              : 'ログインできませんでした。もう一度',
         );
         setPending(false);
         return;
       }
       window.location.assign(next);
     } catch {
-      setError('ログインできませんでした。時間をおいてもう一度お試しください');
+      setError('ログインできませんでした。もう一度');
       setPending(false);
     }
   }
@@ -91,7 +91,7 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
       </div>
       {error && <p className="alert-error" role="alert">{error}</p>}
       <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured}>
-        {pending ? 'ログインしています…' : 'ログイン'}
+        {pending ? 'ログイン中…' : 'ログイン'}
       </button>
     </form>
   );

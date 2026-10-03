@@ -98,7 +98,7 @@ export function AppShell({
             <Link href="/terms" className="inline-flex min-h-11 items-center">利用規約</Link>
             <Link href="/privacy" className="inline-flex min-h-11 items-center">プライバシー</Link>
           </nav>
-          <p className="mt-1 leading-relaxed">個人が運営する非公式のファンサービスです。ゲームの運営会社とは関係ありません。</p>
+          <p className="mt-1 leading-relaxed">非公式のファンサイトです。ゲームの運営会社とは関係ありません。</p>
         </div>
       </footer>
       </div>

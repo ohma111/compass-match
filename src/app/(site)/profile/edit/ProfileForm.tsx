@@ -2,6 +2,7 @@
 import { useActionState } from 'react';
 import { saveProfileAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
+import { RoleIcon } from '@/components/RoleIcon';
 import {
   LIMITS,
   MOOD_TAGS,
@@ -36,7 +37,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
       </div>
       <fieldset>
         <legend className="label">ランク帯</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {RANK_BANDS.map((r) => (
             <label key={r} className="pick">
               <input type="radio" name="rankBand" value={r} defaultChecked={profile.rank_band === r} required className="sr-only" />
@@ -51,6 +52,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
           {PLAY_ROLES.map((r) => (
             <label key={r} className="pick">
               <input type="checkbox" name="playRoles" value={r} defaultChecked={profile.play_roles.includes(r)} className="sr-only" />
+              <RoleIcon role={r} className="size-4" />
               {PLAY_ROLE_LABELS[r]}
             </label>
           ))}
@@ -103,10 +105,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
 
       <fieldset id="contacts" className="card scroll-mt-16 space-y-4">
         <legend className="px-1 text-sm font-extrabold">連絡先 (任意)</legend>
-        <p className="text-xs text-muted">
-          入力したものだけが、<strong className="text-fg">あなたの募集に参加が確定した人</strong>と、
-          <strong className="text-fg">あなたが参加した募集の募集者</strong>にだけ表示されます。一覧や他のページには出ません。
-        </p>
+        <p className="text-xs text-slate">パーティのメンバーにだけ表示</p>
         <div>
           <label className="label" htmlFor="contactDiscord">DiscordのユーザーID</label>
           <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" autoComplete="off" />

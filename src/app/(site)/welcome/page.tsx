@@ -22,7 +22,6 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
     <div className="mx-auto max-w-xl space-y-8">
       <div>
         <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">あと1ステップです</h1>
-        <p className="mt-2 text-sm text-slate">表示名とランク帯を選んでください。自己紹介や連絡先は、あとからマイページで追加できます。</p>
       </div>
       <OnboardingForm next={next} suggestedName={suggested} />
     </div>

@@ -70,8 +70,7 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
         >
           <span className={`absolute size-4 rounded-full transition-[left] ${filter.soon ? 'left-[1.3rem] bg-white' : 'left-0.5 bg-slate'}`} />
         </span>
-        <span className="lg:hidden">30分以内</span>
-        <span className="hidden lg:inline">30分以内に始まる募集だけ</span>
+        30分以内
       </Link>
   );
 
@@ -91,18 +90,14 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
           </div>
           <div className="shrink-0 lg:hidden">{soonSwitch}</div>
         </div>
-        <p className="hidden text-sm leading-relaxed text-pretty text-slate lg:block">
-          空いてる席に入れば、そのまま3人で回せます。部屋番号は入った人にだけ出ます。
-        </p>
         <div className="space-y-3">
           {chips}
           <div className="hidden lg:block">{soonSwitch}</div>
         </div>
         <div className="hidden space-y-3 border-t-2 border-ink pt-6 lg:block">
-          <p className="text-sm font-bold">合う募集がない?</p>
           <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
             <Plus className="size-5" strokeWidth={3} aria-hidden />
-            自分で出す
+            募集する
           </Link>
         </div>
         {availableNow && (
@@ -114,7 +109,7 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
       </aside>
 
       <section aria-label="募集一覧" className="mt-6 lg:mt-0">
-        {loadError && <p className="alert-error">募集を読み込めませんでした。少し待ってから、ページを読み込み直してください。</p>}
+        {loadError && <p className="alert-error">募集を読み込めませんでした。再読み込みしてください</p>}
 
         {!loadError && items.length === 0 && (
           <div className="sheet px-5 pt-8 pb-8 lg:px-10 lg:pt-12 lg:pb-12">
@@ -123,9 +118,8 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
             </div>
             <div className="mx-auto mt-8 max-w-md space-y-4 text-center">
               <h2 className="type-heavy text-[20px] leading-snug text-balance sm:text-[22px]">
-                {filtered ? 'この条件の募集はまだありません' : 'まだ誰も募集していません'}
+                {filtered ? 'この条件の募集はなし' : 'まだ募集なし'}
               </h2>
-              <p className="text-sm text-balance text-slate">先に出しておけば、来た人がそのまま入ってきます。</p>
               <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
                 <Plus className="size-5" strokeWidth={3} aria-hidden />
                 募集を出す

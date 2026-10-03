@@ -39,7 +39,7 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
   const linked = Boolean(email);
 
   async function issue() {
-    if (linked && !window.confirm('コードを作り直しますか? 今のコードは使えなくなります。')) return;
+    if (linked && !window.confirm('作り直す? 今のコードは使えなくなります')) return;
     setPending(true);
     setError(null);
     try {
@@ -51,17 +51,17 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
       if (err) {
         setError(
           err.status === 429
-            ? '短い時間に何度も作ったため、止めています。少し待ってからもう一度押してください'
+            ? '作りすぎです。少し待ってから'
             : err.code === 'email_exists'
-              ? 'たまたま同じコードができました。もう一度押してください'
-              : 'コードを作れませんでした。通信を確かめて、もう一度押してください',
+              ? 'もう一度押してください'
+              : '作れませんでした。もう一度押してください',
         );
         return;
       }
       await persistSessionAction();
       setCode(next);
     } catch {
-      setError('コードを作れませんでした。通信を確かめて、もう一度押してください');
+      setError('作れませんでした。もう一度押してください');
     } finally {
       setPending(false);
     }
@@ -79,12 +79,9 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
             <CopyButton text={transferCodeGroups(code).join('-')} onInk />
           </div>
         </div>
-        <p className="text-sm leading-relaxed text-ink-2">
-          新しい端末で「引き継ぐ」を開いて、このコードを入れてください。<strong>この画面を閉じると、もう表示できません。</strong>
-          スクショかメモで残しておくと、機種変更でも安心です。
-        </p>
+        <p className="text-sm font-bold">スクショしといて。閉じたらもう出ません</p>
         <button type="button" className="btn-outline w-full" onClick={() => setCode(null)}>
-          保存したので閉じる
+          閉じる
         </button>
       </div>
     );
@@ -92,15 +89,10 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
 
   return (
     <div className="space-y-3">
-      <p className="text-sm leading-relaxed text-ink-2">
-        {linked
-          ? '引き継ぎコードはもう作ってあります。なくした場合は作り直せます (前のコードは使えなくなります)。'
-          : 'このプロフィールは、この端末のブラウザにだけ覚えています。コードを作っておくと、スマホとPCの両方や、機種変更のあとでも同じプロフィールで遊べます。'}
-      </p>
       {error && <p className="alert-error" role="alert">{error}</p>}
       <button type="button" className="btn-primary w-full" onClick={issue} disabled={pending}>
         <Smartphone className="size-5" aria-hidden />
-        {pending ? '作っています…' : linked ? 'コードを作り直す' : '引き継ぎコードを作る'}
+        {pending ? '作成中…' : linked ? 'コードを作り直す' : '引き継ぎコードを作る'}
       </button>
     </div>
   );
@@ -117,10 +109,10 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) {
-      setError('コードは20文字です。ハイフンや空白はあってもなくても大丈夫です');
+      setError('コードは20文字です');
       return;
     }
-    if (hasProfileHere && !window.confirm('この端末の今のプロフィールから切り替えます。今のプロフィールに引き継ぎコードがないと、あとで戻れません。続けますか?')) return;
+    if (hasProfileHere && !window.confirm('今のプロフィールから切り替える? コードがないと戻れません')) return;
     setPending(true);
     setError(null);
     try {
@@ -129,8 +121,8 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
       if (err) {
         setError(
           err.status === 429
-            ? '何度も試されたため、止めています。少し待ってからもう一度入れてください'
-            : 'コードが違います。もとの端末のマイページで、コードを確かめてください',
+            ? '試しすぎです。少し待ってから'
+            : 'コードが違います',
         );
         setPending(false);
         return;
@@ -138,7 +130,7 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
       await persistSessionAction();
       window.location.assign('/me');
     } catch {
-      setError('引き継げませんでした。通信を確かめて、もう一度押してください');
+      setError('引き継げませんでした。もう一度押してください');
       setPending(false);
     }
   }
@@ -160,12 +152,12 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
           aria-describedby="transfer-hint"
         />
         <p id="transfer-hint" className="hint">
-          もとの端末のマイページ「別の端末でも使う」で作った20文字のコード。{raw && `${code.length}/20`}
+          {code.length}/20
         </p>
       </div>
       {error && <p className="alert-error" role="alert">{error}</p>}
       <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured || code.length === 0}>
-        {pending ? '確かめています…' : '引き継ぐ'}
+        {pending ? '確認中…' : '引き継ぐ'}
         {!pending && <ArrowRight className="size-5" aria-hidden />}
       </button>
     </form>

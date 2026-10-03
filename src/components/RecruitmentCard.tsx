@@ -53,7 +53,6 @@ export function RecruitmentCard({
         className={`block flex-1 px-4 pt-4 pb-3 hover:bg-tint/60 focus-visible:outline-offset-[-3px] ${featured ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] xl:gap-8 xl:px-6 xl:pt-6' : ''}`}
       >
        <div className="min-w-0">
-        {featured && <p className="mb-1 hidden text-[13px] font-bold text-signal-deep xl:block">まもなく始まります</p>}
         <div className="flex items-start justify-between gap-3 pr-2">
           <Countdown start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} size={featured ? 'lg' : 'md'} />
           <PurposeBadge purpose={r.purpose} />

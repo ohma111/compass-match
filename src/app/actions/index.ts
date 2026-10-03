@@ -59,7 +59,7 @@ export async function onboardAction(_prev: ActionResult | null, fd: FormData): P
   if (!auth.user) return fail('ログインが必要です');
   // 登録済みなら上書きしない (マイページの編集を使う)。取得エラーは「未登録」と扱わない
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('プロフィールを確認できませんでした。時間をおいてもう一度お試しください');
+  if (lookupError) return fail('うまくいきませんでした。もう一度');
   if (!existing) {
     const { error } = await supabase.rpc('save_my_profile', {
       p_display_name: v.displayName,
@@ -106,7 +106,7 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return fail('ログインが必要です');
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('プロフィールを確認できませんでした。時間をおいてもう一度お試しください');
+  if (lookupError) return fail('うまくいきませんでした。もう一度');
   if (!existing) return fail('先に初回登録を完了してください');
 
   const { error } = await supabase.rpc('save_my_profile', {
@@ -217,7 +217,7 @@ export async function requestJoinAction(
   return {
     ok: true,
     data: { joined },
-    message: joined ? '参加しました! 部屋番号とチャットが使えます' : '参加を申請しました。募集者の承認をお待ちください',
+    message: joined ? '参加しました' : '申請しました',
   };
 }
 
@@ -291,7 +291,7 @@ export async function reportAction(_prev: ActionResult | null, fd: FormData): Pr
     p_reason: parsed.data.reason,
   });
   if (error) return fail(toUserMessage(error));
-  return { ok: true, message: '通報を受け付けました。ご協力ありがとうございます' };
+  return { ok: true, message: '通報しました' };
 }
 
 // ---------------------------------------------------------------------
@@ -309,7 +309,7 @@ export async function feedbackAction(_prev: ActionResult | null, fd: FormData): 
     p_page: parsed.data.page,
   });
   if (error) return fail(toUserMessage(error));
-  return { ok: true, message: 'フィードバックを送信しました。ありがとうございます!' };
+  return { ok: true, message: '送りました' };
 }
 
 // ---------------------------------------------------------------------
@@ -430,9 +430,9 @@ export async function createProfileAction(input: {
   const v = parsed.data;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return fail('セッションを作れませんでした。ページを読み込み直して、もう一度「はじめる」を押してください');
+  if (!auth.user) return fail('始められませんでした。再読み込みしてもう一度');
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('うまくいきませんでした。少し待ってから、もう一度押してください');
+  if (lookupError) return fail('うまくいきませんでした。もう一度押してください');
   if (!existing) {
     const { error } = await supabase.rpc('save_my_profile', {
       p_display_name: v.displayName,

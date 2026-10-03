@@ -363,7 +363,7 @@ export function CreateRecruitmentForm({
           <div id="details" hidden={!open} className="space-y-8 pt-2 pb-6">
             <fieldset>
               <legend className={legend}>ランク条件</legend>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <label className="pick px-1 text-[13px]">
                   <input type="radio" name="minRank" value="" checked={c.minRank === ''} onChange={() => set('minRank', '')} className="sr-only" />
                   指定なし
@@ -388,10 +388,7 @@ export function CreateRecruitmentForm({
               </div>
             </fieldset>
             <fieldset>
-              <legend className={legend}>
-                <span>雰囲気</span>
-                <span className="text-[13px] font-medium text-slate">いくつでも</span>
-              </legend>
+              <legend className={legend}>雰囲気</legend>
               <div className="flex flex-wrap gap-2">
                 {MOOD_TAGS.map((t) => (
                   <label key={t} className="pick">
@@ -423,13 +420,13 @@ export function CreateRecruitmentForm({
                 aria-describedby="title-hint"
               />
               <p id="title-hint" className={`hint flex justify-between ${titleError ? 'font-bold text-signal-deep' : ''}`}>
-                <span>{titleError ?? 'URLは書けません。連絡先はプロフィールに'}</span>
+                <span>{titleError ?? 'URL不可'}</span>
                 <span className="tabular-nums">{Array.from(title).length}/{LIMITS.title}</span>
               </p>
             </div>
             <div>
               <label className="label" htmlFor="roomCode">
-                部屋番号 <span className="text-xs font-medium text-slate">(あとからでも入れられます)</span>
+                部屋番号 <span className="text-xs font-medium text-slate">(あとでOK)</span>
               </label>
               <input
                 id="roomCode"
@@ -443,7 +440,7 @@ export function CreateRecruitmentForm({
                 placeholder="例: 12345"
                 aria-describedby="room-hint"
               />
-              <p id="room-hint" className={`hint ${roomError ? 'font-bold text-signal-deep' : ''}`}>{roomError ?? 'パーティのメンバーにだけ見えます'}</p>
+              <p id="room-hint" className={`hint ${roomError ? 'font-bold text-signal-deep' : ''}`}>{roomError ?? 'メンバーにだけ表示'}</p>
             </div>
           </div>
         </section>
@@ -452,7 +449,6 @@ export function CreateRecruitmentForm({
       {/* PC: 右側にパーティのプレビューと募集ボタン */}
       <aside className="hidden lg:sticky lg:top-28 lg:block lg:space-y-6">
         <div className="sheet p-6">
-          <p className="text-sm font-bold">この内容で出します</p>
           <div className="-mx-3 mt-4">
             <Lineup seats={previewSeats.slice(0, 3)} size="lg" label={`あなたと、あと${capacity - 1}人`} />
           </div>

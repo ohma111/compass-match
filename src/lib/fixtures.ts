@@ -13,13 +13,13 @@ const P = (id: string, display_name: string, rank_band: Profile['rank_band'], pl
 });
 
 export const people = {
-  me: P(ME_ID, 'ゆずぽん', 's4_6', ['tank', 'gunner']),
-  taro: P('f0000000-0000-4000-8000-000000000002', 'たろう', 's4_6', ['attacker']),
-  mio: P('f0000000-0000-4000-8000-000000000003', 'みお', 's1_3', ['tank']),
-  kei: P('f0000000-0000-4000-8000-000000000004', 'Kei', 's10p', ['gunner', 'sprinter']),
-  shiro: P('f0000000-0000-4000-8000-000000000005', 'しろくま', 'ba', ['sprinter']),
-  natsu: P('f0000000-0000-4000-8000-000000000006', 'なつめ', 's7_9', ['attacker', 'gunner']),
-  rin: P('f0000000-0000-4000-8000-000000000007', 'りん', 's1_3', []),
+  me: P(ME_ID, 'ゆずぽん', 's5_7', ['tank', 'gunner']),
+  taro: P('f0000000-0000-4000-8000-000000000002', 'たろう', 's5_7', ['attacker']),
+  mio: P('f0000000-0000-4000-8000-000000000003', 'みお', 's1_4', ['tank']),
+  kei: P('f0000000-0000-4000-8000-000000000004', 'Kei', 's8p', ['gunner', 'sprinter']),
+  shiro: P('f0000000-0000-4000-8000-000000000005', 'しろくま', 'fa', ['sprinter']),
+  natsu: P('f0000000-0000-4000-8000-000000000006', 'なつめ', 's5_7', ['attacker', 'gunner']),
+  rin: P('f0000000-0000-4000-8000-000000000007', 'りん', 's1_4', []),
 };
 
 type Person = (typeof people)[keyof typeof people];
@@ -65,9 +65,9 @@ export function feed(now: Date): Recruitment[] {
   const at22 = (jstClock(now, 22).getTime() - now.getTime()) / min;
   const at23 = (jstClock(now, 23).getTime() - now.getTime()) / min;
   return [
-    rec(now, 1, people.taro, { title: 'ランク S4〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's4_6', vc: 'on', tags: ['serious'] }, 8),
+    rec(now, 1, people.taro, { title: 'ランク S5〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's5_7', vc: 'on', tags: ['serious'] }, 8),
     rec(now, 2, people.mio, { title: 'まったりバトアリ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['beginner_welcome', 'relaxed'], vc: 'off' }, -12),
-    rec(now, 3, people.kei, { title: '大会前の連携練習 タンクほしい', purpose: 'tournament', capacity: 3, approved_count: 1, join_mode: 'approval', vc: 'on', tags: ['practice'], min_rank: 's7_9' }, at22),
+    rec(now, 3, people.kei, { title: '大会前の連携練習 タンクほしい', purpose: 'tournament', capacity: 3, approved_count: 1, join_mode: 'approval', vc: 'on', tags: ['practice'], min_rank: 's5_7' }, at22),
     rec(now, 4, people.shiro, { title: 'カスタム 3vs3 やりたい人', purpose: 'custom', capacity: 6, approved_count: 3, tags: ['relaxed', 'quiet_ok'] }, 40),
     rec(now, 5, people.natsu, { title: 'エンジョイ 22時から', purpose: 'enjoy', capacity: 3, approved_count: 2, tags: ['relaxed'] }, at22),
     rec(now, 6, people.rin, { title: 'ランク 聞き専OKです', purpose: 'rank', capacity: 3, approved_count: 0, tags: ['quiet_ok', 'considerate'] }, at23),

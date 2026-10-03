@@ -18,10 +18,17 @@ PROFILE_COLS="$(node --experimental-strip-types --no-warnings -e "import('./src/
 if [ -z "$PROFILE_COLS" ]; then echo "PROFILE_SELECT を読み込めませんでした" >&2; exit 1; fi
 
 "${PSQL[@]}" -f supabase/tests/00_supabase_shim.sql
-for f in supabase/migrations/*.sql; do echo "apply $f"; "${PSQL[@]}" -f "$f"; done
-# 本番には手で1回貼る運用なので、最新のマイグレーションは2回流しても壊れないことを確認する
 LATEST="$(ls supabase/migrations/*.sql | tail -1)"
+for f in supabase/migrations/*.sql; do
+  [ "$f" = "$LATEST" ] && continue
+  echo "apply $f"; "${PSQL[@]}" -f "$f"
+done
+# 本番と同じく「それまでのマイグレーション + 既存データ」の上に最新を流す
+echo "prepare data before latest"; "${PSQL[@]}" -f supabase/tests/05_before_latest.sql
+echo "apply $LATEST"; "${PSQL[@]}" -f "$LATEST"
+# 本番には手で1回貼る運用なので、最新のマイグレーションは2回流しても壊れないことを確認する
 echo "re-apply $LATEST (idempotency)"; "${PSQL[@]}" -f "$LATEST"
+echo "check data after latest"; "${PSQL[@]}" -f supabase/tests/06_after_latest.sql
 echo "apply seed"; "${PSQL[@]}" -f supabase/seed.sql
 echo "run rls tests"; "${PSQL[@]}" -v profile_cols="$PROFILE_COLS" -f supabase/tests/10_rls_test.sql
 echo "DB VERIFY OK"

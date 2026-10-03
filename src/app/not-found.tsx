@@ -15,7 +15,6 @@ export default function NotFound() {
       </header>
       <main className="mx-auto max-w-md space-y-4 px-4 pt-10">
         <h1 className="font-display text-[26px] leading-tight">ページが見つかりません</h1>
-        <p className="text-sm text-slate">URLが間違っているか、ページがなくなった可能性があります。</p>
         <Link href="/" className="btn-primary w-full">募集一覧へ</Link>
       </main>
     </>

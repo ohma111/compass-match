@@ -1,14 +1,13 @@
 // 選択肢と表示ラベル (DBのCHECK制約と一致させること)
 
-export const RANK_BANDS = ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p'] as const;
+// v4.1: 4段階 (シーズン中もエンジョイ期間も同じ区切り)。旧コードは 20261003000008_v41.sql で移行済み
+export const RANK_BANDS = ['fa', 's1_4', 's5_7', 's8p'] as const;
 export type RankBand = (typeof RANK_BANDS)[number];
 export const RANK_LABELS: Record<RankBand, string> = {
-  fc: 'F〜C',
-  ba: 'B〜A',
-  s1_3: 'S1〜S3',
-  s4_6: 'S4〜S6',
-  s7_9: 'S7〜S9',
-  s10p: 'S10以上',
+  fa: 'F〜A',
+  s1_4: 'S1〜S4',
+  s5_7: 'S5〜S7',
+  s8p: 'S8以上',
 };
 
 export const PLAY_ROLES = ['attacker', 'gunner', 'tank', 'sprinter'] as const;
@@ -31,16 +30,14 @@ export const PURPOSE_LABELS: Record<Purpose, string> = {
 };
 
 /** 仮のランク帯 (ユーザーID登録時)。初めての募集・参加のときに本人が1タップで選び直す */
-export const DEFAULT_RANK_BAND: RankBand = 's1_3';
+export const DEFAULT_RANK_BAND: RankBand = 's1_4';
 
 /** 募集条件「S4〜」のような短い下限表記 */
 export const RANK_MIN_LABELS: Record<RankBand, string> = {
-  fc: 'F〜',
-  ba: 'B〜',
-  s1_3: 'S1〜',
-  s4_6: 'S4〜',
-  s7_9: 'S7〜',
-  s10p: 'S10〜',
+  fa: 'F〜',
+  s1_4: 'S1〜',
+  s5_7: 'S5〜',
+  s8p: 'S8〜',
 };
 
 // 参加方式: 早い者勝ち(即参加) / 承認制
