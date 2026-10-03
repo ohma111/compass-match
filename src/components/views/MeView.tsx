@@ -1,9 +1,11 @@
 import Link from 'next/link';
-import { ChevronRight, FileText, LogOut, MessageSquareHeart, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
+import { ChevronRight, FileText, MessageSquareHeart, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { RoleIcon } from '@/components/RoleIcon';
 import { ReissueRecoveryCode } from '@/components/ReissueRecoveryCode';
-import { signOutAction } from '@/app/actions';
+import { SignOutButton } from '@/components/SignOutButton';
+import { TransferIssue } from '@/components/TransferForms';
+import type { AccountKind } from '@/lib/transfer';
 import { PLAY_ROLE_LABELS, RANK_LABELS } from '@/lib/constants';
 import type { Profile, Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
@@ -12,6 +14,12 @@ export interface MeViewProps {
   userId: string;
   profile: Profile;
   loginId: string | null;
+  /** v4: どうやってログインしているか (匿名 / 引き継ぎコード付き / v3 のユーザーID / Discord) */
+  accountKind: AccountKind;
+  /** 引き継ぎコード用のアドレス (付けていれば) */
+  transferEmail: string | null;
+  /** 開発用プレビュー: 作った直後のコードを表示した状態 */
+  previewTransferCode?: string;
   isAdmin: boolean;
   hasContacts: boolean;
   mine: Recruitment[];
@@ -19,7 +27,8 @@ export interface MeViewProps {
   now: Date;
 }
 
-export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, joined, now }: MeViewProps) {
+export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, now }: MeViewProps) {
+  const warnNoWayBack = accountKind === 'anonymous';
   const menu = 'flex min-h-12 w-full items-center gap-3 text-sm font-bold';
   const initial = Array.from(profile.display_name.trim())[0] ?? '?';
   return (
@@ -64,8 +73,15 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
           </Link>
         )}
 
+        {(accountKind === 'anonymous' || accountKind === 'transfer') && (
+          <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="transfer-title">
+            <h2 id="transfer-title" className="section-title">別の端末でも使う</h2>
+            <TransferIssue email={transferEmail} initialCode={previewTransferCode} />
+          </section>
+        )}
+
         <nav className="hidden divide-y divide-line border-y-2 border-ink lg:block" aria-label="アカウント">
-          <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} />
+          <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} warnNoWayBack={warnNoWayBack} />
         </nav>
       </aside>
 
@@ -99,14 +115,26 @@ export function MeView({ userId, profile, loginId, isAdmin, hasContacts, mine, j
         </section>
 
         <nav className="divide-y divide-line border-y-2 border-ink lg:hidden xl:col-span-2" aria-label="アカウント">
-          <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} />
+          <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} warnNoWayBack={warnNoWayBack} />
         </nav>
       </div>
     </div>
   );
 }
 
-function AccountMenu({ userId, loginId, isAdmin, menu }: { userId: string; loginId: string | null; isAdmin: boolean; menu: string }) {
+function AccountMenu({
+  userId,
+  loginId,
+  isAdmin,
+  menu,
+  warnNoWayBack,
+}: {
+  userId: string;
+  loginId: string | null;
+  isAdmin: boolean;
+  menu: string;
+  warnNoWayBack: boolean;
+}) {
   const icon = 'size-5 text-slate';
   return (
     <>
@@ -138,12 +166,7 @@ function AccountMenu({ userId, loginId, isAdmin, menu }: { userId: string; login
           <ChevronRight className="size-4 text-slate" aria-hidden />
         </Link>
       )}
-      <form action={signOutAction}>
-        <button className={`${menu} text-signal-deep`}>
-          <LogOut className="size-5" aria-hidden />
-          ログアウト
-        </button>
-      </form>
+      <SignOutButton className={menu} warnNoWayBack={warnNoWayBack} />
     </>
   );
 }

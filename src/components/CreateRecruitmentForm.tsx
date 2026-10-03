@@ -23,9 +23,9 @@ import { capacityOptions, clampCapacity } from '@/lib/capacity';
 import { autoEnd, autoTitle, resolveStart, startChips, startPreview, START_KEYS, type StartKey } from '@/lib/recruit';
 import { formatJstTime } from '@/lib/time';
 import { containsUrl } from '@/lib/validation/url';
-import { authGateHref, saveIntent, takeIntent } from '@/lib/intent';
+import { takeIntent } from '@/lib/intent';
 import { Lineup, type Seat } from '@/components/Lineup';
-import { RankPrompt } from '@/components/RankPrompt';
+import { useEnsureProfile } from '@/components/ProfileSheet';
 
 const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2 };
 const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', any: 'どちらでも', off: 'なし' };
@@ -100,7 +100,7 @@ export function CreateRecruitmentForm({
   src,
   ownerName,
 }: {
-  auth: 'guest' | 'no-profile' | 'ready' | 'needs-rank';
+  auth: 'guest' | 'no-profile' | 'ready';
   serverNow: string;
   src: string;
   /** プレビューの席に出す自分の名前 (未ログインなら「あなた」) */
@@ -116,19 +116,9 @@ export function CreateRecruitmentForm({
   const [open, setOpen] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [resumed, setResumed] = useState(false);
-  const [askRank, setAskRank] = useState(false);
-  const [rankOk, setRankOk] = useState(false);
-  const rankPrompt = askRank && (
-    <RankPrompt
-      verb="募集"
-      onConfirmed={() => {
-        setRankOk(true);
-        setAskRank(false);
-        // 状態の反映を待ってから送信する
-        setTimeout(() => formRef.current?.requestSubmit(), 0);
-      }}
-    />
-  );
+  const ensureProfile = useEnsureProfile();
+  // v4: シートでプロフィールを作ったら、ページを移らずにそのまま送信する
+  const profileOk = useRef(false);
 
   // 時計 (チップの表示・プレビュー用)
   useEffect(() => {
@@ -141,7 +131,7 @@ export function CreateRecruitmentForm({
   useEffect(() => {
     const last = sanitize(readJson(LAST_KEY));
     let next: Choices = { ...DEFAULTS, ...last, startTime: last.startTime ?? '' };
-    if ((auth === 'ready' || auth === 'needs-rank') && takeIntent((i) => i.kind === 'post')) {
+    if (auth === 'ready' && takeIntent((i) => i.kind === 'post')) {
       const draft = sanitize(readJson(DRAFT_KEY));
       next = { ...next, ...draft };
       setTitle(draft.title ?? '');
@@ -180,18 +170,14 @@ export function CreateRecruitmentForm({
       e.preventDefault();
       return;
     }
-    // 初めての募集: ランク帯を1タップで選んでから送信する
-    if (auth === 'needs-rank' && !rankOk) {
+    if ((auth === 'guest' || auth === 'no-profile') && !profileOk.current) {
       e.preventDefault();
-      setAskRank(true);
-      return;
-    }
-    if (auth === 'guest' || auth === 'no-profile') {
-      e.preventDefault();
-      writeJson(DRAFT_KEY, { ...choices, title, roomCode } satisfies Draft);
       writeJson(LAST_KEY, choices);
-      saveIntent({ kind: 'post' });
-      router.push(authGateHref(auth, '/recruitments/new'));
+      void ensureProfile('募集').then((ok) => {
+        if (!ok) return;
+        profileOk.current = true;
+        formRef.current?.requestSubmit();
+      });
       return;
     }
     writeJson(LAST_KEY, choices);
@@ -212,7 +198,7 @@ export function CreateRecruitmentForm({
   const legend = 'mb-3 flex w-full items-baseline justify-between gap-3 text-[15px] font-bold';
 
   const submitButton = (
-    <button type="submit" className="btn-primary min-h-12 w-full flex-col gap-0 px-3 leading-tight lg:min-h-16 lg:gap-0.5" disabled={pending || !ready || askRank}>
+    <button type="submit" className="btn-primary min-h-12 w-full flex-col gap-0 px-3 leading-tight lg:min-h-16 lg:gap-0.5" disabled={pending || !ready}>
       <span className="text-base font-bold">{pending ? '募集を出しています…' : '募集する'}</span>
       {!pending && <span className="max-w-full truncate text-xs font-medium opacity-85">{summaryParts.join(' / ')}</span>}
     </button>
@@ -224,7 +210,6 @@ export function CreateRecruitmentForm({
           {state.error}
         </p>
       )}
-      {rankPrompt}
       {submitButton}
     </>
   );
@@ -485,7 +470,6 @@ export function CreateRecruitmentForm({
               {state.error}
             </p>
           )}
-          {rankPrompt}
           <div className="flex items-center gap-3">
             <div className="w-[5.5rem] shrink-0">
               <Lineup seats={previewSeats} label={`あなたと、あと${capacity - 1}人`} />

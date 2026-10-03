@@ -1,17 +1,8 @@
 import { redirect } from 'next/navigation';
 import { safeNext } from '@/lib/safe-next';
-import { isAccountServiceConfigured } from '@/lib/env';
-import { getViewerSafe } from '@/lib/viewer-safe';
-import { SignupView } from '@/components/views/AuthViews';
 
-export const dynamic = 'force-dynamic';
-export const metadata = { title: 'はじめる' };
-
+// v4: 登録画面はなくなった (初めての「参加する」「募集する」でシートが開く)。古いリンクは元の場所へ戻す
 export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;
-  const next = safeNext(sp.next);
-  const viewer = await getViewerSafe();
-  if (viewer?.profile) redirect(next);
-  if (viewer) redirect(`/welcome?next=${encodeURIComponent(next)}`);
-  return <SignupView next={next} configured={isAccountServiceConfigured()} resuming={next !== '/'} />;
+  redirect(safeNext(sp.next));
 }

@@ -1,19 +1,16 @@
 'use server';
 
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient, createUserTokenClient } from '@/lib/supabase/admin';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getServiceRoleKey, isAccountServiceConfigured, siteUrl } from '@/lib/env';
 import { safeNext } from '@/lib/safe-next';
 import { authEmailFor } from '@/lib/account';
 import { clientIp, generateRecoveryCode, hashRecoveryCode, rateKey } from '@/lib/account-server';
-import { DEFAULT_RANK_BAND, firstError, recoverSchema, signupSchema } from '@/lib/validation/schemas';
-import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { TERMS_VERSION } from '@/lib/constants';
-import { toUserMessage } from '@/lib/db-error';
+import { firstError, recoverSchema } from '@/lib/validation/schemas';
 import type { ActionResult } from '@/lib/types';
 
 // ---------------------------------------------------------------------
@@ -43,16 +40,11 @@ export async function signInWithProvider(fd: FormData) {
 // ユーザーID + パスワード
 // ---------------------------------------------------------------------
 
-/** 同じ接続元からの登録: 1時間に3件、1日に10件まで */
-const SIGNUP_LIMITS = [
-  { limit: 3, windowSec: 3600 },
-  { limit: 10, windowSec: 86400 },
-] as const;
 /** 引き継ぎコードの試行: 接続元ごとに1時間10回、ユーザーIDごとに1時間5回まで */
 const RECOVER_IP_LIMIT = { limit: 10, windowSec: 3600 };
 const RECOVER_ID_LIMIT = { limit: 5, windowSec: 3600 };
 
-const NOT_CONFIGURED = 'サーバーの設定が完了していないため、現在は登録できません (運営者の設定待ちです)';
+const NOT_CONFIGURED = 'サーバーの設定が終わっていないため、今は使えません (運営者の設定待ちです)';
 const TOO_MANY = '短い時間に何度も試されたため、いったん止めています。1時間ほど待ってからもう一度お試しください';
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -76,95 +68,6 @@ function authErrorMessage(err: { code?: string; status?: number; message?: strin
   if (code === 'weak_password') return 'パスワードが弱すぎます。もっと長く、推測されにくいものにしてください';
   if (err?.status === 429 || code === 'over_request_rate_limit') return TOO_MANY;
   return '登録できませんでした。時間をおいてもう一度お試しください';
-}
-
-export async function signupAction(
-  _prev: ActionResult<{ code: string; next: string }> | null,
-  fd: FormData,
-): Promise<ActionResult<{ code: string; next: string }>> {
-  const store = await cookies();
-  const parsed = signupSchema.safeParse({
-    loginId: fd.get('loginId') ?? '',
-    password: fd.get('password') ?? '',
-    agreeTerms: fd.get('agreeTerms') === 'on',
-    src: sanitizeSrc(store.get(SRC_COOKIE)?.value),
-  });
-  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const v = parsed.data;
-  const next = safeNext(fd.get('next') as string | null, '/');
-  if (!isAccountServiceConfigured()) return { ok: false, error: NOT_CONFIGURED };
-
-  const secret = getServiceRoleKey()!;
-  const admin = createAdminClient();
-  const ipKey = rateKey(secret, 'signup_ip', clientIp(await headers()));
-  try {
-    for (const l of SIGNUP_LIMITS) {
-      if (!(await underLimit(admin, 'signup_ip', ipKey, l.limit, l.windowSec))) return { ok: false, error: TOO_MANY };
-    }
-  } catch {
-    return { ok: false, error: '登録できませんでした。時間をおいてもう一度お試しください' };
-  }
-
-  const email = authEmailFor(v.loginId);
-  // メールは送らない (確認済みとして作成)。パスワードは Supabase Auth がハッシュして保存する
-  const created = await admin.auth.admin.createUser({
-    email,
-    password: v.password,
-    email_confirm: true,
-    app_metadata: { login_id: v.loginId },
-  });
-  if (created.error || !created.data.user) return { ok: false, error: authErrorMessage(created.error) };
-  const userId = created.data.user.id;
-  const rollback = async () => {
-    await admin.auth.admin.deleteUser(userId).catch(() => {});
-  };
-
-  const code = generateRecoveryCode();
-  const reg = await admin.rpc('register_account', {
-    p_user_id: userId,
-    p_login_id: v.loginId,
-    p_recovery_hash: hashRecoveryCode(code),
-  });
-  if (reg.error) {
-    await rollback();
-    return { ok: false, error: reg.error.code === '23505' ? 'このユーザーIDはすでに使われています。別のIDにしてください' : authErrorMessage(null) };
-  }
-
-  // その場でログイン状態にする (セッションは cookie に保存される)
-  const supabase = await createClient();
-  const signed = await supabase.auth.signInWithPassword({ email, password: v.password });
-  if (signed.error || !signed.data.session) {
-    await rollback();
-    return { ok: false, error: authErrorMessage(signed.error) };
-  }
-
-  // プロフィールは本人の権限で作成 (同意の記録などは DB 側でも検証される)。
-  // 表示名はユーザーIDで始め、ランク帯は仮の値 (DB が「未確定」として記録し、初めての募集・参加のときに聞く)
-  const asUser = createUserTokenClient(signed.data.session.access_token);
-  const prof = await asUser.rpc('save_my_profile', {
-    p_display_name: v.loginId,
-    p_rank_band: DEFAULT_RANK_BAND,
-    p_play_roles: [],
-    p_characters: [],
-    p_purposes: [],
-    p_vc: 'listen',
-    p_tags: [],
-    p_bio: '',
-    p_contact_discord: null,
-    p_contact_x: null,
-    p_contact_ingame: null,
-    p_agree_terms: true,
-    p_terms_version: TERMS_VERSION,
-    p_src: v.src,
-  });
-  if (prof.error) {
-    await supabase.auth.signOut().catch(() => {});
-    await rollback();
-    return { ok: false, error: toUserMessage(prof.error) };
-  }
-
-  revalidatePath('/', 'layout');
-  return { ok: true, data: { code, next } };
 }
 
 export async function recoverAction(

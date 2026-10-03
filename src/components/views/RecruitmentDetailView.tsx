@@ -108,9 +108,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           </div>
         )}
         {r.hidden_at && <p className="alert-error">この募集は通報により一時的に非表示になっています。</p>}
-        {(auth === 'ready' || auth === 'needs-rank') && !isOwner && (
-          <IntentRunner recruitmentId={id} canJoin={join.ok} src={src} needsRank={auth === 'needs-rank'} />
-        )}
+        {auth === 'ready' && !isOwner && <IntentRunner recruitmentId={id} canJoin={join.ok} src={src} />}
       </div>
 
       {/*

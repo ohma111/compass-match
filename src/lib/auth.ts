@@ -55,11 +55,10 @@ export function isRestricted(p: Profile | null): boolean {
 }
 
 /** 画面の出し分け用: 未ログイン / 初回登録前 / 利用停止中 / 利用可能 */
-/** needs-rank: 使えるが、初めての募集・参加の前にランク帯を1タップで選んでもらう */
-export function authStateOf(viewer: Viewer | null): 'guest' | 'no-profile' | 'restricted' | 'ready' | 'needs-rank' {
+/** 画面の出し分け用: 未ログイン / プロフィール未作成 / 利用停止中 / 利用可能 */
+export function authStateOf(viewer: Viewer | null): 'guest' | 'no-profile' | 'restricted' | 'ready' {
   if (!viewer) return 'guest';
   if (!viewer.profile) return 'no-profile';
   if (isRestricted(viewer.profile)) return 'restricted';
-  if (viewer.profile.rank_confirmed === false) return 'needs-rank';
   return 'ready';
 }

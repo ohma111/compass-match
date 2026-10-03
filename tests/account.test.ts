@@ -9,7 +9,7 @@ import {
   isValidRecoveryCode,
   normalizeRecoveryCode,
 } from '@/lib/account';
-import { recoverSchema, signupSchema } from '@/lib/validation/schemas';
+import { recoverSchema } from '@/lib/validation/schemas';
 
 // GoTrue (github.com/supabase/auth) internal/mailer/validateclient/validateclient.go の拒否リスト
 const GOTRUE_INVALID_SUFFIXES = ['.test', '.example', '.invalid', '.local', '.localhost'];
@@ -59,23 +59,16 @@ describe('recovery code', () => {
   });
 });
 
-describe('signup / recover schemas', () => {
-  const base = { loginId: 'Taro_01', password: 'correct horse', agreeTerms: true, src: null };
-  it('accepts a valid signup and lowercases the id', () => {
-    const r = signupSchema.safeParse(base);
+describe('recover schema', () => {
+  it('normalizes the code and lowercases the id', () => {
+    const r = recoverSchema.safeParse({ loginId: 'Taro_01', code: 'abcd efgh jkmn pqrs', password: 'new password' });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.loginId).toBe('taro_01');
+    if (r.success) {
+      expect(r.data.code).toBe('ABCDEFGHJKMNPQRS');
+      expect(r.data.loginId).toBe('taro_01');
+    }
   });
-  it('rejects short passwords, bad ids and missing consent', () => {
-    expect(signupSchema.safeParse({ ...base, password: 'short' }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...base, password: 'x'.repeat(73) }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...base, loginId: 'ta' }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...base, loginId: 'たろう' }).success).toBe(false);
-    expect(signupSchema.safeParse({ ...base, agreeTerms: false }).success).toBe(false);
-  });
-  it('recover normalizes the code', () => {
-    const r = recoverSchema.safeParse({ loginId: 'taro_01', code: 'abcd efgh jkmn pqrs', password: 'new password' });
-    expect(r.success).toBe(true);
-    if (r.success) expect(r.data.code).toBe('ABCDEFGHJKMNPQRS');
+  it('rejects short passwords', () => {
+    expect(recoverSchema.safeParse({ loginId: 'taro_01', code: 'ABCDEFGHJKMNPQRS', password: 'short' }).success).toBe(false);
   });
 });

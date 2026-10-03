@@ -10,7 +10,7 @@ function tabOf(path: string): TabKey {
   if (path.startsWith('/recruitments/new')) return 'new';
   if (path.startsWith('/notifications')) return 'notif';
   if (path.startsWith('/me') || path.startsWith('/profile')) return 'me';
-  if (['/signup', '/login', '/welcome'].some((p) => path.startsWith(p))) return 'auth';
+  if (['/signup', '/login', '/welcome', '/transfer'].some((p) => path.startsWith(p))) return 'auth';
   return 'none';
 }
 

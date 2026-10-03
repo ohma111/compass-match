@@ -12,6 +12,8 @@ create table if not exists auth.users (
 create or replace function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;
+-- v4: 匿名サインイン (Supabase の auth.users と同じ列名)
+alter table auth.users add column if not exists is_anonymous boolean not null default false;
 grant usage on schema auth to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
 grant usage on schema public to anon, authenticated, service_role;

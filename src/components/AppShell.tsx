@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Bell, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
+import { OnboardingProvider } from './ProfileSheet';
 
 /**
  * 全画面共通の枠: インクのヘッダー (スマホはサイト名だけ、PCはメニューも) / 本文 / フッター / 下部タブバー (スマホ)
@@ -14,6 +15,7 @@ export function AppShell({
   restricted,
   configured,
   active,
+  sheetOpen = false,
 }: {
   children: React.ReactNode;
   unread: number;
@@ -22,10 +24,12 @@ export function AppShell({
   configured: boolean;
   /** タブの選択状態を URL ではなく明示的に指定する (プレビュー用) */
   active?: TabKey;
+  /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
+  sheetOpen?: boolean;
 }) {
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-white/85 hover:text-white';
   return (
-    <>
+    <OnboardingProvider initialOpen={sheetOpen}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-sheet focus:px-3 focus:py-2">
         本文へ移動
       </a>
@@ -52,7 +56,7 @@ export function AppShell({
                 <Link href="/me" className={nav}>マイページ</Link>
               </>
             ) : (
-              <Link href="/login" className={nav}>ログイン</Link>
+              <Link href="/transfer" className={nav}>引き継ぐ</Link>
             )}
             <Link
               href="/recruitments/new"
@@ -64,8 +68,8 @@ export function AppShell({
             </Link>
           </nav>
           {!signedIn && (
-            <Link href="/login" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold text-white/90 underline underline-offset-4 lg:hidden">
-              ログイン
+            <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold text-white/90 underline underline-offset-4 lg:hidden">
+              引き継ぐ
             </Link>
           )}
         </div>
@@ -100,6 +104,6 @@ export function AppShell({
       </div>
 
       <TabBar unread={unread} active={active} />
-    </>
+    </OnboardingProvider>
   );
 }

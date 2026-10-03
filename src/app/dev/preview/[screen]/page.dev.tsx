@@ -8,10 +8,9 @@ import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
-import { LoginView, SignupView } from '@/components/views/AuthViews';
+import { LoginView, TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
 import { ME_ID, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
-import { RankPromptDemo } from '../RankPromptDemo.dev';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'プレビュー', robots: { index: false } };
@@ -24,8 +23,19 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   let active: TabKey = 'none';
   let signedIn = true;
   let unread = 2;
+  let sheetOpen = false;
 
   switch (screen) {
+    case 'sheet':
+      // 初めての人が「参加する」を押した直後 (プロフィールのシート)
+      active = 'home';
+      signedIn = false;
+      unread = 0;
+      sheetOpen = true;
+      body = (
+        <HomeView items={feed(now)} states={{}} auth="guest" viewerId={null} filter={{ purpose: 'all', soon: false }} now={now} />
+      );
+      break;
     case 'home':
     case 'home-empty':
       active = 'home';
@@ -44,31 +54,6 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'new';
       body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" />;
       break;
-    case 'join-rank': {
-      // ユーザーIDで登録した直後に「参加する」を押したとき (ランク帯を1タップで選ぶ)
-      const d = detail(now, false);
-      body = (
-        <div className="space-y-6">
-          <div className="mx-auto max-w-xl">
-            <RankPromptDemo />
-          </div>
-          <RecruitmentDetailView
-            r={d.r}
-            now={now}
-            auth="needs-rank"
-            viewerId={ME_ID}
-            participations={d.participations}
-            myState={d.myState}
-            roomCode={null}
-            contacts={[]}
-            messages={[]}
-            src={null}
-            siteUrl="http://localhost:3000"
-          />
-        </div>
-      );
-      break;
-    }
     case 'detail':
     case 'detail-joined': {
       const joined = screen === 'detail-joined';
@@ -91,20 +76,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       );
       break;
     }
-    case 'signup':
-    case 'signup-done':
+    case 'transfer':
       active = 'auth';
-      signedIn = screen === 'signup-done';
+      signedIn = false;
       unread = 0;
-      body = (
-        <SignupView
-          next="/recruitments/new"
-          configured
-          resuming={false}
-          initialCode={screen === 'signup-done' ? 'K7QM4XRT9WHB2NCE' : undefined}
-          initialLoginId="yuzupon"
-        />
-      );
+      body = <TransferView configured hasProfileHere={false} />;
       break;
     case 'login':
       active = 'auth';
@@ -113,12 +89,16 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       body = <LoginView next="/" configured resuming={false} />;
       break;
     case 'me':
+    case 'transfer-code':
       active = 'me';
       body = (
         <MeView
           userId={ME_ID}
           profile={meProfile(now)}
-          loginId="yuzupon"
+          loginId={null}
+          accountKind="anonymous"
+          transferEmail={null}
+          previewTransferCode={screen === 'transfer-code' ? 'K7QMX4RT9WHB2NCE5PLA' : undefined}
           isAdmin={false}
           hasContacts={false}
           mine={myRecruitments(now)}
@@ -132,7 +112,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   }
 
   return (
-    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active}>
+    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active} sheetOpen={sheetOpen}>
       {body}
     </AppShell>
   );

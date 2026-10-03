@@ -416,5 +416,49 @@ select pg_temp.as_user(:U2);
 select pg_temp.assert(public.submit_report('recruitment', :RT, '古い1(再)') = false, 'aged-later account not counted retroactively');
 reset role;
 
+-- 17. v4: 匿名サインインのユーザー (auth.users.is_anonymous = true, provider = anonymous)
+\set AN '''00000000-0000-4000-8000-000000000031'''
+insert into auth.users (id, is_anonymous, raw_app_meta_data, created_at)
+values (:AN, true, '{"provider":"anonymous","providers":["anonymous"]}', now());
+select pg_temp.as_user(:AN);
+-- v3 のトリガー (メールで直接作ったアカウントを拒否) に止められずにプロフィールを作れる
+select public.save_my_profile('匿名さん', 's4_6', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, true, 'v4');
+select pg_temp.assert((select rank_confirmed from public.profiles where id = :AN), 'anonymous profile rank confirmed');
+-- 募集も作れる
+select public.create_recruitment('匿名の募集', 'enjoy', now() + interval '5 minutes', now() + interval '65 minutes', 3, null, 'any', '{}', '', '555', null, 'instant');
+reset role;
+\set RAN '(select id from public.recruitments where title = ''匿名の募集'')'
+select pg_temp.assert((select count(*) from public.recruitments where owner_id = :AN) = 1, 'anonymous user created a recruitment');
+-- 作成10分以内の匿名アカウントは、チャット3件まで
+select pg_temp.as_user(:AN);
+select public.send_message(:RAN, '1件目');
+reset role;
+update public.messages set created_at = now() - interval '1 minute' where user_id = :AN;
+insert into public.messages (recruitment_id, user_id, body, created_at)
+select :RAN, :AN, b, now() - interval '30 seconds' from unnest(array['2件目', '3件目']) b;
+select pg_temp.as_user(:AN);
+do $t$ begin
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), '4件目');
+  raise exception 'ASSERT FAILED: new anonymous account limited to 3 messages';
+exception when others then
+  if sqlerrm not like '%最初の10分%' then raise exception 'ASSERT FAILED: wrong error for anon chat limit: %', sqlerrm; end if;
+end $t$;
+reset role;
+-- 匿名ではないアカウント (Discord・v3 のID登録) には効かない
+select pg_temp.as_user(:U2);
+select pg_temp.assert(public.request_join(:RAN, null) is not null, 'normal user joins anonymous recruitment');
+reset role;
+-- 引き継ぎコードでメールアドレスとパスワードを付ける (Supabase Auth が is_anonymous を false にし、provider は email になる)
+update auth.users set is_anonymous = false, email = 't.abcd2345@example.edu',
+  raw_app_meta_data = '{"provider":"email","providers":["anonymous","email"]}' where id = :AN;
+update public.messages set created_at = now() - interval '1 minute' where user_id = :AN;
+select pg_temp.as_user(:AN);
+-- リンク後もプロフィールの更新 (v3 トリガーは insert のみ)・チャットができる
+select public.save_my_profile('匿名さん改', 's4_6', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, false, 'v4');
+select public.send_message(:RAN, 'リンク後');
+select pg_temp.assert((select display_name from public.profiles where id = :AN) = '匿名さん改', 'linked user keeps and edits profile');
+select pg_temp.assert(public.get_room_code(:RAN) = '555', 'linked user still owns the recruitment');
+reset role;
+
 select 'ALL RLS TESTS PASSED' as result;
 

@@ -159,3 +159,42 @@ Copy was rewritten in a player-to-player voice. Sentences that explain obvious U
 - The signup IP limit trusts Vercel's `x-forwarded-for`; elsewhere a proxy could share one bucket.
 - Screenshots were taken with `next dev --webpack` (Turbopack's dev font fetch failed through the sandbox proxy); `npm run build` (Turbopack) succeeded.
 - Other people's joins appear through polling: the detail page calls `router.refresh()` every 15 s while it is visible and the recruitment is active, which costs a few Supabase reads per open page. There is no Realtime subscription on participations.
+
+
+---
+
+# v4: no registration (Supabase anonymous sign-in)
+
+## Flow
+- Browsing is open to everyone. The first 参加する, empty-seat tap or 募集する opens `ProfileSheet` (a bottom sheet on mobile, a dialog on desktop, `OnboardingProvider` in `AppShell`). It asks for a display name and a rank band (the 2 required inputs), optional roles and consent. 「はじめる」 calls `supabase.auth.signInAnonymously()` from the browser, so GoTrue's per-IP anonymous limit applies to the real client IP. It then runs `createProfileAction` (`save_my_profile` as the user). `useEnsureProfile()` resolves, and the original action continues without a reload (`useJoin`, the lobby seat, and the create form's `requestSubmit`). A user who already has a session but no profile (an abandoned anonymous session, or a new Discord user) gets the same sheet, minus the sign-in.
+- Anonymous users are ordinary `auth.users` rows (`is_anonymous = true`, role `authenticated`, app_metadata provider `anonymous`), so RLS, chat, reports, blocks and rate limits apply unchanged.
+- Removed: the v3 `/signup` screen (now redirects), `signupAction`, `SignupForm`, the rank-later prompt (`RankPrompt`, `confirmRankAction`, the `needs-rank` state). The v3 DB objects stay; they are harmless. 「以前の方法でログイン」 (`/login`) keeps v3 user-ID login, password recovery and Discord.
+
+## Transfer code (「別の端末でも使う」 / 「引き継ぐ」)
+- A code is 20 chars from the 32-symbol alphabet: 8 for the address part and 12 for the password. It maps to `t.<8 lowercased>@example.edu` (the `t.` cannot collide with v3 IDs, which cannot contain `.`) plus a 12-char password (`src/lib/transfer.ts`).
+- Issuing (browser, as the user): `updateUser({ email, password })` while still anonymous. GoTrue (`internal/api/user.go` at `ce9a8ee`) allows a password on an anonymous user only together with an email. With Confirm email OFF (`Mailer.Autoconfirm`), `user.IsAnonymous && config.Mailer.Autoconfirm` goes straight to `emailChangeVerify`, which creates the email identity, sets `is_anonymous = false` and sends no mail. Re-issuing on an already linked user changes only the password (`updateUser({ password })`), which needs "Secure password change" OFF.
+- Redeeming: `signInWithPassword` from the browser on `/transfer`, so GoTrue's per-IP limits apply. The code is shown once and not stored by this app. Supabase Auth keeps only the bcrypt hash, so no extra hash or table was needed.
+
+## Session persistence (Safari ITP)
+What was verified, in code:
+- `@supabase/ssr` 0.12.7's browser client writes cookies with `document.cookie` (`dist/main/cookies.js`, lines 86–94). Safari ITP caps script-written cookies at 7 days.
+- The server client's `setAll` (used in `src/proxy.ts`) sends `Set-Cookie` headers with `DEFAULT_COOKIE_OPTIONS` (`maxAge` = 400 days, `sameSite: lax`, `httpOnly: false`, `dist/main/utils/constants.js`).
+- `proxy.ts` runs on every page request and calls `auth.getUser()`, which refreshes an expired access token and writes the new cookies via `Set-Cookie`.
+- **Added**: on every GET, `proxy.ts` also re-sends the existing `sb-*-auth-token` cookies (chunks included) via `Set-Cookie` with `maxAge` 400 days. A script-written cookie becomes a server-set first-party cookie after the next page view, so the 7-day cap no longer applies. POST requests (Server Actions such as logout) are skipped so they cannot undo a cookie deletion. `createProfileAction` and `persistSessionAction` do the same right after sign-in or transfer.
+- Supabase refresh tokens do not expire by default; the session time-box and inactivity timeout are paid settings that are off. So a session lasts as long as the cookie does.
+- Not verified: an actual Safari device. This environment has no WebKit, only Chromium.
+
+## Abuse
+- GoTrue's per-IP anonymous sign-in limit (`RATE_LIMIT_ANONYMOUS_USERS`, default 30/hour, adjustable in the dashboard).
+- The 24-hour account-age rule for counting reports is unchanged. It uses profile creation time, so fresh anonymous accounts cannot hide content by mass reporting.
+- `20261003000007_v4.sql`: a `before insert` trigger on `messages` limits anonymous accounts younger than 10 minutes to 3 messages (`P0429`). Linked or older accounts are unaffected.
+- Later, for free: Cloudflare Turnstile through Supabase Attack Protection, passing `captchaToken` to `signInAnonymously`.
+
+## Tests
+- db:verify section 17: an anonymous user (`is_anonymous = true`, provider `anonymous`) passes the v3 `require_account_for_email_users` trigger, creates a profile and a recruitment, and is limited to 3 messages (the exact error is checked). After linking (provider `email`, `is_anonymous = false`, no `accounts` row), the user still edits the profile, chats and owns the recruitment.
+- Vitest: `tests/transfer.test.ts` covers code format, GoTrue email format, no collision with v3 IDs, re-issue keeping the address, and normalisation. `tests/auth-cookies.test.ts` covers the cookie matcher and the 400-day options.
+
+## Known gaps (v4)
+- Clearing browser data without a transfer code loses the profile (the UI warns on マイページ and at logout).
+- Redeeming a code on a device that already has an anonymous profile switches to the other profile. The UI asks for confirmation; the old one stays reachable only if it has its own code.
+- Anonymous users count toward Supabase MAU (Free: 50,000/month).

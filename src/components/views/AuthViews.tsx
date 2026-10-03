@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { signInWithProvider } from '@/app/auth/actions';
-import { SignupForm } from '@/components/SignupForm';
 import { LoginForm } from '@/components/LoginForm';
 import { RecoverForm } from '@/components/RecoverForm';
+import { TransferRedeem } from '@/components/TransferForms';
 import { Lineup } from '@/components/Lineup';
 
 function DiscordOption({ next, configured }: { next: string; configured: boolean }) {
@@ -22,80 +22,74 @@ function DiscordOption({ next, configured }: { next: string; configured: boolean
   );
 }
 
-/** 登録 (1画面) */
-export function SignupView({
-  next,
-  configured,
-  resuming,
-  initialCode,
-  initialLoginId,
-}: {
-  next: string;
-  configured: boolean;
-  resuming: boolean;
-  initialCode?: string;
-  initialLoginId?: string;
-}) {
-  if (initialCode) return <SignupForm next={next} configured={configured} initialCode={initialCode} initialLoginId={initialLoginId} />;
+/** 右側の「席」の絵 (PC のみ) */
+function LobbyAside({ heading, body }: { heading: string; body: string }) {
   return (
-    <div>
-      <div className="mb-8 max-w-xl lg:mb-12">
-        <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">{resuming ? '登録して続ける' : 'はじめる'}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate">
-          ユーザーIDとパスワードを決めるだけ。メールアドレスはいりません。
-          {resuming && '登録が終わると、さっきの操作にそのまま戻ります。'}
-        </p>
-        <p className="mt-3 text-sm">
-          IDを持っている方は <Link href={`/login?next=${encodeURIComponent(next)}`} className="link">ログイン</Link>
+    <aside className="sheet hidden flex-col justify-between p-12 lg:flex" aria-label="このサイトでできること">
+      <div className="-mx-2">
+        <Lineup
+          seats={[{ kind: 'owner', name: '募集者' }, { kind: 'member', name: 'あなた', you: true }, { kind: 'empty' }]}
+          size="lg"
+          label="募集者とあなたの席、空いている1つの席"
+        />
+      </div>
+      <div className="mt-12">
+        <p className="font-display text-[26px] leading-snug text-balance">{heading}</p>
+        <p className="mt-3 text-sm leading-relaxed text-slate">{body}</p>
+      </div>
+    </aside>
+  );
+}
+
+/** v4「引き継ぐ」: 別の端末で作ったコードを入れる */
+export function TransferView({ configured, hasProfileHere }: { configured: boolean; hasProfileHere: boolean }) {
+  return (
+    <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
+      <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
+        <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
+        <p className="mt-2 text-sm text-slate">別の端末で作った引き継ぎコードを入れると、同じプロフィールで続けられます。</p>
+        {!configured && <p className="alert-error mt-4">サーバーの設定が終わっていないため、今は引き継げません。</p>}
+        <div className="mt-6">
+          <TransferRedeem configured={configured} hasProfileHere={hasProfileHere} />
+        </div>
+        <p className="mt-6 border-t border-line pt-4 text-sm text-slate">
+          コードがない場合は、もとの端末のマイページ →「別の端末でも使う」で作れます。
+          v3 でユーザーIDを作った方は <Link href="/login" className="link">以前の方法でログイン</Link>
         </p>
       </div>
-      <SignupForm next={next} configured={configured} initialCode={initialCode} />
-      <div className="mt-8 border-t border-line pt-4">
-        <DiscordOption next={next} configured={configured} />
-      </div>
+      <LobbyAside heading="同じ席で、どの端末からでも。" body="引き継ぐと、募集・参加中の予定・チャットがそのまま見られます。" />
     </div>
   );
 }
 
-/** ログイン: ユーザーIDとパスワードの2欄。PC では右に「席」の絵を置く */
+/** 以前の方法でログイン: v3 のユーザーID + パスワードと、Discord (管理者用) */
 export function LoginView({ next, configured, resuming }: { next: string; configured: boolean; resuming: boolean }) {
   const q = `next=${encodeURIComponent(next)}`;
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
-        <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">ログイン</h1>
+        <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">以前の方法でログイン</h1>
         <p className="mt-2 text-sm text-slate">
-          {resuming ? 'ログインすると、さっきの操作にそのまま戻ります。' : 'ユーザーIDとパスワードを入れてください。'}
+          {resuming ? 'ログインすると、さっきの操作に戻ります。' : 'ユーザーIDを作った方 (v3) はこちら。'}
+          はじめての方は、ログインしなくても「参加する」「募集する」からそのまま始められます。
         </p>
-        {!configured && <p className="alert-error mt-4">サーバーの設定が完了していないため、現在ログインできません。</p>}
+        {!configured && <p className="alert-error mt-4">サーバーの設定が終わっていないため、今はログインできません。</p>}
         <div className="mt-6">
           <LoginForm next={next} configured={configured} />
         </div>
-        <div className="mt-6 flex flex-wrap justify-between gap-x-4 text-sm">
+        <div className="mt-4 flex flex-wrap justify-between gap-x-4 text-sm">
           <Link href={`/login/recover?${q}`} className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
             パスワードを忘れた
           </Link>
-          <Link href={`/signup?${q}`} className="inline-flex min-h-11 items-center font-bold text-ally underline underline-offset-4">
-            はじめての方は登録
+          <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold text-ally underline underline-offset-4">
+            引き継ぎコードで入る
           </Link>
         </div>
         <div className="mt-6 border-t border-line pt-4">
           <DiscordOption next={next} configured={configured} />
         </div>
       </div>
-      <aside className="sheet hidden flex-col justify-between p-12 lg:flex" aria-label="このサイトでできること">
-        <div className="-mx-2">
-          <Lineup
-            seats={[{ kind: 'owner', name: '募集者' }, { kind: 'member', name: 'あなた', you: true }, { kind: 'empty' }]}
-            size="lg"
-            label="募集者とあなたの席、空いている1つの席"
-          />
-        </div>
-        <div className="mt-12">
-          <p className="font-display text-[26px] leading-snug text-balance">空いてる席に入れば、そのまま3人で回せます。</p>
-          <p className="mt-3 text-sm leading-relaxed text-slate">部屋番号とチャットは、パーティのメンバーにだけ出ます。</p>
-        </div>
-      </aside>
+      <LobbyAside heading="空いてる席に入れば、そのまま3人で回せます。" body="部屋番号とチャットは、パーティのメンバーにだけ出ます。" />
     </div>
   );
 }
@@ -104,9 +98,7 @@ export function RecoverView({ next, configured }: { next: string; configured: bo
   return (
     <div className="mx-auto max-w-md">
       <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">パスワードを忘れたとき</h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate">
-        登録したときに保存した引き継ぎコードで、新しいパスワードを決められます。
-      </p>
+      <p className="mt-2 text-sm leading-relaxed text-slate">ユーザーIDを作ったときに保存した引き継ぎコード (16文字) で、新しいパスワードを決められます。</p>
       <div className="mt-6">
         <RecoverForm next={next} configured={configured} />
       </div>

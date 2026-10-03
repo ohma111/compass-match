@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
+import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
 
-// 1) Supabaseのセッションcookieを更新する
-// 2) ?src= (流入元) を30日間cookieに保存する (最初の流入元を優先して上書きしない)
+// 1) Supabaseのセッションを更新する (期限切れのアクセストークンをリフレッシュし、Set-Cookie で返す)
+// 2) v4: セッション cookie をサーバーの Set-Cookie で書き直して400日に延ばす (Safari ITP の7日制限への対策)
+// 3) ?src= (流入元) を30日間cookieに保存する (最初の流入元を優先して上書きしない)
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const refreshed = new Set<string>();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -18,11 +21,24 @@ export async function proxy(request: NextRequest) {
         setAll(cookiesToSet) {
           for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
           response = NextResponse.next({ request });
-          for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
+          for (const { name, value, options } of cookiesToSet) {
+            response.cookies.set(name, value, options);
+            refreshed.add(name);
+          }
         },
       },
     });
     await supabase.auth.getUser();
+  }
+
+  // ページの表示 (GET) のときだけ書き直す。POST (Server Action のログアウト等) では、
+  // そちらの Set-Cookie (削除) を上書きしないよう何もしない。
+  if (request.method === 'GET') {
+    const secure = process.env.NODE_ENV === 'production';
+    for (const c of request.cookies.getAll()) {
+      if (!isAuthCookie(c.name) || refreshed.has(c.name) || !c.value) continue;
+      response.cookies.set(c.name, c.value, persistentCookieOptions(secure));
+    }
   }
 
   const src = sanitizeSrc(request.nextUrl.searchParams.get('src'));

@@ -1,4 +1,4 @@
-# コンパス遊び相手さがし (v3)
+# コンパス遊び相手さがし (v4)
 
 
 「#コンパス」で、今この時間に一緒に遊べる人を見つけるための募集掲示板です(非公式のファンサービス)。
@@ -8,6 +8,30 @@ Next.js (App Router) + TypeScript + Tailwind CSS + Supabase (Auth / Postgres / R
 - 実装内容・仕様との差分: `IMPLEMENTATION_NOTES.md`
 
 ---
+
+## v4 へのアップデート手順(v3 を公開している場合)
+
+v4 では **登録をなくしました**。初めて「参加する」「空き席」「募集する」を押すと下からシートが出て、表示名とランク帯を選ぶだけで始められます(Supabase の匿名サインイン)。プロフィールはその端末のブラウザに覚えられ、次からはそのまま使えます。別の端末でも使いたい人は、マイページで「引き継ぎコード」を作ります。
+
+運営者の作業はこの順番で:
+
+1. **マイグレーションを1ファイル適用する**(無料)
+   - SQL Editor に `supabase/migrations/20261003000007_v4.sql` を貼って「Run」(2回実行しても壊れません。シードなし)
+   - 中身: 作成から10分以内の匿名アカウントは、チャットを3件までしか送れない(荒らし対策)。これだけです
+2. **Supabase の認証設定**(Authentication → Sign In / Providers)
+   - User Signups の **Allow anonymous sign-ins: ON**(必須。OFF のままだと「今は新しく始められません」と出ます)
+   - User Signups の **Allow new users to sign up: ON のまま**(OFF だと匿名サインインもできません)
+   - **Email** はこのまま: Enable Email provider **ON** / Confirm email **OFF**(引き継ぎコードの付与がその場で確定するために必要。ON だと確認メールを送ろうとして失敗します)/ **Secure password change: OFF**(初期値。ON だとコードの作り直しができません)/ Minimum password length は 8 以下のまま / Password Requirements は **No required characters** のまま(コードは英大文字と数字だけです)
+   - Authentication → Rate Limits の **Rate limit for anonymous users**(接続元IPごとの1時間あたりの匿名サインイン数。初期値30)はそのままで大丈夫です。荒らしが来たら下げてください
+   - 💰 匿名ユーザーも Supabase の「月間アクティブユーザー(MAU)」に数えられます。Free プランは月5万MAUまでで、通常の規模なら超えません
+3. **再デプロイする**(環境変数の追加・変更はありません。`SUPABASE_SERVICE_ROLE_KEY` は「以前の方法でログイン」のパスワード再設定で引き続き使います)
+
+確認: ログインしていないブラウザ(シークレットウィンドウ)で募集の「参加する」を押す → シートで表示名・ランク帯・同意 →「はじめる」→ そのまま参加できれば完了です。マイページの「別の端末でも使う」でコードを作り、別のブラウザの「引き継ぐ」で入れて同じプロフィールになることも確かめてください。
+
+注意:
+- **v3 でユーザーIDを作った人・Discord の人(管理者)** は、ログイン画面の「以前の方法でログイン」から今までどおり入れます。
+- 引き継ぎコードを作らずにブラウザのデータを消した人は、そのプロフィールに戻れません(マイページとログアウト時に案内しています)。
+- 後から追加できる荒らし対策: **Cloudflare Turnstile**(無料)を Supabase の Attack Protection(CAPTCHA)に設定し、`signInAnonymously({ options: { captchaToken } })` に渡す。今は入れていません。
 
 ## v3 へのアップデート手順(v2 を公開している場合)
 
@@ -87,6 +111,7 @@ v1 の4つのマイグレーションは本番に適用済みなので、**追�
   4. `20260930000004_settings_and_cron.sql`
   5. `20261001000005_join_mode.sql`
   6. `20261001000006_v3.sql`
+  7. `20261003000007_v4.sql`
 - **方法B: Supabase CLI**
   ```bash
   npx supabase login

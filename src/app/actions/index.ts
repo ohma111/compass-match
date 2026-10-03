@@ -9,6 +9,7 @@ import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
 import { TERMS_VERSION } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
+import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
 import {
   adminResolveSchema,
   adminUserActionSchema,
@@ -21,7 +22,6 @@ import {
   buildRecruitment,
   reportSchema,
   uuidSchema,
-  rankBandSchema,
 } from '@/lib/validation/schemas';
 
 async function srcFromCookie(explicit?: unknown): Promise<string | null> {
@@ -393,13 +393,66 @@ export async function signOutAction(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------
-// v3: ランク帯 (ユーザーID登録の人は、初めての募集・参加のときに選ぶ)
+// v4: 登録なしで始める (匿名サインインのあと、シートからプロフィールを作る)
 // ---------------------------------------------------------------------
-export async function confirmRankAction(rankBand: string): Promise<ActionResult> {
-  const parsed = rankBandSchema.safeParse(rankBand);
-  if (!parsed.success) return fail('ランク帯を選んでください');
+
+/**
+ * ブラウザで書かれたセッション cookie を、サーバーの Set-Cookie で書き直す (400日)。
+ * Safari ITP はスクリプトが書いた cookie を7日で消すため (src/lib/auth-cookies.ts)。
+ */
+async function persistAuthCookies(): Promise<void> {
+  const store = await cookies();
+  const secure = process.env.NODE_ENV === 'production';
+  for (const c of store.getAll()) {
+    if (isAuthCookie(c.name) && c.value) store.set(c.name, c.value, persistentCookieOptions(secure));
+  }
+}
+
+export async function persistSessionAction(): Promise<void> {
+  await persistAuthCookies();
+}
+
+/** シートの「はじめる」: プロフィールを作る (セッションはブラウザの signInAnonymously で作成済み) */
+export async function createProfileAction(input: {
+  displayName: string;
+  rankBand: string;
+  playRoles: string[];
+  agreeTerms: boolean;
+}): Promise<ActionResult> {
+  const parsed = onboardingSchema.safeParse({
+    displayName: input.displayName ?? '',
+    rankBand: input.rankBand ?? '',
+    playRoles: Array.isArray(input.playRoles) ? input.playRoles : [],
+    agreeTerms: input.agreeTerms === true,
+    src: await srcFromCookie(),
+  });
+  if (!parsed.success) return fail(firstError(parsed.error));
+  const v = parsed.data;
   const supabase = await createClient();
-  const { error } = await supabase.rpc('confirm_my_rank', { p_rank_band: parsed.data });
-  if (error) return fail(toUserMessage(error));
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return fail('セッションを作れませんでした。ページを読み込み直して、もう一度「はじめる」を押してください');
+  const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
+  if (lookupError) return fail('うまくいきませんでした。少し待ってから、もう一度押してください');
+  if (!existing) {
+    const { error } = await supabase.rpc('save_my_profile', {
+      p_display_name: v.displayName,
+      p_rank_band: v.rankBand,
+      p_play_roles: v.playRoles,
+      p_characters: [],
+      p_purposes: [],
+      p_vc: 'listen',
+      p_tags: [],
+      p_bio: '',
+      p_contact_discord: null,
+      p_contact_x: null,
+      p_contact_ingame: null,
+      p_agree_terms: true,
+      p_terms_version: TERMS_VERSION,
+      p_src: v.src,
+    });
+    if (error) return fail(toUserMessage(error));
+  }
+  await persistAuthCookies();
+  revalidatePath('/', 'layout');
   return { ok: true };
 }

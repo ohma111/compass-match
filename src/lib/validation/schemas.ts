@@ -120,18 +120,6 @@ export const rankBandSchema = z.enum(RANK_BANDS, { message: 'ランク帯を選�
 
 export { DEFAULT_RANK_BAND } from '../constants';
 
-/**
- * 登録(1画面): ユーザーID・パスワード・同意だけ。
- * 表示名はユーザーIDで始め (あとから変えられる)、ランク帯は初めての募集・参加のときに聞く。
- */
-export const signupSchema = z.object({
-  loginId: loginIdSchema,
-  password: passwordSchema,
-  agreeTerms: z.literal(true, { message: '利用規約とプライバシーポリシーへの同意が必要です' }),
-  src: z.unknown().transform(sanitizeSrc),
-});
-export type SignupInput = z.input<typeof signupSchema>;
-
 /** パスワードを忘れたとき: ユーザーID + 引き継ぎコード + 新しいパスワード */
 export const recoverSchema = z.object({
   loginId: loginIdSchema,
