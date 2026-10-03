@@ -252,16 +252,20 @@ export async function decideParticipationAction(
 // ---------------------------------------------------------------------
 // チャット
 // ---------------------------------------------------------------------
-export async function sendMessageAction(recruitmentId: string, body: string): Promise<ActionResult> {
+/** 送ったメッセージの id と本文を返す (Realtime がつながらなくても、自分の発言はすぐ画面に出す) */
+export async function sendMessageAction(
+  recruitmentId: string,
+  body: string,
+): Promise<ActionResult<{ id: string; body: string; created_at: string }>> {
   const parsed = messageSchema.safeParse({ recruitmentId, body });
   if (!parsed.success) return fail(firstError(parsed.error));
   const supabase = await createClient();
-  const { error } = await supabase.rpc('send_message', {
+  const { data, error } = await supabase.rpc('send_message', {
     p_recruitment_id: parsed.data.recruitmentId,
     p_body: parsed.data.body,
   });
   if (error) return fail(toUserMessage(error));
-  return { ok: true };
+  return { ok: true, data: { id: data as string, body: parsed.data.body, created_at: new Date().toISOString() } };
 }
 
 // ---------------------------------------------------------------------

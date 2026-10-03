@@ -8,6 +8,7 @@ import { containsUrl } from '@/lib/validation/url';
 import { LIMITS } from '@/lib/constants';
 import { ReportButton } from '@/components/ReportButton';
 import type { Message } from '@/lib/types';
+import { mergeMessages } from '@/lib/chat-merge';
 
 export function ChatRoom({
   recruitmentId,
@@ -23,6 +24,10 @@ export function ChatRoom({
   open: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  // ページが更新されたら (15秒ごとのロビーの更新など)、サーバーから来たメッセージも取り込む
+  useEffect(() => {
+    setMessages((prev) => mergeMessages(prev, initialMessages));
+  }, [initialMessages]);
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -74,8 +79,14 @@ export function ChatRoom({
     setError(null);
     start(async () => {
       const r = await sendMessageAction(recruitmentId, trimmed);
-      if (r.ok) setBody('');
-      else setError(r.error);
+      if (r.ok) {
+        setBody('');
+        // Realtime の配信を待たずに自分の発言を出す (届いたら id で重複を除く)
+        if (r.data) {
+          const sent = { ...r.data, recruitment_id: recruitmentId, user_id: viewerId };
+          setMessages((prev) => mergeMessages(prev, [sent]));
+        }
+      } else setError(r.error);
     });
   }
 
