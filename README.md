@@ -1,4 +1,4 @@
-# コンパス遊び相手さがし
+# コンパスマッチ
 
 #コンパス(3対3)で、今から一緒に遊べる人を探す募集掲示板。非公式のファンサイト。
 
@@ -7,7 +7,16 @@
 - 引き継ぎ・現状・次にやること: `CLAUDE.md`
 - 経緯(要件書・各版の作り直し・審査記録): `docs/history/`, `docs/design-review.md`
 
-## 今の仕様(v4.1)
+## 無料枠について
+Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel Hobby (関数 100万回・CPU 4時間/月) は、超えても請求されない (カード未登録)。代わりに止まる・読み取り専用になる。
+- DB の量は管理画面の「容量」タブで見る。6割を超えたら `app_settings` の `recruitment_retention_days` を短くする。
+- 通信量と関数の実行回数は DB から見えない。Supabase と Vercel の Usage 画面で見る (どちらも上限が近づくとメールが来る)。
+- Supabase Free は1週間アクセスがないと一時停止する (請求ではない)。
+- 有料プランに上げる操作は運営者が判断する。
+
+## 今の仕様(v5)
+- 見た目: 「タイムテーブル」。ホームは募集を開始時刻の時間割として並べ、「いま」の線と日付の帯を入れる。席は「ロール + ランク」、ロール未登録は模様。
+
 - 見るだけならログイン不要。初めて「参加する」「空き席」「募集する」を押すと下からシートが出て、表示名とランク帯(F〜A / S1〜S4 / S5〜S7 / S8以上)を選ぶと始められる。Supabase の匿名サインインで、その端末に保存される。
 - 別の端末で使う人だけ、マイページで「引き継ぎコード」を作る。
 - 募集: 目的・開始・人数・参加方式(早い者勝ち/承認制)をタップで選ぶ。参加が決まった人だけに部屋番号とチャット。
@@ -17,7 +26,7 @@
 ## 本番の設定(済み)
 | 場所 | 設定 |
 | --- | --- |
-| Supabase (リージョン: ソウル) | migrations 1〜8 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
+| Supabase (リージョン: ソウル) | migrations 1〜9 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
 | Vercel (Hobby・無料) | 環境変数 `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_SITE_URL` `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW=false` `NOW_LIST_MIN_USERS=30` `SUPABASE_SERVICE_ROLE_KEY`(サーバー専用) / 関数リージョン `icn1`(ソウル、`vercel.json`) |
 | GitHub | `ohma111/compass-match`(非公開)。main に push すると Vercel が自動で公開 |
 
