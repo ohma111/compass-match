@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
 
-// 1) Supabaseのセッションを更新する (期限切れのアクセストークンをリフレッシュし、Set-Cookie で返す)
+// 1) Supabaseのセッションを更新する (getClaims) (期限切れのアクセストークンをリフレッシュし、Set-Cookie で返す)
 // 2) v4: セッション cookie をサーバーの Set-Cookie で書き直して400日に延ばす (Safari ITP の7日制限への対策)
 // 3) ?src= (流入元) を30日間cookieに保存する (最初の流入元を優先して上書きしない)
 export async function proxy(request: NextRequest) {
@@ -28,7 +28,8 @@ export async function proxy(request: NextRequest) {
         },
       },
     });
-    await supabase.auth.getUser();
+    // getClaims: アクセストークンが期限切れなら更新し、署名は手元で検証する (Auth への通信は更新時だけ)
+    await supabase.auth.getClaims();
   }
 
   // ページの表示 (GET) のときだけ書き直す。POST (Server Action のログアウト等) では、

@@ -12,14 +12,22 @@ export const dynamic = 'force-dynamic';
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const filter = listFilterSchema.parse(await searchParams);
   const now = new Date();
-  const viewer = await getViewerSafe();
   let items: Recruitment[] = [];
   let states: Record<string, JoinState> = {};
   let loadError = false;
-  if (isSupabaseConfigured()) {
+  // 一覧とログイン情報は互いに依存しないので同時に取る
+  const listing = isSupabaseConfigured()
+    ? listRecruitments({ purpose: filter.purpose, soon: filter.soon }, now).then(
+        (r) => r,
+        () => null,
+      )
+    : Promise.resolve([] as Recruitment[]);
+  const [viewer, listed] = await Promise.all([getViewerSafe(), listing]);
+  if (listed === null) loadError = true;
+  else items = listed;
+  if (viewer && items.length > 0) {
     try {
-      items = await listRecruitments({ purpose: filter.purpose, soon: filter.soon }, now);
-      if (viewer) states = await myJoinStates(viewer.userId, items.map((r) => r.id));
+      states = await myJoinStates(viewer.userId, items.map((r) => r.id));
     } catch {
       loadError = true;
     }

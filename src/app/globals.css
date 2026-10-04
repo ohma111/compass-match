@@ -255,3 +255,56 @@ button:hover > .seat-open {
 .sheet-backdrop {
   animation: sheet-fade 180ms ease-out both;
 }
+
+/* ---- 読み込み中 ---- */
+/* 骨組み: 床と同系の灰に、左から右へ光が流れる */
+@utility skel {
+  background: linear-gradient(100deg, #e9ebf0 30%, #f6f7fa 50%, #e9ebf0 70%) 0 0 / 300% 100%;
+  animation: skel-sweep 1.3s linear infinite;
+}
+@utility skel-seat {
+  transform: skewX(var(--seat-skew));
+}
+@utility skel-card {
+  animation: skel-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+@keyframes skel-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+@keyframes skel-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 画面上端のバー: 押した直後に一気に進み、あとは少しずつ。終わったら端まで走って消える */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: 3px;
+  pointer-events: none;
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  opacity: 0;
+  background: var(--color-ally);
+  box-shadow: 0 0 8px rgb(35 64 240 / 0.6);
+}
+.nav-progress[data-state='run'] {
+  opacity: 1;
+  animation: nav-run 8s cubic-bezier(0.1, 0.7, 0.2, 1) forwards;
+}
+.nav-progress[data-state='done'] {
+  opacity: 0;
+  transform: scaleX(1);
+  transition: transform 160ms ease-out, opacity 200ms ease 160ms;
+}
+@keyframes nav-run {
+  0% { transform: scaleX(0); }
+  10% { transform: scaleX(0.45); }
+  100% { transform: scaleX(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel, .skel-card { animation: none; }
+  .nav-progress[data-state='run'] { animation: none; transform: scaleX(0.6); }
+}

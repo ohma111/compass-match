@@ -1,7 +1,7 @@
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { isSupabaseConfigured } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
-import { isRestricted, type Viewer } from '@/lib/auth';
+import { getSessionClaims, isRestricted, type Viewer } from '@/lib/auth';
 import { AppShell } from '@/components/AppShell';
 
 async function unreadCount(userId: string): Promise<number> {
@@ -20,13 +20,12 @@ async function unreadCount(userId: string): Promise<number> {
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   // ヘッダーの表示用。取得に失敗してもページ本体 (各ページが自分で取得してエラーを出す) は表示する
-  let viewer: Viewer | null = null;
-  try {
-    viewer = await getViewerSafe();
-  } catch {
-    viewer = null;
-  }
-  const unread = viewer ? await unreadCount(viewer.userId) : 0;
+  // 未読数はユーザーIDだけで取れるので、プロフィールの取得と並行して始める
+  const claims = isSupabaseConfigured() ? await getSessionClaims().catch(() => null) : null;
+  const [viewer, unread] = await Promise.all([
+    getViewerSafe().catch((): Viewer | null => null),
+    claims ? unreadCount(claims.userId) : Promise.resolve(0),
+  ]);
   return (
     <AppShell
       unread={unread}

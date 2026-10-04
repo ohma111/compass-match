@@ -1,4 +1,4 @@
-import { requireViewer } from '@/lib/auth';
+import { getSessionClaims, requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { RECRUIT_BASE_COLUMNS } from '@/lib/queries';
 import { MeView } from '@/components/views/MeView';
@@ -39,9 +39,8 @@ export default async function MePage() {
     (p): p is { status: JoinState; recruitment: Recruitment } =>
       Boolean(p.recruitment) && new Date(p.recruitment!.ends_at).getTime() > now.getTime(),
   );
-  const { data: authData } = await supabase.auth.getUser();
-  const authUser = authData.user;
-  const accountKind = accountKindOf({ email: authUser?.email, is_anonymous: authUser?.is_anonymous });
+  const claims = await getSessionClaims();
+  const accountKind = accountKindOf({ email: claims?.email, is_anonymous: claims?.isAnonymous });
   const hasContacts = Boolean(contacts && (contacts.contact_discord || contacts.contact_x || contacts.contact_ingame));
   return (
     <MeView
@@ -49,7 +48,7 @@ export default async function MePage() {
       profile={viewer.profile!}
       loginId={(account as { login_id: string } | null)?.login_id ?? null}
       accountKind={accountKind}
-      transferEmail={isTransferEmail(authUser?.email) ? authUser!.email! : null}
+      transferEmail={isTransferEmail(claims?.email) ? claims!.email! : null}
       isAdmin={viewer.isAdmin}
       hasContacts={hasContacts}
       mine={(mine ?? []) as unknown as Recruitment[]}

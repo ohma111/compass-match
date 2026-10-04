@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
+import { NavProgress } from './NavProgress';
 import { Bell, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
@@ -30,6 +32,9 @@ export function AppShell({
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-white/85 hover:text-white';
   return (
     <OnboardingProvider initialOpen={sheetOpen}>
+      <Suspense fallback={null}>
+        <NavProgress />
+      </Suspense>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-sheet focus:px-3 focus:py-2">
         本文へ移動
       </a>

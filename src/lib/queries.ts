@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { createClient } from './supabase/server';
 import type { Purpose } from './constants';
 import type { JoinState } from './capacity';
@@ -35,11 +36,12 @@ export async function listRecruitments(filter: ListFilter, now: Date = new Date(
   return (data ?? []) as unknown as Recruitment[];
 }
 
-export async function getRecruitment(id: string): Promise<Recruitment | null> {
+/** generateMetadata とページ本体で同じ募集を2回取らないよう、1リクエスト内でキャッシュする */
+export const getRecruitment = cache(async (id: string): Promise<Recruitment | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('recruitments').select(RECRUIT_COLUMNS).eq('id', id).maybeSingle();
   return (data as unknown as Recruitment) ?? null;
-}
+});
 
 /** 表示中の募集に対する自分の参加状態 */
 export async function myJoinStates(userId: string, recruitmentIds: string[]): Promise<Record<string, JoinState>> {

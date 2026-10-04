@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
 import type { JoinState } from '@/lib/capacity';
 import { siteUrl } from '@/lib/env';
-import { authStateOf } from '@/lib/auth';
+import { authStateOf, getSessionClaims } from '@/lib/auth';
 import { sanitizeSrc } from '@/lib/src-param';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import type { MemberContact, Message, Participation } from '@/lib/types';
@@ -29,11 +29,34 @@ export default async function RecruitmentDetailPage({
   const { id } = await params;
   const sp = await searchParams;
   if (!uuidSchema.safeParse(id).success) notFound();
-  const r = await getRecruitment(id).catch(() => null);
-  if (!r) notFound();
-
-  const viewer = await getViewerSafe();
+  // 募集・ログイン情報・参加者は互いに依存しないので同時に取る。
+  // 部屋番号・連絡先・チャットは「主催者か参加確定者」だけが見られる (DB 側で拒否される) が、
+  // 往復を1回減らすため、ログインしていれば先に問い合わせておき、見せてよい場合だけ使う。
   const supabase = await createClient();
+  const claims = await getSessionClaims();
+  const signedIn = Boolean(claims);
+  const [r, viewer, partsRes, rc, ct, ms] = await Promise.all([
+    getRecruitment(id).catch(() => null),
+    getViewerSafe(),
+    signedIn
+      ? supabase
+          .from('participations')
+          .select('id, recruitment_id, user_id, status, created_at, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags)')
+          .eq('recruitment_id', id)
+          .order('created_at', { ascending: true })
+      : null,
+    signedIn ? supabase.rpc('get_room_code', { p_recruitment_id: id }) : null,
+    signedIn ? supabase.rpc('get_member_contacts', { p_recruitment_id: id }) : null,
+    signedIn
+      ? supabase
+          .from('messages')
+          .select('id, recruitment_id, user_id, body, created_at')
+          .eq('recruitment_id', id)
+          .order('created_at', { ascending: true })
+          .limit(200)
+      : null,
+  ]);
+  if (!r) notFound();
   const isOwner = viewer?.userId === r.owner_id;
 
   let participations: Participation[] = [];
@@ -43,29 +66,14 @@ export default async function RecruitmentDetailPage({
   let messages: Message[] = [];
 
   if (viewer) {
-    const { data } = await supabase
-      .from('participations')
-      .select('id, recruitment_id, user_id, status, created_at, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags)')
-      .eq('recruitment_id', id)
-      .order('created_at', { ascending: true });
-    participations = (data ?? []) as unknown as Participation[];
+    participations = (partsRes?.data ?? []) as unknown as Participation[];
     myState = (participations.find((p) => p.user_id === viewer.userId)?.status as JoinState) ?? 'none';
   }
 
   if (viewer && (isOwner || myState === 'approved')) {
-    const [rc, ct, ms] = await Promise.all([
-      supabase.rpc('get_room_code', { p_recruitment_id: id }),
-      supabase.rpc('get_member_contacts', { p_recruitment_id: id }),
-      supabase
-        .from('messages')
-        .select('id, recruitment_id, user_id, body, created_at')
-        .eq('recruitment_id', id)
-        .order('created_at', { ascending: true })
-        .limit(200),
-    ]);
-    roomCode = (rc.data as string | null) ?? null;
-    contacts = (ct.data as MemberContact[] | null) ?? [];
-    messages = (ms.data as Message[] | null) ?? [];
+    roomCode = (rc?.data as string | null) ?? null;
+    contacts = (ct?.data as MemberContact[] | null) ?? [];
+    messages = (ms?.data as Message[] | null) ?? [];
   }
 
   return (
