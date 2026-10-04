@@ -4,10 +4,18 @@
 export const RANK_BANDS = ['fa', 's1_4', 's5_7', 's8p'] as const;
 export type RankBand = (typeof RANK_BANDS)[number];
 export const RANK_LABELS: Record<RankBand, string> = {
-  fa: 'F〜A',
-  s1_4: 'S1〜S4',
-  s5_7: 'S5〜S7',
-  s8p: 'S8以上',
+  fa: 'F–A',
+  s1_4: 'S1–4',
+  s5_7: 'S5–7',
+  s8p: 'S8+',
+};
+
+/** 席の中など狭い所に出す短い表記 */
+export const RANK_SHORT: Record<RankBand, string> = {
+  fa: 'F–A',
+  s1_4: 'S1–4',
+  s5_7: 'S5–7',
+  s8p: 'S8+',
 };
 
 export const PLAY_ROLES = ['attacker', 'gunner', 'tank', 'sprinter'] as const;

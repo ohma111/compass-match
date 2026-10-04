@@ -19,8 +19,10 @@ export function seatsFor(
   const seats: Seat[] = [
     {
       kind: 'owner',
+      id: r.owner_id,
       name: r.owner?.display_name ?? '募集者',
       rank: r.owner?.rank_band ?? null,
+      roles: r.owner?.play_roles ?? [],
       you: Boolean(opts.viewerId && opts.viewerId === r.owner_id),
       href: opts.linkProfiles ? `/users/${r.owner_id}` : undefined,
     },
@@ -30,6 +32,7 @@ export function seatsFor(
     for (const p of approved) {
       seats.push({
         kind: 'member',
+        id: p.user_id,
         name: p.profile?.display_name ?? '(非表示のユーザー)',
         rank: p.profile?.rank_band ?? null,
         roles: p.profile?.play_roles ?? [],

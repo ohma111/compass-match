@@ -10,6 +10,7 @@ import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView'
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { LoginView, TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
+import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
 import { ME_ID, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
 
 export const dynamic = 'force-dynamic';
@@ -26,6 +27,13 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   let sheetOpen = false;
 
   switch (screen) {
+    case 'loading':
+      active = 'home';
+      body = <HomeSkeleton />;
+      break;
+    case 'loading-detail':
+      body = <DetailSkeleton />;
+      break;
     case 'sheet':
       // 初めての人が「参加する」を押した直後 (プロフィールのシート)
       active = 'home';
@@ -41,7 +49,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'home';
       body = (
         <HomeView
-          items={screen === 'home' ? feed(now) : []}
+          items={screen === 'home' ? [...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : []}
           states={homeStates()}
           auth="ready"
           viewerId={ME_ID}

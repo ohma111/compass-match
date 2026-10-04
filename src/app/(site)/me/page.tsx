@@ -9,7 +9,7 @@ import type { JoinState } from '@/lib/capacity';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'マイページ' };
 
-const OWNER_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band)`;
+const OWNER_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles)`;
 
 export default async function MePage() {
   const viewer = await requireViewer('/me');

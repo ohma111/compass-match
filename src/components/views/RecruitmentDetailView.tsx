@@ -5,7 +5,8 @@ import { formatJst, formatJstRange } from '@/lib/time';
 import { PURPOSE_LABELS, RANK_LABELS, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
-import { Countdown } from '@/components/Countdown';
+import { TimeRail } from '@/components/TimeRail';
+import { JoinButton } from '@/components/JoinButton';
 import { LobbyLineup } from '@/components/LobbyLineup';
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
@@ -77,7 +78,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   const stamp = justJoined ? (left === 0 ? '満員' : '参加確定') : null;
 
   const LOCKED = (
-    <section className="bg-ink p-6 text-white" aria-label="メンバー限定">
+    <section className="border-2 border-dashed border-ink/50 p-5 text-ink-2" aria-label="メンバー限定">
       <p className="flex items-center gap-2 font-bold">
         <Lock className="size-4" aria-hidden />
         部屋番号・チャットは{myState === 'pending' ? 'OKが出たら' : '参加後'}
@@ -106,18 +107,24 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
         スマホは上から順に1列 (部屋番号は時刻のすぐ下)。
       */}
       <div className="mt-4 grid gap-y-8 lg:grid-cols-12 lg:gap-x-12 lg:gap-y-12">
-        <section aria-labelledby="r-title" className={`tone-${r.purpose} lg:col-span-7`}>
-          <div className="flex items-center justify-between gap-3">
-            <PurposeBadge purpose={r.purpose} size="md" />
-            {!active && <span className="text-sm font-bold text-slate">{RECRUIT_STATUS_LABELS[status]}</span>}
-          </div>
-          <div className="mt-3">
-            {active ? (
-              <Countdown start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} size="xl" />
-            ) : (
-              <p className="font-display text-[40px] leading-none text-slate">{RECRUIT_STATUS_LABELS[status]}</p>
+        <section aria-labelledby="r-title" className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
+          <p className="type-tag flex flex-wrap items-center gap-x-2 text-slate">
+            <PurposeBadge purpose={r.purpose} />
+            <span aria-hidden>/</span>
+            <span className="tabular-nums">{formatJstRange(r.starts_at, r.ends_at)}</span>
+            {!active && (
+              <>
+                <span aria-hidden>/</span>
+                <span className="text-ink">{RECRUIT_STATUS_LABELS[status]}</span>
+              </>
             )}
-            <p className="mt-2 text-sm font-medium text-slate tabular-nums">{formatJstRange(r.starts_at, r.ends_at)}</p>
+          </p>
+          <div className="mt-2">
+            {active ? (
+              <TimeRail start={r.starts_at} end={r.ends_at} serverNow={now.toISOString()} size="xl" />
+            ) : (
+              <p className="type-poster text-[72px] text-ink/25 sm:text-[96px]">{RECRUIT_STATUS_LABELS[status]}</p>
+            )}
           </div>
           {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、スマホでは時刻のすぐ下に出す */}
           {isMember && (
@@ -125,7 +132,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} />
             </div>
           )}
-          <h1 id="r-title" className="mt-4 text-[22px] leading-snug font-black break-words lg:text-[28px]">
+          <h1 id="r-title" className="mt-5 border-t-2 border-ink pt-4 text-[22px] leading-snug font-black break-words lg:text-[28px]">
             {r.title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -134,14 +141,39 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             {r.min_rank && <span className="text-xs font-bold text-ink-2">ランク条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
             <MoodTags tags={r.tags} />
           </div>
-          {r.note && <p className="mt-4 border-l-4 border-line bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{r.note}</p>}
+          {r.note && <p className="mt-4 border-2 border-ink/20 bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{r.note}</p>}
         </section>
 
-        <div className="hidden lg:col-span-5 lg:block lg:self-end">
+        <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:block lg:self-start">
+          {!isOwner && (
+            <JoinButton
+              recruitmentId={id}
+              joinMode={r.join_mode}
+              auth={auth}
+              canJoin={join.ok}
+              reason={join.reason}
+              isOwner={false}
+              joined={myState === 'approved'}
+              src={src}
+              size="lg"
+              hideWhenJoined
+            />
+          )}
           {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
-        </div>
+          {active && !r.hidden_at && (
+            <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full">
+              <Share2 className="size-4" aria-hidden />
+              Xで共有
+            </a>
+          )}
+          {signedIn && !isOwner && (
+            <div className="flex justify-end">
+              <ReportButton targetType="recruitment" targetId={id} />
+            </div>
+          )}
+        </aside>
 
-        <section className="lg:col-span-12" aria-label="パーティの席">
+        <section className="lg:col-span-7 lg:col-start-1 lg:row-start-2" aria-label="パーティの席">
           <LobbyLineup
             recruitmentId={id}
             seats={seats}
@@ -191,7 +223,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
 
         {!isMember && active && <div className="lg:hidden">{LOCKED}</div>}
 
-        <div className={`space-y-8 ${isMember ? 'lg:col-span-5' : 'lg:col-span-12'}`}>
+        <div className={`space-y-8 ${isMember ? 'lg:col-span-5' : 'lg:col-span-7'}`}>
           {isOwner && (pending.length > 0 || r.join_mode === 'approval') && (
             <section className="space-y-3" aria-labelledby="requests-title">
               <h2 id="requests-title" className="section-title">
@@ -242,7 +274,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           )}
           <div className={`flex flex-col gap-2 ${isMember ? '' : 'lg:flex-row lg:items-center lg:justify-end'}`}>
             {active && !r.hidden_at && (
-              <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full lg:w-auto lg:min-w-48">
+              <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full lg:hidden">
                 <Share2 className="size-4" aria-hidden />
                 Xで共有
               </a>
@@ -253,7 +285,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               </ActionButton>
             )}
             {signedIn && !isOwner && (
-              <div className="flex justify-end">
+              <div className="flex justify-end lg:hidden">
                 <ReportButton targetType="recruitment" targetId={id} />
               </div>
             )}

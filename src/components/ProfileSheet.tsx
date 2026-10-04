@@ -130,7 +130,7 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
     }
   }
 
-  const seat = { kind: 'member' as const, name: name.trim() || 'あなた', rank: rank || null, roles, you: true };
+  const seat = { kind: 'member' as const, id: name.trim() || undefined, name: name.trim() || 'あなた', rank: rank || null, roles, you: true };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" role="presentation">

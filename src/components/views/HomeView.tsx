@@ -1,13 +1,14 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { Plus, Radio } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
-import { Lineup } from '@/components/Lineup';
+import { PurposeMark } from '@/components/Tags';
+import { NowLine } from '@/components/NowLine';
 import { PURPOSES, PURPOSE_LABELS, type Purpose } from '@/lib/constants';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
 import type { AuthState } from '@/components/JoinButton';
-import { canRequestJoin } from '@/lib/capacity';
-import { countdownTone } from '@/lib/time';
+import { formatJstTime, isSameJstDay, jstParts } from '@/lib/time';
 
 export interface HomeViewProps {
   items: Recruitment[];
@@ -20,6 +21,20 @@ export interface HomeViewProps {
   availableNow?: boolean;
 }
 
+const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+/** 日付が変わる行の前に区切りを入れる (今日の分は入れない) */
+function dayChanges(items: Recruitment[], i: number, now: Date): boolean {
+  const s = items[i].starts_at;
+  if (isSameJstDay(s, now) || new Date(s) <= now) return false;
+  return i === 0 || !isSameJstDay(s, items[i - 1].starts_at) || isSameJstDay(items[i - 1].starts_at, now) || new Date(items[i - 1].starts_at) <= now;
+}
+
+function dayLabel(iso: string): string {
+  const p = jstParts(iso);
+  return `${String(p.month).padStart(2, '0')}.${String(p.day).padStart(2, '0')} ${WEEKDAYS[p.weekday]}`;
+}
+
 function href(purpose: Purpose | 'all', soon: boolean) {
   const p = new URLSearchParams();
   if (purpose !== 'all') p.set('purpose', purpose);
@@ -28,116 +43,132 @@ function href(purpose: Purpose | 'all', soon: boolean) {
   return s ? `/?${s}` : '/';
 }
 
-/** ホーム = 募集フィード */
+/** ホーム = 今夜の時間割。募集を開始時刻の順に、時刻を左に置いて並べる */
 export function HomeView({ items, states, auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
   const filtered = filter.purpose !== 'all' || filter.soon;
-  // 先頭が「まもなく(30分以内)・まだ入れる」募集なら大きく見せる
-  const first = items[0];
-  const featuredId =
-    first &&
-    countdownTone(first.starts_at, first.ends_at, now) === 'soon' &&
-    canRequestJoin({ status: first.status, endsAt: first.ends_at, capacity: first.capacity, approvedCount: first.approved_count, isOwner: first.owner_id === viewerId, myState: states[first.id] ?? 'none', now }).ok
-      ? first.id
-      : null;
+  const d = jstParts(now);
+  const dateLine = `${String(d.month).padStart(2, '0')}.${String(d.day).padStart(2, '0')} ${WEEKDAYS[d.weekday]}`;
+
   const chip = (active: boolean) =>
-    `inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[3px] border-2 px-3.5 text-sm font-bold ${
-      active ? 'border-ink bg-ink text-white' : 'border-line bg-sheet text-ink-2 hover:border-slate'
-    } lg:min-h-12 lg:border-0 lg:border-b lg:border-line lg:rounded-none lg:px-3 lg:text-[15px] ${active ? 'lg:bg-ink' : 'lg:bg-transparent lg:hover:bg-sheet'}`;
+    `inline-flex min-h-11 shrink-0 items-center gap-2 border-2 px-3.5 text-sm font-bold transition-colors ${
+      active ? 'border-ink bg-ink text-white' : 'border-ink/25 text-ink-2 hover:border-ink'
+    }`;
 
   const chips = (
-      <nav aria-label="目的で絞り込み" className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pr-12 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] lg:[mask-image:none] lg:mx-0 lg:pr-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:border-t-2 lg:border-ink lg:px-0 lg:pb-0">
-        <Link href={href('all', filter.soon)} className={chip(filter.purpose === 'all')} aria-current={filter.purpose === 'all' ? 'true' : undefined}>
-          すべて
+    <nav
+      aria-label="目的で絞り込み"
+      className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 pr-12 pb-1 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pr-0 lg:[mask-image:none]"
+    >
+      <Link href={href('all', filter.soon)} className={chip(filter.purpose === 'all')} aria-current={filter.purpose === 'all' ? 'true' : undefined}>
+        すべて
+      </Link>
+      {PURPOSES.map((p) => (
+        <Link key={p} href={href(p, filter.soon)} className={chip(filter.purpose === p)} aria-current={filter.purpose === p ? 'true' : undefined}>
+          <PurposeMark purpose={p} />
+          {PURPOSE_LABELS[p]}
         </Link>
-        {PURPOSES.map((p) => (
-          <Link key={p} href={href(p, filter.soon)} className={`tone-${p} ${chip(filter.purpose === p)}`} aria-current={filter.purpose === p ? 'true' : undefined}>
-            <span aria-hidden className="h-3.5 w-1.5 [transform:skewX(var(--seat-skew))] bg-[var(--tone)]" />
-            {PURPOSE_LABELS[p]}
-          </Link>
-        ))}
-      </nav>
+      ))}
+    </nav>
   );
   const soonSwitch = (
-      <Link
-        href={href(filter.purpose, !filter.soon)}
-        role="switch"
-        aria-checked={filter.soon}
-        className="inline-flex min-h-11 items-center gap-3 text-sm font-bold"
+    <Link href={href(filter.purpose, !filter.soon)} role="switch" aria-checked={filter.soon} className="inline-flex min-h-11 items-center gap-2.5 text-sm font-bold">
+      <span
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-ink transition-colors ${filter.soon ? 'bg-ink' : 'bg-transparent'}`}
+        aria-hidden
       >
-        <span
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 transition-colors ${filter.soon ? 'border-signal bg-signal' : 'border-slate bg-sheet'}`}
-          aria-hidden
-        >
-          <span className={`absolute size-4 rounded-full transition-[left] ${filter.soon ? 'left-[1.3rem] bg-white' : 'left-0.5 bg-slate'}`} />
-        </span>
-        30分以内
-      </Link>
+        <span className={`absolute size-4 rounded-full transition-[left] duration-200 ${filter.soon ? 'left-[1.3rem] bg-signal' : 'left-0.5 bg-ink'}`} />
+      </span>
+      30分以内
+    </Link>
   );
 
   return (
-    <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-12">
-      <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-        <div className="flex items-center justify-between gap-2 lg:block">
-          <div className="flex min-w-0 items-baseline gap-2 lg:block">
-            <h1 className="font-display text-[22px] leading-tight whitespace-nowrap lg:text-[40px] lg:whitespace-normal">
-              募集中の
-              <br className="hidden lg:block" />
-              パーティ
-            </h1>
-            <p className="shrink-0 text-sm font-bold text-slate lg:mt-3" aria-live="polite">
-              {loadError ? '―' : <><span className="type-heavy text-[17px] text-ink lg:font-display lg:text-[22px] lg:font-normal">{items.length}</span> 件</>}
-            </p>
-          </div>
-          <div className="shrink-0 lg:hidden">{soonSwitch}</div>
+    <div className="lg:grid lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-14">
+      <aside className="lg:sticky lg:top-24 lg:self-start">
+        <p className="type-tag text-slate">
+          {dateLine} / {formatJstTime(now)} JST
+        </p>
+        <div className="mt-1 flex items-end justify-between gap-3">
+          <h1 className="type-poster text-[clamp(40px,12.5vw,56px)] whitespace-nowrap lg:text-[112px] lg:whitespace-normal">
+            <span aria-hidden>
+              TIME <br className="hidden lg:block" />
+              TABLE
+            </span>
+            <span className="sr-only">募集中のパーティ</span>
+          </h1>
+          <p className="flex items-baseline gap-1.5 pb-0.5 lg:hidden" aria-live="polite">
+            <span className="type-time text-[34px]">{loadError ? '―' : String(items.length).padStart(2, '0')}</span>
+            <span className="type-tag text-slate">OPEN</span>
+          </p>
         </div>
-        <div className="space-y-3">
+        <p className="mt-4 hidden items-baseline gap-2 lg:flex" aria-live="polite">
+          <span className="type-time text-[44px]">{loadError ? '―' : String(items.length).padStart(2, '0')}</span>
+          <span className="type-tag text-slate">OPEN</span>
+        </p>
+        <div className="mt-4 space-y-2 lg:mt-6 lg:space-y-4">
           {chips}
-          <div className="hidden lg:block">{soonSwitch}</div>
+          {soonSwitch}
         </div>
-        <div className="hidden space-y-3 border-t-2 border-ink pt-6 lg:block">
-          <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
+        <div className="mt-6 hidden border-t-2 border-ink pt-6 lg:block">
+          <Link href="/recruitments/new" className="btn-signal btn-lg w-full">
             <Plus className="size-5" strokeWidth={3} aria-hidden />
             募集する
           </Link>
         </div>
         {availableNow && (
-          <Link href="/now" className="flex min-h-11 items-center gap-2 text-sm font-bold underline underline-offset-4">
+          <Link href="/now" className="mt-3 flex min-h-11 items-center gap-2 text-sm font-bold underline underline-offset-4">
             <Radio className="size-4 text-ok" aria-hidden />
             今から遊べる人を見る
           </Link>
         )}
       </aside>
 
-      <section aria-label="募集一覧" className="mt-6 lg:mt-0">
+      <section aria-label="募集一覧" className="mt-5 lg:mt-0">
         {loadError && <p className="alert-error">募集を読み込めませんでした。再読み込みしてください</p>}
 
         {!loadError && items.length === 0 && (
-          <div className="sheet px-5 pt-8 pb-8 lg:px-10 lg:pt-12 lg:pb-12">
-            <div className="mx-auto max-w-md">
-              <Lineup seats={[{ kind: 'empty' }, { kind: 'empty' }, { kind: 'empty' }]} size="lg" label="空いている3つの席" />
-            </div>
-            <div className="mx-auto mt-8 max-w-md space-y-4 text-center">
-              <h2 className="type-heavy text-[20px] leading-snug text-balance sm:text-[22px]">
+          <div className="grid grid-cols-[64px_minmax(0,1fr)] border-y-2 border-ink lg:grid-cols-[132px_minmax(0,1fr)]">
+            <p className="type-time pt-4 text-[30px] text-ink/30 lg:pt-6 lg:text-[44px]">--:--</p>
+            <div className="border-l border-ink/80 py-6 pl-4 lg:py-10 lg:pl-6">
+              <h2 className="text-[20px] leading-snug font-black text-balance lg:text-[26px]">
                 {filtered ? 'この条件の募集はなし' : 'まだ募集なし'}
               </h2>
-              <Link href="/recruitments/new" className="btn-primary btn-lg w-full">
-                <Plus className="size-5" strokeWidth={3} aria-hidden />
-                募集を出す
-              </Link>
-              {filtered && (
-                <Link href="/" className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">
-                  絞り込みをやめる
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+                <Link href="/recruitments/new" className="btn-signal btn-lg">
+                  <Plus className="size-5" strokeWidth={3} aria-hidden />
+                  募集を出す
                 </Link>
-              )}
+                {filtered && (
+                  <Link href="/" className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">
+                    絞り込みをやめる
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        <div className="grid gap-4 xl:grid-cols-2 xl:gap-6">
-          {items.map((r) => (
-            <RecruitmentCard key={r.id} r={r} now={now} auth={auth} viewerId={viewerId} myState={states[r.id]} featured={r.id === featuredId} />
-          ))}
-        </div>
+        {items.length > 0 && (
+          <div className="border-b-2 border-ink">
+            {items.map((r, i) => (
+              <Fragment key={r.id}>
+                {new Date(r.starts_at) > now && (i === 0 || new Date(items[i - 1].starts_at) <= now) && <NowLine serverNow={now.toISOString()} />}
+                {dayChanges(items, i, now) && (
+                  <p className="type-tag border-t-4 border-ink bg-ink py-1 pl-2 text-white">{dayLabel(r.starts_at)}</p>
+                )}
+                <RecruitmentCard
+                r={r}
+                now={now}
+                auth={auth}
+                viewerId={viewerId}
+                myState={states[r.id]}
+                index={i}
+                repeatTime={i > 0 && items[i - 1].starts_at === r.starts_at && new Date(r.starts_at) > now}
+                />
+              </Fragment>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

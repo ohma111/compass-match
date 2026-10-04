@@ -29,7 +29,7 @@ export function AppShell({
   /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
   sheetOpen?: boolean;
 }) {
-  const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-white/85 hover:text-white';
+  const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-ink-2 underline-offset-[6px] decoration-2 decoration-signal hover:text-ink hover:underline';
   return (
     <OnboardingProvider initialOpen={sheetOpen}>
       <Suspense fallback={null}>
@@ -38,11 +38,12 @@ export function AppShell({
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-sheet focus:px-3 focus:py-2">
         本文へ移動
       </a>
-      <header className="sticky top-0 z-30 bg-ink pt-[env(safe-area-inset-top)] text-white">
+      <header className="sticky top-0 z-30 border-b-2 border-ink bg-floor/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
         <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
-          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-3 whitespace-nowrap" aria-label="コンパス遊び相手さがし ホーム">
-            <LogoMark />
-            <span className="type-heavy truncate text-[16px] lg:text-[22px] lg:font-display lg:font-normal lg:tracking-normal">コンパス遊び相手さがし</span>
+          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2 whitespace-nowrap" aria-label="コンパスマッチ ホーム">
+            <LogoMark className="h-5 w-8 lg:h-6 lg:w-9" />
+            <span className="truncate text-[19px] font-black tracking-[-0.03em] lg:text-[23px]">コンパスマッチ</span>
+            <span className="type-tag border border-ink/60 px-1 text-[10px] text-ink-2">非公式</span>
           </Link>
           <nav aria-label="メニュー" className="ml-auto hidden items-center gap-1 lg:flex">
             <Link href="/" className={nav}>募集一覧</Link>
@@ -52,7 +53,7 @@ export function AppShell({
                   <Bell className="size-4" aria-hidden />
                   通知
                   {unread > 0 && (
-                    <span className="min-w-5 bg-signal px-1 text-center text-xs leading-5 font-bold text-white">
+                    <span className="type-tag min-w-5 bg-signal px-1 text-center leading-5 text-ink">
                       {unread > 99 ? '99+' : unread}
                       <span className="sr-only">件の未読</span>
                     </span>
@@ -63,17 +64,13 @@ export function AppShell({
             ) : (
               <Link href="/transfer" className={nav}>引き継ぐ</Link>
             )}
-            <Link
-              href="/recruitments/new"
-              className="ml-3 inline-flex min-h-11 items-center gap-1.5 px-4 text-sm font-bold text-ink"
-              style={{ background: 'linear-gradient(315deg, transparent 10px, #ffffff 0)' }}
-            >
+            <Link href="/recruitments/new" className="btn-signal ml-3">
               <Plus className="size-4" strokeWidth={3} aria-hidden />
               募集する
             </Link>
           </nav>
           {!signedIn && (
-            <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold text-white/90 underline underline-offset-4 lg:hidden">
+            <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4 lg:hidden">
               引き継ぐ
             </Link>
           )}

@@ -22,13 +22,13 @@ export function CopyButton({ text, label = 'コピー', onInk = false }: { text:
     setDone(true);
     setTimeout(() => setDone(false), 1800);
   }
-  const fill = onInk ? (done ? '#8fa2ff' : '#ffffff') : done ? 'var(--color-ok)' : 'var(--color-ally)';
+  const fill = onInk ? (done ? '#ff4a1c' : '#ffffff') : done ? 'var(--color-ok)' : 'var(--color-ink)';
   return (
     <button
       type="button"
       onClick={copy}
       className={`btn min-w-28 ${onInk ? 'text-ink' : 'text-white'}`}
-      style={{ background: `linear-gradient(315deg, transparent 10px, ${fill} 0)` }}
+      style={{ background: fill }}
     >
       {done ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
       <span aria-live="polite">{done ? 'コピーしました' : label}</span>

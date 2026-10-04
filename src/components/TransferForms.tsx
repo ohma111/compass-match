@@ -17,7 +17,7 @@ export function TransferCodeDisplay({ code }: { code: string }) {
   const groups = transferCodeGroups(code);
   return (
     <p
-      className="font-display grid grid-cols-2 gap-x-5 gap-y-1 text-[28px] leading-tight tracking-[0.06em] sm:grid-cols-4 sm:text-[30px]"
+      className="font-mono font-bold grid grid-cols-2 gap-x-5 gap-y-1 text-[28px] leading-tight tracking-[0.06em] sm:grid-cols-4 sm:text-[30px]"
       aria-label={`引き継ぎコード ${code.split('').join(' ')}`}
     >
       {groups.map((g, i) => (

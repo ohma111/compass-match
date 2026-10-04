@@ -229,7 +229,7 @@ export function CreateRecruitmentForm({
               return (
                 <label
                   key={p}
-                  className={`tone-${p} pick h-20 flex-col gap-1.5 px-1 text-[13px] has-[:checked]:border-[var(--tone)] has-[:checked]:bg-[var(--tone)]`}
+                  className={`tone-${p} pick h-20 flex-col gap-1.5 px-1 text-[13px]`}
                 >
                   <input
                     type="radio"
@@ -453,7 +453,7 @@ export function CreateRecruitmentForm({
             <Lineup seats={previewSeats.slice(0, 3)} size="lg" label={`あなたと、あと${capacity - 1}人`} />
           </div>
           {capacity > 3 && <p className="mt-2 text-right text-xs font-bold text-slate">ほか{capacity - 3}席</p>}
-          <p className="font-display mt-6 text-[22px] leading-snug">{title.trim() || placeholderTitle}</p>
+          <p className="font-black mt-6 text-[22px] leading-snug">{title.trim() || placeholderTitle}</p>
         </div>
         <div className="space-y-2">{submit}</div>
       </aside>

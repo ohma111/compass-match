@@ -46,18 +46,44 @@ export function LobbyLineup(props: {
     return () => clearTimeout(t);
   }, [props.occupied]);
 
+  // 席の自動更新。開いた直後は15秒ごと、触らずに置いてあるほど間隔を空ける (無料枠の通信量を抑える)。
+  // 画面が見えていないときは更新せず、戻ってきたら1回だけすぐ更新する。
   useEffect(() => {
     if (!props.live) return;
-    const t = setInterval(() => {
+    let last = Date.now();
+    let timer: number;
+    const touch = () => {
+      last = Date.now();
+    };
+    const interval = () => {
+      const idle = Date.now() - last;
+      return idle < 5 * 60_000 ? LIVE_REFRESH_MS : idle < 20 * 60_000 ? 45_000 : 120_000;
+    };
+    const tick = () => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, LIVE_REFRESH_MS);
-    return () => clearInterval(t);
+      timer = window.setTimeout(tick, interval());
+    };
+    timer = window.setTimeout(tick, interval());
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      touch();
+      router.refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('pointerdown', touch, { passive: true });
+    window.addEventListener('keydown', touch);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('pointerdown', touch);
+      window.removeEventListener('keydown', touch);
+    };
   }, [props.live, router]);
 
   const seats = props.seats.map((s, i) => (entering.includes(i) ? { ...s, enter: true } : s));
   const seatJoin =
     !props.isOwner && !props.joined && props.canJoin && props.auth !== 'restricted' && !control.done
-      ? { onJoin: control.join, label: props.joinMode === 'instant' ? '参加する' : '申請する', pending: control.pending }
+      ? { onJoin: control.join, label: '入る', pending: control.pending }
       : null;
 
   return (
@@ -66,8 +92,8 @@ export function LobbyLineup(props: {
         <h2 className="section-title">パーティ</h2>
         {props.stamp ? (
           <p
-            className="lineup-stamp font-display border-4 border-signal bg-sheet px-3 text-[22px] leading-tight whitespace-nowrap text-signal"
-            style={{ transform: 'rotate(-6deg)' }}
+            className="lineup-stamp font-black bg-ink px-3 text-[20px] leading-9 whitespace-nowrap text-white"
+            
             role="status"
           >
             {props.stamp}
@@ -83,7 +109,7 @@ export function LobbyLineup(props: {
       </div>
       <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} tall />
       {!props.isOwner && (
-        <div className="mt-6 lg:mx-auto lg:mt-8 lg:max-w-md">
+        <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mt-6 lg:hidden">
           <JoinButton
             recruitmentId={props.recruitmentId}
             joinMode={props.joinMode}

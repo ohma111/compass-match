@@ -44,7 +44,7 @@ export default async function NotificationsPage() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <div className="flex items-end justify-between gap-3">
-        <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">通知</h1>
+        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">通知</h1>
         {unread && (
           <ActionButton action={markNotificationsReadAction} className="btn-outline btn-sm">
             すべて既読

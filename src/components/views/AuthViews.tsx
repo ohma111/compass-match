@@ -41,7 +41,7 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
-        <h1 className="font-display text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
+        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
         {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
         <div className="mt-6">
           <TransferRedeem configured={configured} hasProfileHere={hasProfileHere} />
@@ -62,7 +62,7 @@ export function LoginView({ next, configured, resuming }: { next: string; config
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
-        <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">以前の方法でログイン</h1>
+        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">以前の方法でログイン</h1>
         {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
         <div className="mt-6">
           <LoginForm next={next} configured={configured} />
@@ -87,7 +87,7 @@ export function LoginView({ next, configured, resuming }: { next: string; config
 export function RecoverView({ next, configured }: { next: string; configured: boolean }) {
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">パスワードを忘れたとき</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">パスワードを忘れたとき</h1>
       <div className="mt-6">
         <RecoverForm next={next} configured={configured} />
       </div>

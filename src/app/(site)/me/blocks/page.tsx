@@ -17,7 +17,7 @@ export default async function BlocksPage() {
   const rows = (data ?? []) as unknown as { blocked_id: string; profile: { display_name: string } | null }[];
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">ブロックしたユーザー</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">ブロックしたユーザー</h1>
       {rows.length === 0 && <p className="text-sm text-muted">ブロックしているユーザーはいません。</p>}
       <ul className="space-y-2">
         {rows.map((b) => (

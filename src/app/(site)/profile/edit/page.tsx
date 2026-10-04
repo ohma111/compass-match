@@ -21,7 +21,7 @@ export default async function ProfileEditPage() {
         <ChevronLeft className="size-4" aria-hidden />
         マイページ
       </Link>
-      <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">プロフィール編集</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">プロフィール編集</h1>
       <ProfileForm profile={viewer.profile!} contacts={contacts ?? null} />
     </div>
   );

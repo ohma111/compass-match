@@ -31,7 +31,7 @@ export default async function NowPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-4">
-      <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">今から遊べる</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">今から遊べる</h1>
       <p className="text-sm text-muted">「今から遊べる」を押すと3時間だけ表示されます。気になる人がいたら、募集を出して声をかけてみましょう。</p>
       {mine ? (
         <div className="card space-y-2">

@@ -1,58 +1,61 @@
 @import "tailwindcss";
 
 /*
- * v3 「ロビー」: 試合前のチーム編成画面を、明るいアリーナの床とインクで描く。
- * - 床 (floor) の上に白いシート、文字と太い罫はインク。
- * - 味方 = コバルト (参加・募集・埋まった席)。シグナル = 朱 (開催中・まもなく・通知)。
- * - 角丸はほぼ使わない。主ボタンとシートは右上/右下を斜めに切る。席は12度傾けた平行四辺形。
- * 旧トークン名 (bg / surface / brand …) は互換のため残し、値だけ v3 に差し替えている。
+ * v5「タイムテーブル」: 生成りの紙に、インクの罫と文字。差し色は朱 1 色。
+ * - 募集は開始時刻の時間割として縦に並べる。時刻が一番大きい。
+ * - 主ボタンはインク、募集を出すボタンと「まもなく・開催中」だけが朱。
+ * - 角は落とさない。太い罫 (2px) で区切る。席は12度傾けた平行四辺形のまま。
+ * 旧トークン名 (ally / sheet / bg …) は互換のため残し、値だけ v5 に差し替えている。
  */
 @theme {
-  --color-floor: #e6e8ee;
-  --color-sheet: #ffffff;
-  --color-tint: #f1f2f6;
-  --color-ink: #16161d;
-  --color-ink-2: #2a2b35;
-  --color-slate: #565b6b;
-  --color-line: #c5c9d4;
-  --color-ally: #2340f0;
-  --color-ally-deep: #1a2fc0;
-  --color-ally-soft: #e3e8ff;
-  --color-ally-on-ink: #8fa2ff;
-  --color-signal: #d0341b;
-  --color-signal-deep: #b52d16;
-  --color-signal-on-ink: #ff8a73;
+  --color-floor: #efede6;
+  --color-sheet: #f8f7f2;
+  --color-tint: #e5e2d8;
+  --color-ink: #121212;
+  --color-ink-2: #34342f;
+  --color-slate: #57564f;
+  --color-line: #c4c0b3;
+  /* v3 のコバルトの役目 (参加・埋まった席・主ボタン) はインクが引き継ぐ */
+  --color-ally: #121212;
+  --color-ally-deep: #000000;
+  --color-ally-soft: #e2ded2;
+  --color-ally-on-ink: #ffb39c;
+  /* 朱: 塗り (#ff4a1c) と、紙の上の小さい文字用の濃い朱 (AA) */
+  --color-signal: #ff4a1c;
+  --color-signal-deep: #b8300d;
+  --color-signal-on-ink: #ff8a66;
 
-  /* 互換 (v2 のクラス名で書かれた画面もそのまま v3 の色になる) */
   --color-bg: var(--color-floor);
   --color-surface: var(--color-sheet);
   --color-surface-2: var(--color-tint);
-  --color-raise: #dfe2ea;
+  --color-raise: #dcd9ce;
   --color-fg: var(--color-ink);
   --color-muted: var(--color-slate);
-  --color-brand: var(--color-ally);
+  --color-brand: var(--color-ink);
   --color-brand-fg: #ffffff;
-  --color-accent: var(--color-ally);
-  --color-ok: #0b7a51;
-  --color-warn: #a35b00;
-  --color-danger: var(--color-signal);
+  --color-accent: var(--color-ink);
+  --color-ok: #136b46;
+  --color-warn: #8a4f00;
+  --color-danger: var(--color-signal-deep);
 
-  /* 目的ごとの色 (白いシートの上で文字として AA を満たす濃さ) */
-  --color-p-rank: #1b3fd8;
-  --color-p-enjoy: #0b8457;
-  /* 大会練習は朱(まもなく・開催中)と見分けられるよう黄土色に */
-  --color-p-tournament: #8a6100;
-  --color-p-custom: #7c3aed;
+  /* 目的ごとの色 (紙の上で文字として AA) */
+  --color-p-rank: #2338c8;
+  --color-p-enjoy: #12704a;
+  --color-p-tournament: #8a5a00;
+  --color-p-custom: #7a2fd0;
 
   --font-sans: var(--font-text), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   --font-display: var(--font-display-face), var(--font-text), "Hiragino Sans", sans-serif;
-  --radius-card: 6px;
+  --font-mono: var(--font-mono-face), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius-card: 0px;
 }
 
 :root {
   color-scheme: light;
-  --cut: 14px;
+  --cut: 0px;
   --seat-skew: -12deg;
+  --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out-back: cubic-bezier(0.2, 0.9, 0.25, 1);
 }
 
 html {
@@ -65,17 +68,48 @@ body {
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: "palt" 1;
   line-height: 1.7;
-  /* 見出し書体 (Dela Gothic One) は1ウェイトのみ。太字の疑似生成でつぶれないようにする */
   font-synthesis: none;
 }
 
-h1, h2, h3 {
-  line-height: 1.35;
+@layer base {
+  h1, h2, h3 {
+    line-height: 1.35;
+  }
 }
 
 :focus-visible {
   outline: 3px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--color-signal);
+  color: var(--color-ink);
+}
+
+/* 時刻・数字: Archivo を細長く */
+@utility type-time {
+  font-family: var(--font-display);
+  font-stretch: 68%;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+}
+@utility type-poster {
+  font-family: var(--font-display);
+  font-stretch: 62.5%;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.86;
+}
+/* 札: 等幅の小さいラベル */
+@utility type-tag {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
 }
 
 /* 目的ごとの色。親要素に .tone-rank などを付けると --tone で参照できる */
@@ -84,43 +118,44 @@ h1, h2, h3 {
 .tone-tournament { --tone: var(--color-p-tournament); }
 .tone-custom { --tone: var(--color-p-custom); }
 
-/* 白いシート。右上だけ斜めに切る (カードゲームのカードの角) */
+/* 面: 紙より少し白い板。角は落とさず、上辺だけインクの罫 */
 @utility sheet {
-  background:
-    linear-gradient(225deg, transparent calc(var(--cut) * 0.7071), var(--color-sheet) 0);
+  background: var(--color-sheet);
   position: relative;
+  box-shadow: inset 0 2px 0 var(--color-ink);
 }
 
 @utility card {
-  @apply rounded-[var(--radius-card)] border border-line bg-sheet p-4;
+  @apply border-2 border-ink bg-sheet p-4;
 }
 
 @utility btn {
-  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 px-4 text-sm font-bold transition-[background-color,color,transform] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 px-4 text-sm font-bold transition-[background-color,color,transform] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
 }
 
-/* 主ボタン: コバルト、右下を斜めに切る (outline が切られないよう clip-path ではなく背景で切る) */
+/* 主ボタン: インクの四角。押せないときは色を抜く */
 @utility btn-primary {
-  @apply btn text-white;
-  background: linear-gradient(315deg, transparent 10px, var(--color-ally) 0);
-  &:hover:not(:disabled) {
-    background: linear-gradient(315deg, transparent 10px, var(--color-ally-deep) 0);
-  }
-  /* 押せないときは色を抜く (薄い青だと押せそうに見えるため) */
+  @apply btn bg-ink text-white hover:bg-black;
   &:disabled {
     opacity: 1;
-    color: var(--color-slate);
-    background: linear-gradient(315deg, transparent 10px, #d3d6df 0);
+    color: var(--color-ink-2);
+    background: transparent;
+    outline: 2px dashed color-mix(in srgb, var(--color-ink) 45%, transparent);
+    outline-offset: -2px;
   }
 }
 
 @utility btn-ink {
-  @apply btn text-white;
-  background: linear-gradient(315deg, transparent 10px, var(--color-ink) 0);
+  @apply btn bg-ink text-white hover:bg-black;
+}
+
+/* 募集を出す: 朱に墨文字 */
+@utility btn-signal {
+  @apply btn bg-signal text-ink hover:bg-[#ff6a40];
 }
 
 @utility btn-outline {
-  @apply btn rounded-[3px] border-2 border-ink bg-sheet text-ink hover:bg-tint;
+  @apply btn border-2 border-ink bg-transparent text-ink hover:bg-ink hover:text-white;
 }
 
 @utility btn-ghost {
@@ -128,7 +163,7 @@ h1, h2, h3 {
 }
 
 @utility btn-danger {
-  @apply btn rounded-[3px] border-2 border-signal bg-sheet text-signal-deep hover:bg-[#fdeeea];
+  @apply btn border-2 border-signal-deep bg-transparent text-signal-deep hover:bg-[#fbe3da];
 }
 
 @utility btn-sm {
@@ -140,7 +175,7 @@ h1, h2, h3 {
 }
 
 @utility input {
-  @apply min-h-12 w-full rounded-[3px] border-2 border-line bg-sheet px-3 py-2 text-base text-ink outline-none placeholder:text-slate focus:border-ink;
+  @apply min-h-12 w-full border-2 border-ink/25 bg-sheet focus-visible:outline-none focus:shadow-[inset_0_0_0_1px_var(--color-ink)] px-3 py-2 text-base text-ink outline-none placeholder:text-slate focus:border-ink;
 }
 
 @utility label {
@@ -151,8 +186,7 @@ h1, h2, h3 {
   @apply mt-1.5 text-xs leading-relaxed text-slate;
 }
 
-/* 見出し (v2 の英字・字間広めのラベルは使わない) */
-/* Dela Gothic One は22px以上だけ。小さい見出しは Zen Kaku Gothic New の900で */
+/* 見出しは Zen Kaku Gothic New の900。時刻・英字の大見出しは type-poster */
 @utility section-title {
   @apply text-[17px] font-black tracking-[0.02em] text-ink;
 }
@@ -162,28 +196,28 @@ h1, h2, h3 {
 }
 
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-[3px] bg-tint px-2 py-0.5 text-xs font-medium text-ink-2;
+  @apply inline-flex items-center gap-1 border border-ink/20 px-1.5 py-0 text-xs font-medium text-ink-2;
 }
 
 @utility chip-brand {
-  @apply inline-flex items-center gap-1 rounded-[3px] bg-ally-soft px-2 py-0.5 text-xs font-bold text-ally;
+  @apply inline-flex items-center gap-1 bg-ally-soft px-2 py-0.5 text-xs font-bold text-ink;
 }
 
 /* タップで選ぶチップ (radio / checkbox を内包する label)。選択中はインクで塗る */
 @utility pick {
-  @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-1.5 rounded-[3px] border-2 border-line bg-sheet px-3.5 text-sm font-bold text-ink-2 transition-colors hover:border-slate has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink;
+  @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-1.5 border-2 border-ink/25 bg-sheet px-3.5 text-sm font-bold text-ink-2 transition-colors hover:border-slate has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink;
 }
 
 @utility link {
-  @apply font-bold text-ally underline underline-offset-3;
+  @apply font-bold text-ink underline decoration-signal decoration-2 underline-offset-4;
 }
 
 @utility alert-error {
-  @apply border-l-4 border-signal bg-sheet px-3 py-2.5 text-sm font-medium text-signal-deep;
+  @apply border-2 border-signal-deep bg-sheet px-3 py-2.5 text-sm font-bold text-signal-deep;
 }
 
 @utility alert-ok {
-  @apply border-l-4 border-ok bg-sheet px-3 py-2.5 text-sm font-medium text-ok;
+  @apply border-2 border-ok bg-sheet px-3 py-2.5 text-sm font-bold text-ok;
 }
 
 @utility no-scrollbar {
@@ -195,12 +229,8 @@ h1, h2, h3 {
 
 /* 空き席の斜線 */
 @utility hatch {
-  background-color: var(--color-tint);
-  background-image: repeating-linear-gradient(
-    -48deg,
-    transparent 0 7px,
-    color-mix(in srgb, var(--color-line) 70%, transparent) 7px 9px
-  );
+  background-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
 }
 
 /* ---------------------------------------------------------------
@@ -218,12 +248,14 @@ h1, h2, h3 {
   cursor: pointer;
 }
 button:hover > .seat-open {
-  background-color: var(--color-ally-deep);
+  background-color: var(--color-ink);
+  color: #ffffff;
 }
 @keyframes stamp {
-  0%, 45% { transform: rotate(-8deg) scale(1.9); opacity: 0; }
-  70% { transform: rotate(-8deg) scale(0.94); opacity: 1; }
-  100% { transform: rotate(-8deg) scale(1); opacity: 1; }
+  /* 判を押す: 大きく現れ、一瞬止まって (ヒットストップ) から収まる */
+  0%, 45% { transform: scale(1.8); opacity: 0; }
+  62%, 70% { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .seat-enter {
@@ -257,9 +289,9 @@ button:hover > .seat-open {
 }
 
 /* ---- 読み込み中 ---- */
-/* 骨組み: 床と同系の灰に、左から右へ光が流れる */
+/* 骨組み: 紙と同系の灰に、左から右へ光が流れる */
 @utility skel {
-  background: linear-gradient(100deg, #e9ebf0 30%, #f6f7fa 50%, #e9ebf0 70%) 0 0 / 300% 100%;
+  background: linear-gradient(100deg, #e2dfd4 30%, #f3f1ea 50%, #e2dfd4 70%) 0 0 / 300% 100%;
   animation: skel-sweep 1.3s linear infinite;
 }
 @utility skel-seat {
@@ -287,8 +319,7 @@ button:hover > .seat-open {
   transform-origin: 0 50%;
   transform: scaleX(0);
   opacity: 0;
-  background: var(--color-ally);
-  box-shadow: 0 0 8px rgb(35 64 240 / 0.6);
+  background: var(--color-signal);
 }
 .nav-progress[data-state='run'] {
   opacity: 1;
@@ -307,4 +338,45 @@ button:hover > .seat-open {
 @media (prefers-reduced-motion: reduce) {
   .skel, .skel-card { animation: none; }
   .nav-progress[data-state='run'] { animation: none; transform: scaleX(0.6); }
+}
+
+/* ---- v5 の動き ----
+ * 時間割の行は上から順に、少しずつ遅れて出る (重なり)。動くのは最初の表示だけ。 */
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.row-in {
+  animation: row-in 360ms var(--ease-snap) both;
+}
+/* 時間割の骨組み: 時刻の列と罫だけ先に引く */
+@keyframes rule-draw {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.rule-draw {
+  transform-origin: 0 50%;
+  animation: rule-draw 420ms var(--ease-snap) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .row-in, .rule-draw { animation: none; }
+}
+
+/* 名前の見えない参加者の席: 墨の斜線で「埋まっている」 */
+.filled-anon {
+  background: repeating-linear-gradient(-60deg, rgb(18 18 18 / 0.4) 0 1.5px, transparent 1.5px 6px);
+  box-shadow: inset 0 0 0 2px rgb(18 18 18 / 0.4);
+}
+
+/* 「いま」の線: 左から引かれて、ゆっくり脈打つ */
+@keyframes now-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.now-line {
+  transform-origin: 0 50%;
+  animation: rule-draw 600ms var(--ease-snap) both, now-pulse 2.4s ease-in-out 600ms infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .now-line { animation: none; }
 }

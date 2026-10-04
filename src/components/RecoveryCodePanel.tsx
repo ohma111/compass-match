@@ -26,7 +26,7 @@ export function RecoveryCodePanel({
   return (
     <section aria-labelledby="recovery-title" className="space-y-6">
       <div>
-        <h1 id="recovery-title" className="font-display text-[26px] leading-tight lg:text-[34px]">{heading}</h1>
+        <h1 id="recovery-title" className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">{heading}</h1>
         <p className="mt-2 text-sm leading-relaxed text-ink-2">
           下の<strong>引き継ぎコード</strong>を、スクリーンショットかメモで保存してください。
           パスワードを忘れたとき、ユーザーIDとこのコードで新しいパスワードを決められます。
@@ -42,7 +42,7 @@ export function RecoveryCodePanel({
         <p className="mt-2 text-sm text-white/80">引き継ぎコード</p>
         {/* 4文字ずつのまとまりを崩さない (スマホは2×2、広い画面は1行) */}
         <p
-          className="font-display mt-2 grid grid-cols-2 gap-x-5 gap-y-1 text-[28px] leading-tight tracking-[0.08em] sm:grid-cols-4 sm:text-[34px]"
+          className="font-mono font-bold mt-2 grid grid-cols-2 gap-x-5 gap-y-1 text-[28px] leading-tight tracking-[0.08em] sm:grid-cols-4 sm:text-[34px]"
           aria-label={`引き継ぎコード ${formatted.split('').join(' ')}`}
         >
           {formatted.split("-").map((g, i) => (

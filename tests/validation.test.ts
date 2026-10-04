@@ -234,7 +234,7 @@ describe('v4.1 rank bands', () => {
   it('has exactly the 4 new bands and rejects the old codes', async () => {
     const { RANK_BANDS, RANK_LABELS } = await import('@/lib/constants');
     expect([...RANK_BANDS]).toEqual(['fa', 's1_4', 's5_7', 's8p']);
-    expect(Object.values(RANK_LABELS)).toEqual(['F〜A', 'S1〜S4', 'S5〜S7', 'S8以上']);
+    expect(Object.values(RANK_LABELS)).toEqual(['F–A', 'S1–4', 'S5–7', 'S8+']);
     const { onboardingSchema } = await import('@/lib/validation/schemas');
     for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p']) {
       expect(onboardingSchema.safeParse({ displayName: 'a', rankBand: old, playRoles: [], agreeTerms: true, src: null }).success).toBe(false);

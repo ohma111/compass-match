@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Hand, Zap } from 'lucide-react';
+import { ArrowRight, ChevronRight, Hand, Zap } from 'lucide-react';
 import { requestJoinAction } from '@/app/actions';
 import { joinButtonLabel } from '@/lib/capacity';
 import type { JoinMode } from '@/lib/constants';
@@ -108,9 +108,12 @@ export function JoinButton(props: {
   const Icon = joinMode === 'instant' ? Zap : Hand;
   return (
     <div className="space-y-1.5">
-      <button type="button" onClick={join} disabled={pending} className={`btn-primary ${sizing}`}>
-        <Icon className="size-5" aria-hidden />
+      <button type="button" onClick={join} disabled={pending} className={`btn-primary group ${sizing}`}>
+        {!props.compact && <Icon className="size-5" aria-hidden />}
         {pending ? '処理中…' : joinButtonLabel(joinMode)}
+        {props.compact && !pending && (
+          <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" strokeWidth={2.5} aria-hidden />
+        )}
       </button>
       {error && (
         <p className="text-[13px] font-medium text-signal-deep" role="alert">

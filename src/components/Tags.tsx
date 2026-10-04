@@ -10,11 +10,23 @@ import {
   type RecruitVc,
 } from '@/lib/constants';
 
-/** 目的 (色の付いた斜めの小さな札 + 文字) */
+/** 目的の刻印 (色を使わず形で分ける: ランク■ エンジョイ● 大会練習▲ カスタム◆) */
+export function PurposeMark({ purpose, className = 'size-2.5' }: { purpose: Purpose; className?: string }) {
+  return (
+    <svg viewBox="0 0 10 10" className={`${className} shrink-0`} fill="currentColor" aria-hidden>
+      {purpose === 'rank' && <rect x="0.5" y="0.5" width="9" height="9" />}
+      {purpose === 'enjoy' && <circle cx="5" cy="5" r="4.6" />}
+      {purpose === 'tournament' && <path d="M5 0.3 9.8 9.5H0.2Z" />}
+      {purpose === 'custom' && <path d="M5 0 10 5 5 10 0 5Z" />}
+    </svg>
+  );
+}
+
+/** 目的 (刻印 + 文字) */
 export function PurposeBadge({ purpose, size = 'sm' }: { purpose: Purpose; size?: 'sm' | 'md' }) {
   return (
-    <span className={`tone-${purpose} inline-flex items-center gap-1.5 font-bold text-[var(--tone)] ${size === 'md' ? 'text-sm' : 'text-[13px]'}`}>
-      <span aria-hidden className={`${size === 'md' ? 'h-4 w-2' : 'h-3.5 w-1.5'} [transform:skewX(var(--seat-skew))] bg-[var(--tone)]`} />
+    <span className={`inline-flex items-center gap-1.5 font-bold text-ink ${size === 'md' ? 'text-sm' : 'text-[13px]'}`}>
+      <PurposeMark purpose={purpose} className={size === 'md' ? 'size-3' : 'size-2.5'} />
       {PURPOSE_LABELS[purpose]}
     </span>
   );

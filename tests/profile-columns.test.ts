@@ -46,7 +46,16 @@ describe('profiles column list (v2 「また登録させられる」不具合の
     expect(offenders).toEqual([]);
   });
 
-  it('anon embeds of profiles stay within the anon grant (id, display_name, rank_band)', () => {
-    expect(grantedProfileColumns('anon').sort()).toEqual(['display_name', 'id', 'rank_band']);
+  // v5: 席にロールのアイコンを出すため play_roles を足した (20261004000009_v5_usage.sql)
+  it('anon embeds of profiles stay within the anon grant (id, display_name, rank_band, play_roles)', () => {
+    expect(grantedProfileColumns('anon').sort()).toEqual(['display_name', 'id', 'play_roles', 'rank_band']);
+  });
+
+  it('the owner embed used by the public list only asks for anon-granted columns', () => {
+    const src = readFileSync(path.join(root, 'src/lib/queries.ts'), 'utf8');
+    const m = src.match(/owner:profiles![a-z_]+\(([^)]*)\)/);
+    const cols = (m?.[1] ?? '').split(',').map((c) => c.trim());
+    const granted = grantedProfileColumns('anon');
+    expect(cols.filter((c) => !granted.includes(c))).toEqual([]);
   });
 });

@@ -56,7 +56,7 @@ function rec(
     join_mode: 'instant',
     hidden_at: null,
     created_at: at(now, -20),
-    owner: { id: owner.id, display_name: owner.display_name, rank_band: owner.rank_band },
+    owner: { id: owner.id, display_name: owner.display_name, rank_band: owner.rank_band, play_roles: owner.play_roles },
     ...partial,
   };
 }

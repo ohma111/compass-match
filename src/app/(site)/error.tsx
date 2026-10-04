@@ -4,7 +4,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   const missingEnv = error.message?.includes('環境変数');
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <h1 className="font-display text-[26px] leading-tight">読み込めませんでした</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight">読み込めませんでした</h1>
       <p className="text-sm text-slate">
         {missingEnv
           ? 'サーバーの設定が足りません (運営者向け)'

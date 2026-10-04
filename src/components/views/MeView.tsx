@@ -1,3 +1,4 @@
+import { ProfileSeat } from '@/components/Lineup';
 import Link from 'next/link';
 import { ChevronRight, FileText, MessageSquareHeart, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
@@ -30,18 +31,13 @@ export interface MeViewProps {
 export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, now }: MeViewProps) {
   const warnNoWayBack = accountKind === 'anonymous';
   const menu = 'flex min-h-12 w-full items-center gap-3 text-sm font-bold';
-  const initial = Array.from(profile.display_name.trim())[0] ?? '?';
   return (
     <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-14">
       <aside className="space-y-6 lg:sticky lg:top-28">
         <section className="flex items-center gap-6" aria-label="プロフィール">
-          <div className="ml-3 flex h-28 w-22 shrink-0 items-end bg-ink px-3 pb-3 text-white [transform:skewX(var(--seat-skew))]">
-            <span className="font-display text-[44px] leading-none [transform:skewX(calc(var(--seat-skew)*-1))]" aria-hidden>
-              {initial}
-            </span>
-          </div>
+          <ProfileSeat id={userId} roles={profile.play_roles} rank={profile.rank_band} />
           <div className="min-w-0">
-            <h1 className="font-display truncate text-[24px] leading-tight">{profile.display_name}</h1>
+            <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{profile.display_name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
               <span className="font-bold">{RANK_LABELS[profile.rank_band]}</span>
               {profile.play_roles.map((r) => (

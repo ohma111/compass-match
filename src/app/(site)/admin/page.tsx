@@ -36,17 +36,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     { key: 'recruitments', label: '募集' },
     { key: 'feedback', label: 'フィードバック' },
     { key: 'metrics', label: '指標' },
+    { key: 'usage', label: '容量' },
   ];
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <h1 className="font-display text-[26px] leading-tight lg:text-[34px]">管理画面</h1>
+      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">管理画面</h1>
       <nav className="flex flex-wrap gap-2">
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/admin?tab=${t.key}`}
-            className={`inline-flex min-h-11 items-center rounded-[3px] border-2 px-3 text-sm font-bold ${tab === t.key ? 'border-ink bg-ink text-white' : 'border-line bg-sheet'}`}
+            className={`inline-flex min-h-11 items-center border-2 px-3 text-sm font-bold ${tab === t.key ? 'border-ink bg-ink text-white' : 'border-ink/25'}`}
           >
             {t.label}
           </Link>
@@ -57,6 +58,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {tab === 'recruitments' && <RecruitmentsTab supabase={supabase} />}
       {tab === 'feedback' && <FeedbackTab supabase={supabase} />}
       {tab === 'metrics' && <MetricsTab supabase={supabase} />}
+      {tab === 'usage' && <UsageTab supabase={supabase} />}
     </div>
   );
 }
@@ -256,6 +258,65 @@ async function MetricsTab({ supabase }: { supabase: SB }) {
       </div>
       <p className="text-xs text-muted">
         ギルド内向けの告知には <code>?src=guild</code>、X には <code>?src=x</code> などを付けてリンクを共有すると、「guild以外」をギルド外の参加として数えられます。
+      </p>
+    </div>
+  );
+}
+
+/** 無料枠の上限 (2026-10 時点。変わったらここを直す) */
+const FREE_DB_BYTES = 500 * 1024 * 1024;
+const FREE_MAU = 50_000;
+
+function mb(n: number): string {
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+async function UsageTab({ supabase }: { supabase: SB }) {
+  const { data, error } = await supabase.rpc('admin_usage');
+  if (error || !data) return <p className="alert-error">取得できませんでした (マイグレーション9が未適用かもしれません)</p>;
+  const u = data as {
+    db_bytes: number;
+    tables: { name: string; bytes: number; rows: number }[];
+    auth_users: number;
+    anonymous_users: number;
+    recruitments: number;
+    messages: number;
+    notifications: number;
+  };
+  const dbRatio = u.db_bytes / FREE_DB_BYTES;
+  const warn = dbRatio >= 0.6;
+  return (
+    <div className="space-y-4 text-sm">
+      <div className={`card ${warn ? 'border-signal-deep' : ''}`}>
+        <p className="font-bold">データベース</p>
+        <p className="type-time mt-1 text-[40px]">
+          {mb(u.db_bytes)} <span className="text-[20px] text-slate">/ 500 MB</span>
+        </p>
+        <div className="mt-2 h-3 border-2 border-ink">
+          <div className={`h-full ${warn ? 'bg-signal' : 'bg-ink'}`} style={{ width: `${Math.min(100, dbRatio * 100).toFixed(1)}%` }} />
+        </div>
+        {warn && <p className="mt-2 font-bold text-signal-deep">6割を超えました。下の大きい表を確認し、保存日数 (app_settings) を短くする</p>}
+      </div>
+      <div className="card">
+        <p className="font-bold">大きい表</p>
+        <ul className="mt-2 space-y-1 font-mono text-[13px]">
+          {u.tables.map((t) => (
+            <li key={t.name} className="flex justify-between gap-3">
+              <span className="truncate">{t.name}</span>
+              <span className="shrink-0">{mb(t.bytes)} / {Math.max(0, t.rows)}行</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="card grid grid-cols-2 gap-2">
+        <div>アカウント<p className="text-xl font-bold">{u.auth_users}</p></div>
+        <div>うち匿名<p className="text-xl font-bold">{u.anonymous_users}</p></div>
+        <div>募集<p className="text-xl font-bold">{u.recruitments}</p></div>
+        <div>チャット<p className="text-xl font-bold">{u.messages}</p></div>
+      </div>
+      <p className="text-xs leading-relaxed text-muted">
+        無料枠: DB 500MB / 月間アクティブ {FREE_MAU.toLocaleString()}人 / 通信 5GB (Supabase)、関数の実行 100万回・CPU 4時間 (Vercel)。
+        超えても請求はされず、止まる・読み取り専用になる。通信量と実行回数は DB からは見えないので、Supabase と Vercel の Usage 画面で見る。
       </p>
     </div>
   );

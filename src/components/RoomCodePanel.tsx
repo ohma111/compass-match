@@ -49,13 +49,12 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
               inputMode="numeric"
               autoComplete="off"
               autoFocus={Boolean(code)}
-              className="font-display min-h-14 w-full min-w-0 border-2 border-white/40 bg-ink-2 px-3 text-[28px] tracking-[0.08em] text-white outline-none placeholder:text-white/35 focus:border-white"
+              className="font-mono font-bold min-h-14 w-full min-w-0 border-2 border-white/40 bg-ink-2 px-3 text-[28px] tracking-[0.08em] text-white outline-none placeholder:text-white/35 focus:border-white"
               placeholder="12345"
               aria-label="部屋番号"
             />
             <button
-              className="inline-flex min-h-14 shrink-0 items-center px-5 font-bold text-ink disabled:opacity-50"
-              style={{ background: 'linear-gradient(315deg, transparent 10px, #ffffff 0)' }}
+              className="inline-flex min-h-14 shrink-0 items-center bg-signal px-5 font-bold text-ink disabled:opacity-50"
               disabled={pending}
             >
               {pending ? '保存中…' : '保存'}
@@ -65,7 +64,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
         </form>
       ) : code ? (
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <p className="font-display min-w-0 break-all text-[44px] leading-tight tracking-[0.08em] tabular-nums lg:text-[52px]">{code}</p>
+          <p className="font-mono font-bold min-w-0 break-all text-[44px] leading-tight tracking-[0.08em] tabular-nums lg:text-[52px]">{code}</p>
           <CopyButton text={code} onInk />
         </div>
       ) : (

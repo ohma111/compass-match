@@ -27,30 +27,24 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
   return (
     <nav
       aria-label="メインメニュー"
-      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-sheet pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-floor pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      <div className="mx-auto grid h-16 max-w-xl grid-cols-[2fr_1.6fr_1fr_1fr] items-stretch px-2">
+      <div className="mx-auto grid h-16 max-w-xl grid-cols-4 items-stretch">
         <Link href="/" className={item(current === 'home')} aria-current={current === 'home' ? 'page' : undefined}>
           {current === 'home' && bar}
           <House className="size-6" strokeWidth={current === 'home' ? 2.5 : 2} aria-hidden />
           ホーム
         </Link>
-        <div className="flex items-center justify-center">
-          <Link
-            href="/recruitments/new"
-            className="flex h-12 w-full items-center justify-center gap-1 px-2 text-[14px] font-bold text-white"
-            style={{ background: 'linear-gradient(315deg, transparent 10px, var(--color-ally) 0)' }}
-          >
-            <Plus className="size-5" strokeWidth={3} aria-hidden />
-            募集する
-          </Link>
-        </div>
+        <Link href="/recruitments/new" className="m-1.5 flex flex-col items-center justify-center gap-0.5 bg-signal text-xs font-black text-ink active:bg-[#ff6a40]">
+          <Plus className="size-6" strokeWidth={3} aria-hidden />
+          募集する
+        </Link>
         <Link href="/notifications" className={item(current === 'notif')} aria-current={current === 'notif' ? 'page' : undefined}>
           {current === 'notif' && bar}
           <span className="relative">
             <Bell className="size-6" strokeWidth={current === 'notif' ? 2.5 : 2} aria-hidden />
             {unread > 0 && (
-              <span className="absolute -top-1.5 -right-3 min-w-[1.2rem] bg-signal px-1 text-center text-xs leading-[1.2rem] font-bold text-white">
+              <span className="absolute -top-1.5 -right-3 min-w-[1.2rem] bg-signal px-1 text-center font-mono text-[11px] leading-[1.2rem] font-bold text-ink">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}

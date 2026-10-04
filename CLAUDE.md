@@ -37,3 +37,13 @@
 - iPhone で1週間以上ログインが保たれるかは実機で未確認(サーバー側で Cookie を 400 日で更新し直す対策は済み)。
 - X ログインは未設定(有料プランが要る可能性があり見送り)。
 - 集客(ギルド外の人に届く入口)は機能では解決しない。告知リンクには `?src=guild` `?src=x` などを付け、管理画面の指標で見る。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

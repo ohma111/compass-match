@@ -1,3 +1,4 @@
+import { ProfileSeat } from '@/components/Lineup';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireViewer } from '@/lib/auth';
@@ -28,16 +29,13 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   if (!p) notFound();
   const isMe = viewer.userId === id;
   const blocked = Boolean(block);
-  const initial = Array.from(p.display_name.trim())[0] ?? '?';
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="flex items-center gap-6">
-        <div className="ml-3 flex h-28 w-22 shrink-0 items-end bg-ink px-3 pb-3 text-white [transform:skewX(var(--seat-skew))]">
-          <span className="font-display text-[44px] leading-none [transform:skewX(calc(var(--seat-skew)*-1))]" aria-hidden>{initial}</span>
-        </div>
+        <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} />
         <div className="min-w-0">
-          <h1 className="font-display truncate text-[24px] leading-tight">{p.display_name}</h1>
+          <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{p.display_name}</h1>
           <p className="mt-1 text-sm font-bold">{RANK_LABELS[p.rank_band]}</p>
         </div>
       </section>

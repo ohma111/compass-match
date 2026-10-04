@@ -35,7 +35,7 @@ export interface Recruitment {
   approved_count: number;
   hidden_at: string | null;
   created_at: string;
-  owner?: Pick<Profile, 'id' | 'display_name' | 'rank_band'> | null;
+  owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles'] }) | null;
 }
 
 export interface Participation {
