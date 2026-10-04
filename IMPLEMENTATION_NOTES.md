@@ -63,7 +63,7 @@
 
 ---
 
-# v2 redesign (REDESIGN.md)
+# v2 redesign (docs/history/v2-redesign.md)
 
 ## What changed
 - **Navigation**: bottom tab bar on every page (ホーム / ＋募集する / 通知 with unread badge / マイページ). The top header is only the short site name and never wraps. The ＋ button sits at the true center of the screen (the left cell is as wide as the two right cells).
@@ -106,7 +106,7 @@
 
 ---
 
-# v3 (REDESIGN_V3.md)
+# v3 (docs/history/v3-redesign.md)
 
 ## 1. Bug: registered users sent back to /welcome
 - **Cause** (as stated in the spec, confirmed): `getViewer()` and `/users/[id]` ran `profiles.select('*')`. `signup_src` has no column privilege for `authenticated`, so PostgREST returned a permission error, `data` was `null`, and the code read that as "no profile" → redirect to `/welcome`.
