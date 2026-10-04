@@ -77,9 +77,11 @@ body {
   }
 }
 
-:focus-visible {
-  outline: 3px solid var(--color-ink);
-  outline-offset: 2px;
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
 }
 
 ::selection {
