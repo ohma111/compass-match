@@ -1,67 +1,65 @@
 {
   "base": "https://compass-match.vercel.app",
-  "at": "2026-10-05T00:25:10.517Z",
-  "recruitment": "https://compass-match.vercel.app/recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+  "at": "2026-10-05T00:33:06.424Z",
+  "recruitment": "https://compass-match.vercel.app/recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
   "results": [
     {
       "step": "A: 募集する → シート → はじめる → 募集が続けて出る",
       "ok": true,
-      "ms": 20360
+      "ms": 18567
     },
     {
       "step": "A: 募集がホームに出る",
       "ok": true,
-      "ms": 4430
+      "ms": 4294
     },
     {
       "step": "B: ホーム → 空き席をタップ → シート → リロードなしで参加 → 満員",
       "ok": true,
-      "ms": 23253
+      "ms": 14988
     },
     {
       "step": "A: 部屋番号 12345 → B に表示とコピー",
       "ok": true,
-      "ms": 12472
+      "ms": 12570
     },
     {
       "step": "A・B がチャットを1件ずつ → 両方に両方が見える",
       "ok": true,
-      "ms": 17786
+      "ms": 17337
     },
     {
       "step": "A: 同じコンテキストの新しいタブでもログインしたまま (シートなし)",
       "ok": true,
-      "ms": 3827
+      "ms": 4448
     },
     {
       "step": "B: 作成10分以内の匿名アカウントは11件目で止まる",
       "ok": true,
-      "ms": 90951
+      "ms": 91046
     },
     {
       "step": "A: マイページで引き継ぎコードを作る",
       "ok": true,
-      "ms": 5740
+      "ms": 5639
     },
     {
       "step": "C: 引き継ぐ → テストAとしてログイン",
       "ok": true,
-      "ms": 15962
+      "ms": 14865
     },
     {
       "step": "片付け: B が参加をやめる",
       "ok": true,
-      "ms": 5166
+      "ms": 5284
     },
     {
       "step": "片付け: A が募集を取り消す → ホームに出ない",
       "ok": true,
-      "ms": 7582
+      "ms": 8333
     }
   ],
   "consoleErrors": [
-    "[A] HTTP 502 https://compass-match.vercel.app/_next/static/immutable/media/002ad56b38a46c9f-s.p.206gj4ml91fe2.woff2",
-    "[A] console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
@@ -93,10 +91,10 @@
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
-    "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
+    "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
@@ -104,30 +102,31 @@
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
-    "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500"
+    "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
+    "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500"
   ],
   "actionLog": [
     "[A] action POST /recruitments/new",
     "[A] action POST /recruitments/new",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[A] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[A] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
     "[A] action POST /me",
     "[C] action POST /transfer",
-    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
-    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c"
+    "[B] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1",
+    "[A] action POST /recruitments/aefcb6ce-73ca-4a7d-b08b-1697b40c1ad1"
   ],
   "friction": []
 }
