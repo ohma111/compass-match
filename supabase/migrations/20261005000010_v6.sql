@@ -245,6 +245,8 @@ create table if not exists private.play_mates_counted (
   mate_id uuid not null,
   primary key (recruitment_id, user_id, mate_id)
 );
+alter table private.play_mates_counted enable row level security;
+revoke all on private.play_mates_counted from public, anon, authenticated;
 
 create or replace function private.record_play_mates()
 returns trigger
