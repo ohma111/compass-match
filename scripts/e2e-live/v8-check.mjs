@@ -17,8 +17,6 @@ async function ctx(browser) {
   const page = await c.newPage();
   page.on('dialog', (d) => d.accept());
   page.on('console', (m) => m.type() === 'error' && !m.text().includes('WebSocket') && console.log('   console:', m.text().slice(0, 200)));
-  page.on('request', (r) => r.method() === 'POST' && console.log('   POST', r.url().slice(0, 80)));
-  page.on('response', (r) => r.request().method() === 'POST' && console.log('   ->', r.status()));
   return { c, page };
 }
 async function createRecruitment(p, name) {
@@ -28,12 +26,8 @@ async function createRecruitment(p, name) {
   await p.getByRole('radio', { name: '今すぐ' }).click();
   await p.locator('label', { hasText: 'あと1人' }).click();
   await p.locator('label', { hasText: '早い者勝ち' }).click();
-  await p.evaluate(() => { const f = document.querySelector('form'); const rs = HTMLFormElement.prototype.requestSubmit; HTMLFormElement.prototype.requestSubmit = function (...a) { console.error('REQUESTSUBMIT'); return rs.apply(this, a); }; f.addEventListener('submit', (e) => setTimeout(() => console.error('SUBMIT prevented=' + e.defaultPrevented + ' sub=' + (e.submitter?.innerText ?? 'none').slice(0,10)), 0)); });
   const btns = p.getByRole('button', { name: /^募集する/ });
-  console.log('   buttons:', await btns.count(), await btns.first().isDisabled());
   await btns.first().click();
-  await p.waitForTimeout(2000);
-  console.log('   dialogs:', await p.locator('[role=dialog]').count(), 'url', p.url(), await p.evaluate(() => [...document.querySelectorAll('[role=dialog], [aria-modal]')].map((d) => d.outerHTML.slice(0, 200))));
   if (name) {
     const sheet = p.getByRole('dialog');
     await sheet.waitFor({ timeout: 15_000 });
@@ -49,7 +43,7 @@ async function createRecruitment(p, name) {
   }
   await p.waitForURL(/\/recruitments\/[0-9a-f-]{36}/, { timeout: 30_000 }).catch(async (e) => {
     await p.screenshot({ path: '/tmp/claude-0/v8-stuck.png', fullPage: true });
-    console.log('   text:', (await p.locator('main').innerText()).slice(0, 400));
+    console.log('   text:', (await p.locator('[role=alert]').allInnerTexts()).join(' / '));
     throw e;
   });
   return p.url().split('?')[0];
@@ -83,11 +77,6 @@ try {
     await rank.getByRole('button', { name: '決定して続ける' }).click();
     await p.waitForURL(/joined=1/, { timeout: 30_000 });
   });
-  await step('Y のプロフィール', async () => {
-    const t = await token(Y.c);
-    const r = await fetch(`${SUPA}/rest/v1/profiles?select=id,rank_band,rank_confirmed,display_name&id=eq.${JSON.parse(Buffer.from(t.split('.')[1], 'base64url')).sub}`, { headers: { apikey: KEY, Authorization: `Bearer ${t}` } });
-    console.log('   ', await r.text());
-  });
   await step('Y が自分の募集を出す → X に「確認Yさんが募集を出しました」', async () => {
     const yUrl = await createRecruitment(Y.page, null);
     urls.push([Y, yUrl]);
@@ -104,10 +93,15 @@ try {
     await p.getByRole('button', { name: 'すべて削除' }).click();
     await p.getByText('通知はありません').waitFor({ timeout: 15_000 });
   });
-  await step('一般ユーザーが /admin を開くと「ページが見つかりません」', async () => {
-    const res = await Y.page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
-    if (res.status() !== 404) throw new Error(`status ${res.status()}`);
+  await step('一般ユーザーが /admin を開いても中身は出ない', async () => {
+    // loading.tsx があるため応答は 200 のまま流れ、中身が「見つかりません」に置き換わる
+    await Y.page.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
     await Y.page.getByText('ページが見つかりません').first().waitFor({ timeout: 10_000 });
+    if (await Y.page.getByRole('heading', { name: '管理画面' }).count()) throw new Error('admin heading visible');
+    for (const tab of ['reports', 'users', 'usage', 'feedback']) {
+      const html = await (await Y.page.request.get(`${BASE}/admin?tab=${tab}`)).text();
+      if (html.includes('未処理の通報') || html.includes('大きい表') || html.includes('表示名 または ユーザーID')) throw new Error(`admin content leaked on ${tab}`);
+    }
   });
   await step('一般ユーザーが管理用RPCを直接呼ぶと拒否される', async () => {
     const t = await token(Y.c);
