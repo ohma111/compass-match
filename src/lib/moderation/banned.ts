@@ -53,4 +53,4 @@ export function containsBanned(raw: string): boolean {
   return BANNED_TERMS.some((t) => n.includes(t));
 }
 
-export const BANNED_MESSAGE = '使えない言葉が入っています';
+export const BANNED_MESSAGE = '使用できない言葉が含まれています';

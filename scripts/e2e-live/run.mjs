@@ -83,13 +83,16 @@ async function fillSheet(page, name) {
   await sheet.locator('#sheet-name').fill(name);
   await sheet.locator('input[type="checkbox"]').last().check();
   await sheet.getByRole('button', { name: /^はじめる/ }).click();
-  await sheet.waitFor({ state: 'detached', timeout: 30_000 });
+  // プロフィールのシートが閉じると、続けてランクのシートが開く (どちらも dialog なので名前で区別する)
   // ランクは初めて募集・参加するときに聞かれる
   const rank = page.getByRole('dialog', { name: '現在のランクを選んでください' });
-  await rank.waitFor({ timeout: 15_000 });
+  await rank.waitFor({ timeout: 30_000 });
   await rank.getByRole('radio', { name: 'S1以上' }).click();
   await rank.getByRole('button', { name: '決定して続ける' }).click();
-  await rank.waitFor({ state: 'detached', timeout: 30_000 });
+  await rank.waitFor({ state: 'detached', timeout: 30_000 }).catch(async (e) => {
+    await snap(page, `rank-stuck-${name}`);
+    throw e;
+  });
 }
 
 /** 期待するものが出るまで、ページを読み込み直しながら待つ (15秒ごとの自動更新・Realtime の代わり) */
@@ -121,7 +124,7 @@ try {
     await p.getByRole('navigation', { name: 'メインメニュー' }).getByRole('link', { name: /募集する/ }).click();
     await p.waitForURL('**/recruitments/new');
     await p.locator('label', { hasText: 'フリーバトル' }).first().click();
-    await p.locator('label', { hasText: '楽しみたい' }).click();
+    await p.locator('label', { hasText: '楽しく遊びたい' }).click();
     await p.getByRole('radio', { name: '今すぐ' }).click();
     await p.locator('label', { hasText: 'あと1人' }).click();
     await p.locator('label', { hasText: '早い者勝ち' }).click();
@@ -148,7 +151,7 @@ try {
     await p.locator(`a[href="/recruitments/${id}"]`).first().click();
     await p.waitForURL(`**/recruitments/${id}`);
     await snap(p, 'B-detail');
-    await p.getByRole('button', { name: /空いている席に入る/ }).click();
+    await p.getByRole('button', { name: /空いている席から/ }).click();
     // ページを読み込み直していないことの確認用の目印
     await p.evaluate(() => (window.__noReload = true));
     await fillSheet(p, 'テストB');
@@ -193,7 +196,7 @@ try {
     await snap(B.page, 'B-chat');
     // 禁止語は送る前に止まる
     await B.page.getByLabel('メッセージ').fill('ライン交換しよ');
-    await B.page.getByText('使えない言葉が入っています').waitFor({ timeout: 5_000 });
+    await B.page.getByText('使用できない言葉が含まれています').waitFor({ timeout: 5_000 });
     if (!(await B.page.getByRole('button', { name: '送信' }).isDisabled())) throw new Error('banned word not blocked');
     await B.page.getByLabel('メッセージ').fill('');
   });
@@ -273,10 +276,10 @@ try {
   // 片付け: B は参加をやめ、A は募集を取り消す (アカウントは消さない)
   if (recruitmentUrl) {
     try {
-      await step('片付け: B が参加をやめる', async () => {
+      await step('片付け: B が参加を取り消す', async () => {
         const p = B.page;
         await p.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-        const btn = p.getByRole('button', { name: '参加をやめる' });
+        const btn = p.getByRole('button', { name: '参加を取り消す' });
         if (await btn.count()) {
           await btn.click();
           await p.getByRole('button', { name: /参加する/ }).first().waitFor({ timeout: 15_000 });

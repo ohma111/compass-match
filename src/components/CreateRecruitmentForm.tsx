@@ -201,7 +201,8 @@ export function CreateRecruitmentForm({
       void ensureRank().then((ok) => {
         if (!ok) return;
         rankOk.current = true;
-        formRef.current?.requestSubmit();
+        // ランクが決まっていると同じ submit イベントの中で戻ってくる。その間の requestSubmit はブラウザに無視されるので、次の周回で送る
+        setTimeout(() => formRef.current?.requestSubmit(), 0);
       });
       return;
     }
