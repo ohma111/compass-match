@@ -17,10 +17,14 @@ let cached: Keys | null = null;
 
 export async function getVapidKeys(): Promise<Keys | null> {
   if (cached) return cached;
-  if (!getServiceRoleKey()) return null;
+  if (!getServiceRoleKey()) {
+    console.error('[push] SUPABASE_SERVICE_ROLE_KEY がない');
+    return null;
+  }
   const db = createAdminClient();
   const read = async () => {
-    const { data } = await db.from('server_secrets').select('key, value').in('key', ['vapid_public', 'vapid_private']);
+    const { data, error } = await db.from('server_secrets').select('key, value').in('key', ['vapid_public', 'vapid_private']);
+    if (error) console.error('[push] read keys', error.code, error.message);
     const m = new Map((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]));
     const pub = m.get('vapid_public');
     const priv = m.get('vapid_private');
@@ -30,13 +34,14 @@ export async function getVapidKeys(): Promise<Keys | null> {
   if (!keys) {
     const k = webpush.generateVAPIDKeys();
     // 同時に2つ作られても、先に入った方だけが残る (on conflict do nothing)
-    await db.from('server_secrets').upsert(
+    const { error } = await db.from('server_secrets').upsert(
       [
         { key: 'vapid_public', value: k.publicKey },
         { key: 'vapid_private', value: k.privateKey },
       ],
       { onConflict: 'key', ignoreDuplicates: true },
     );
+    if (error) console.error('[push] save keys', error.code, error.message);
     keys = await read();
   }
   cached = keys;
