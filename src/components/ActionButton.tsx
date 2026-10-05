@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ActionResult } from '@/lib/types';
 
@@ -25,6 +25,12 @@ export function ActionButton({
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   const router = useRouter();
+  // 成功の知らせは少しだけ出して消す (エラーは直すまで残す)
+  useEffect(() => {
+    if (!result?.ok) return;
+    const t = window.setTimeout(() => setResult(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [result]);
   return (
     <div className={quiet ? 'flex' : 'space-y-1'}>
       <button
@@ -44,7 +50,11 @@ export function ActionButton({
         {pending ? pendingText : children}
       </button>
       {result && !result.ok && <p className="text-xs text-danger" role="alert">{result.error}</p>}
-      {!quiet && result && result.ok && result.message && <p className="text-xs text-ok">{result.message}</p>}
+      {!quiet && result && result.ok && result.message && (
+        <p className="text-xs text-ok" role="status">
+          {result.message}
+        </p>
+      )}
     </div>
   );
 }

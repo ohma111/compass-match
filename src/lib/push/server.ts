@@ -53,6 +53,7 @@ interface Row {
   user_id: string;
   kind: string;
   recruitment_id: string | null;
+  body: string | null;
   recruitment: { title: string; owner: { display_name: string } | null } | null;
 }
 
@@ -60,10 +61,11 @@ interface Row {
  * まだ送っていない通知をプッシュする。Server Action の after() から呼ぶ。
  * 先に pushed_at を入れてから送るので、同時に呼ばれても二重には送らない。
  */
-export async function dispatchPush(): Promise<void> {
+/** 送る対象にした通知の件数を返す (お知らせの一斉配信では 0 になるまで繰り返す) */
+export async function dispatchPush(): Promise<number> {
   try {
     const keys = await getVapidKeys();
-    if (!keys) return;
+    if (!keys) return 0;
     const db = createAdminClient();
     const since = new Date(Date.now() - 10 * 60_000).toISOString();
     const { data: claimed } = await db
@@ -71,13 +73,13 @@ export async function dispatchPush(): Promise<void> {
       .update({ pushed_at: new Date().toISOString() })
       .is('pushed_at', null)
       .gt('created_at', since)
-      .select('id, user_id, kind, recruitment_id, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
+      .select('id, user_id, kind, recruitment_id, body, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
       .limit(100);
     const rows = (claimed ?? []) as unknown as Row[];
-    if (rows.length === 0) return;
+    if (rows.length === 0) return 0;
     const userIds = [...new Set(rows.map((r) => r.user_id))];
     const { data: subs } = await db.from('push_subscriptions').select('id, user_id, endpoint, p256dh, auth').in('user_id', userIds);
-    if (!subs?.length) return;
+    if (!subs?.length) return rows.length;
     webpush.setVapidDetails(siteUrl() || 'https://compass-match.vercel.app', keys.publicKey, keys.privateKey);
     const dead: string[] = [];
     await Promise.all(
@@ -90,7 +92,7 @@ export async function dispatchPush(): Promise<void> {
                 n.kind === 'followed_posted' && n.recruitment?.owner
                   ? `${n.recruitment.owner.display_name}さんが募集を出しました`
                   : (NOTIFICATION_LABELS[n.kind] ?? 'コンパス・マッチング'),
-              body: n.recruitment?.title ?? '',
+              body: n.body ?? n.recruitment?.title ?? '',
               url: n.recruitment_id ? `/recruitments/${n.recruitment_id}` : '/notifications',
               tag: n.recruitment_id ? `r-${n.recruitment_id}-${n.kind}` : n.kind,
             });
@@ -107,7 +109,9 @@ export async function dispatchPush(): Promise<void> {
       ),
     );
     if (dead.length) await db.from('push_subscriptions').delete().in('id', dead);
+    return rows.length;
   } catch {
     // 通知が送れなくても元の操作は成功させる
+    return 0;
   }
 }

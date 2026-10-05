@@ -25,6 +25,7 @@ export function AppShell({
   sheetOpen = false,
   rankReady = false,
   currentRank = null,
+  notice = null,
 }: {
   children: React.ReactNode;
   unread: number;
@@ -33,6 +34,8 @@ export function AppShell({
   configured: boolean;
   /** タブの選択状態を URL ではなく明示的に指定する (プレビュー用) */
   active?: TabKey;
+  /** メンテナンスの予定・管理者向けの表示など、ページの上に出す帯 */
+  notice?: React.ReactNode;
   /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
   sheetOpen?: boolean;
   /** v8: ランクが決まっているか (決まっていなければ募集・参加のときに聞く) と、今のランク */
@@ -41,8 +44,8 @@ export function AppShell({
 }) {
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-ink-2 underline-offset-[6px] decoration-2 decoration-signal hover:text-ink hover:underline';
   return (
-    <OnboardingProvider initialOpen={sheetOpen}>
-      <RankProvider ready={rankReady} current={currentRank}>
+    <RankProvider ready={rankReady} current={currentRank}>
+      <OnboardingProvider initialOpen={sheetOpen}>
       <Suspense fallback={null}>
         <NavProgress />
       </Suspense>
@@ -93,6 +96,7 @@ export function AppShell({
         {!configured && (
           <p className="alert-error mb-6">サーバーの設定(Supabase環境変数)が未完了です。README の手順に従って設定してください。</p>
         )}
+        {notice}
         {restricted && (
           <p className="alert-error mb-6">
             このアカウントは現在、募集・参加・チャットを利用できません。心当たりがない場合は、フィードバックからお知らせください。
@@ -137,7 +141,7 @@ export function AppShell({
       </div>
 
       <TabBar unread={unread} active={active} />
-      </RankProvider>
-    </OnboardingProvider>
+      </OnboardingProvider>
+    </RankProvider>
   );
 }

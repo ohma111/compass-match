@@ -12,6 +12,7 @@ import { TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
 import { GuestMeView } from '@/components/views/GuestMeView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
+import { BanScreen, MaintenancePlanned, MaintenanceScreen } from '@/components/GateScreens';
 import { ME_ID, people, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,25 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       signedIn = false;
       unread = 0;
       body = <GuestMeView />;
+      break;
+    case 'maintenance':
+      body = (
+        <MaintenanceScreen
+          status={{ active: true, manual_on: false, starts_at: new Date(now.getTime() - 3600_000).toISOString(), ends_at: new Date(now.getTime() + 2 * 3600_000).toISOString(), message: 'サーバーの設定を変更しています。' }}
+        />
+      );
+      break;
+    case 'banned':
+      body = <BanScreen bannedAt={new Date(now.getTime() - 86_400_000).toISOString()} />;
+      break;
+    case 'planned':
+      active = 'home';
+      body = (
+        <>
+          <MaintenancePlanned status={{ active: false, manual_on: false, starts_at: new Date(now.getTime() + 86_400_000).toISOString(), ends_at: new Date(now.getTime() + 86_400_000 + 7200_000).toISOString(), message: '' }} />
+          <HomeView items={feed(now)} states={{}} auth="ready" viewerId={ME_ID} filter={{ purpose: 'all', soon: false }} now={now} />
+        </>
+      );
       break;
     case 'loading':
       active = 'home';

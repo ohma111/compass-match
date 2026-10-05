@@ -4,7 +4,7 @@ import { feedbackAction } from '@/app/actions';
 import { FormMessage } from './FormMessage';
 import { LIMITS } from '@/lib/constants';
 
-export function FeedbackForm({ page }: { page?: string }) {
+export function FeedbackForm({ page, placeholder = '不具合やほしい機能など (個人情報は書かないでください)', submitLabel = '送信する' }: { page?: string; placeholder?: string; submitLabel?: string }) {
   const [state, formAction, pending] = useActionState(feedbackAction, null);
   if (state?.ok) return <FormMessage state={state} />;
   return (
@@ -16,10 +16,10 @@ export function FeedbackForm({ page }: { page?: string }) {
         maxLength={LIMITS.feedback}
         rows={6}
         className="input"
-        placeholder="不具合やほしい機能など (個人情報は書かないでください)"
+        placeholder={placeholder}
       />
       <FormMessage state={state} />
-      <button className="btn-primary w-full" disabled={pending}>{pending ? '送信中…' : '送信する'}</button>
+      <button className="btn-primary w-full" disabled={pending}>{pending ? '送信中…' : submitLabel}</button>
     </form>
   );
 }

@@ -115,7 +115,7 @@ export const LIMITS = {
   message: 20,
   reportReason: 500,
   feedback: 1000,
-  roomCode: 16,
+  roomCode: 4,
   minCapacity: 2,
   maxCapacity: 6,
   maxPartyCapacity: 3, // カスタム以外は3人パーティまで
@@ -147,6 +147,8 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   new_message: 'チャットに新着メッセージがあります',
   followed_posted: '通知をオンにしている方が募集を出しました',
   blocked_joined: 'ブロックしている方が参加しました',
+  filled: 'メンバーがそろいました',
+  announcement: '運営からのお知らせ',
 };
 
 /** 運営者のゲーム内の応援コード (フッターに表示) */

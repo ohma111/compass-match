@@ -91,7 +91,7 @@ select pg_temp.assert((select src from public.participations where user_id = :U2
 
 -- 5. 承認後は部屋番号と募集者の連絡先が見える
 select pg_temp.as_user(:U2);
-select pg_temp.assert(public.get_room_code(:R1) = '12345', 'member sees room code');
+select pg_temp.assert(public.get_room_code(:R1) = '1234', 'member sees room code');
 select pg_temp.assert((select contact_discord from public.get_member_contacts(:R1) where is_owner) = 'seed_owner', 'member sees owner contacts');
 select public.send_message(:R1, 'よろしくお願いします');
 -- URLは拒否
@@ -224,7 +224,7 @@ select pg_temp.expect_error($$select public.create_recruitment('x', 'enjoy', now
 select pg_temp.expect_error($$select public.create_recruitment('x', 'rank', now(), now() + interval '1 hour', 3, null, 'any', '{}', '', null, null, 'auto')$$, 'bad join mode');
 select public.create_recruitment('カスタム 6人', 'custom', now(), now() + interval '1 hour', 6, null, 'any', '{}', '', null, null, 'approval');
 -- 引数を省略すると早い者勝ち
-select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's5', 'on', '{serious}', '', '777', 'x');
+select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's5', 'on', '{serious}', '', '7777', 'x');
 reset role;
 \set RI '(select id from public.recruitments where title = ''ランク S4〜 あと2人'')'
 \set RA '(select id from public.recruitments where title = ''カスタム 6人'')'
@@ -236,7 +236,7 @@ select pg_temp.assert((select src from public.recruitments where id = :RI) = 'x'
 select pg_temp.as_user(:U2);
 select public.request_join(:RI, 'x');
 select pg_temp.assert((select status from public.participations where recruitment_id = :RI and user_id = :U2) = 'approved', 'instant join approved');
-select pg_temp.assert(public.get_room_code(:RI) = '777', 'instant member sees room code');
+select pg_temp.assert(public.get_room_code(:RI) = '7777', 'instant member sees room code');
 select public.request_join(:RI, null);
 reset role;
 select pg_temp.assert((select approved_count from public.recruitments where id = :RI) = 1, 'instant count 1 (idempotent)');
@@ -425,7 +425,7 @@ select pg_temp.as_user(:AN);
 select public.save_my_profile('匿名さん', 's5', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, true, 'v4');
 select pg_temp.assert((select rank_confirmed from public.profiles where id = :AN), 'anonymous profile rank confirmed');
 -- 募集も作れる
-select public.create_recruitment('匿名の募集', 'enjoy', now() + interval '5 minutes', now() + interval '65 minutes', 3, null, 'any', '{}', '', '555', null, 'instant');
+select public.create_recruitment('匿名の募集', 'enjoy', now() + interval '5 minutes', now() + interval '65 minutes', 3, null, 'any', '{}', '', '5555', null, 'instant');
 reset role;
 \set RAN '(select id from public.recruitments where title = ''匿名の募集'')'
 select pg_temp.assert((select count(*) from public.recruitments where owner_id = :AN) = 1, 'anonymous user created a recruitment');
@@ -457,7 +457,7 @@ select pg_temp.as_user(:AN);
 select public.save_my_profile('匿名さん改', 's5', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, false, 'v4');
 select public.send_message(:RAN, 'リンク後');
 select pg_temp.assert((select display_name from public.profiles where id = :AN) = '匿名さん改', 'linked user keeps and edits profile');
-select pg_temp.assert(public.get_room_code(:RAN) = '555', 'linked user still owns the recruitment');
+select pg_temp.assert(public.get_room_code(:RAN) = '5555', 'linked user still owns the recruitment');
 reset role;
 
 -- ---------------------------------------------------------------------
@@ -554,6 +554,46 @@ select pg_temp.assert((select count(*) from public.notifications where user_id =
 select pg_temp.as_user(:BL);
 select pg_temp.assert((select count(*) from public.recruitments_with_blocked(array[(select id from public.recruitments where title = '次の募集')])) = 1, 'recruitment flagged for blocker');
 reset role;
+
+-- v9: 満員の通知 / 部屋番号は4桁 / メンテナンス中は管理者以外止める / お知らせ / BAN・削除 / 集計 / 最終利用
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id
+  where r.title = '次の募集' and n.kind = 'filled') = 3, 'owner and members notified when full');
+select pg_temp.as_user(:AN);
+select pg_temp.expect_error($$select public.set_room_code((select id from public.recruitments where title = '次の募集'), '12345')$$, 'room code must be 4 digits');
+select pg_temp.expect_error($$select public.set_room_code((select id from public.recruitments where title = '次の募集'), 'abcd')$$, 'room code digits only');
+select public.set_room_code((select id from public.recruitments where title = '次の募集'), '0123');
+reset role;
+update public.profiles set last_seen_at = now() - interval '30 days' where id = :AN;
+select pg_temp.as_user(:AN);
+update public.notifications set read_at = now() where user_id = :AN;
+reset role;
+select pg_temp.assert((select last_seen_at from public.profiles where id = :AN) > now() - interval '1 minute', 'activity updates last_seen_at');
+select pg_temp.as_user(:U4);
+select pg_temp.expect_error($$select public.admin_set_maintenance(true, null, null, 'x')$$, 'non-admin cannot set maintenance');
+select pg_temp.expect_error($$select public.admin_announce('x')$$, 'non-admin cannot announce');
+select pg_temp.expect_error($$select public.admin_delete_user('00000000-0000-4000-8000-000000000005')$$, 'non-admin cannot delete user');
+select pg_temp.expect_error($$select public.admin_recruitment_stats(current_date - 30, current_date)$$, 'non-admin cannot read stats');
+reset role;
+select pg_temp.as_user(:ADM);
+select public.admin_set_maintenance(true, null, null, '点検中');
+reset role;
+select pg_temp.as_user(null);
+select pg_temp.assert((public.site_status() ->> 'active')::boolean, 'anon sees maintenance');
+reset role;
+select pg_temp.as_user(:U4);
+select pg_temp.expect_error($$select public.create_recruitment('メンテ中', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'maintenance blocks users');
+reset role;
+select pg_temp.as_user(:ADM);
+select public.admin_set_maintenance(false, now() + interval '1 day', now() + interval '1 day 2 hours', '予定');
+select pg_temp.assert(not (public.site_status() ->> 'active')::boolean, 'scheduled maintenance not active yet');
+select pg_temp.assert(public.admin_announce('メンテナンスのお知らせ') > 0, 'announce');
+select pg_temp.expect_error($$select public.admin_delete_user('a785dedf-d035-424b-ae1c-16c9f61d37d1')$$, 'protected user cannot be deleted');
+select pg_temp.expect_error($$select public.admin_set_user_state('a785dedf-d035-424b-ae1c-16c9f61d37d1', 'ban')$$, 'protected user cannot be banned');
+select pg_temp.assert((public.admin_recruitment_stats(current_date - 30, current_date + 7) ->> 'total')::int > 0, 'stats');
+select public.admin_delete_user(:U5);
+reset role;
+select pg_temp.assert((select count(*) from public.notifications where kind = 'announcement' and user_id = :U4) = 1, 'announcement delivered');
+select pg_temp.assert(not exists (select 1 from public.profiles where id = :U5), 'admin deleted user');
 
 select 'ALL RLS TESTS PASSED' as result;
 

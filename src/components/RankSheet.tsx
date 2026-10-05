@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useCallback, useContext, useRef, useState, useTransition } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { confirmRankAction } from '@/app/actions';
@@ -11,35 +11,46 @@ import { RankPicker } from './RankPicker';
  * useEnsureRank() は、ランクが決まっていれば何もせず true、なければシートを開いて決まったら true。
  */
 type Ensure = () => Promise<boolean>;
-const Ctx = createContext<Ensure | null>(null);
+const Ctx = createContext<{ ensure: Ensure; markReady: () => void } | null>(null);
 
 export function useEnsureRank(): Ensure {
-  return useContext(Ctx) ?? (async () => true);
+  return useContext(Ctx)?.ensure ?? (async () => true);
+}
+
+/** プロフィールのシートでランクも決めたとき、続けてランクのシートを出さないようにする */
+export function useMarkRankReady(): () => void {
+  return useContext(Ctx)?.markReady ?? (() => {});
 }
 
 export function RankProvider({ ready, current, children }: { ready: boolean; current: RankBand | null; children: React.ReactNode }) {
-  const [ok, setOk] = useState(ready);
+  // 決まったかどうかは ref で持つ。プロフィールのシートの直後に呼ばれる ensure は古い描画の関数なので、state だと間に合わない
+  const ok = useRef(ready);
+  if (ready) ok.current = true;
   const [open, setOpen] = useState(false);
   const resolver = useRef<((v: boolean) => void) | null>(null);
 
   const ensure = useCallback<Ensure>(() => {
-    if (ok) return Promise.resolve(true);
+    if (ok.current) return Promise.resolve(true);
     resolver.current?.(false);
     setOpen(true);
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
     });
-  }, [ok]);
+  }, []);
 
   const close = (done: boolean) => {
-    if (done) setOk(true);
+    if (done) ok.current = true;
     resolver.current?.(done);
     resolver.current = null;
     setOpen(false);
   };
 
+  const markReady = useCallback(() => {
+    ok.current = true;
+  }, []);
+  const value = useMemo(() => ({ ensure, markReady }), [ensure, markReady]);
   return (
-    <Ctx.Provider value={ensure}>
+    <Ctx.Provider value={value}>
       {children}
       {open && <RankSheet current={current} onDone={() => close(true)} onCancel={() => close(false)} />}
     </Ctx.Provider>

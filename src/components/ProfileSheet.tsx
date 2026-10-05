@@ -8,6 +8,14 @@ import { getBrowserClient } from '@/lib/supabase/client';
 import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_BANDS_DESC, RANK_LABELS, type PlayRole, type RankBand } from '@/lib/constants';
 import { containsUrl } from '@/lib/validation/url';
 import { Lineup } from './Lineup';
+import { RankPicker } from './RankPicker';
+import { useMarkRankReady } from './RankSheet';
+
+/** シートを開いた操作ごとの言葉 (このシートが募集の入力ではなく、その前のプロフィールだと分かるように) */
+const VERB_TEXT: Record<string, { before: string; submit: string }> = {
+  募集: { before: '募集を出す前に', submit: '登録して募集する' },
+  参加: { before: '参加する前に', submit: '登録して参加する' },
+};
 import { RoleIcon } from './RoleIcon';
 
 /**
@@ -60,8 +68,11 @@ export function ProfileStartForm({
   onDone,
   autoFocus = true,
   page = false,
+  verb,
 }: {
   onDone: () => void;
+  /** 募集・参加の途中で開いたとき。ランクもここで聞き、ボタンを「登録して募集する」などにする */
+  verb?: string;
   autoFocus?: boolean;
   /** マイページに置くとき: 「はじめる」を下のタブバーの上に固定する */
   page?: boolean;
@@ -70,13 +81,17 @@ export function ProfileStartForm({
   const [name, setName] = useState('');
   const [roles, setRoles] = useState<PlayRole[]>([]);
   const [agree, setAgree] = useState(false);
+  const [rank, setRank] = useState<RankBand | ''>('');
+  const markRankReady = useMarkRankReady();
+  const needRank = Boolean(verb);
+  const text = verb ? VERB_TEXT[verb] : undefined;
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
 
 
   const nameError = containsUrl(name) ? 'URLは使えません' : null;
-  const missing = [name.trim().length > 0 && !nameError, agree].filter((ok) => !ok).length;
+  const missing = [name.trim().length > 0 && !nameError, !needRank || rank !== '', agree].filter((ok) => !ok).length;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -101,12 +116,13 @@ export function ProfileStartForm({
           return;
         }
       }
-      const r = await createProfileAction({ displayName: name, playRoles: roles, agreeTerms: agree });
+      const r = await createProfileAction({ displayName: name, rankBand: needRank ? rank : null, playRoles: roles, agreeTerms: agree });
       if (!r.ok) {
         setError(r.error);
         setPending(false);
         return;
       }
+      if (needRank) markRankReady();
       router.refresh();
       onDone();
     } catch {
@@ -128,7 +144,7 @@ export function ProfileStartForm({
           </div>
 
           <div>
-            <label className="label" htmlFor="sheet-name">表示名</label>
+            <label className="label" htmlFor="sheet-name">あなたの表示名</label>
             <input
               ref={nameRef}
               id="sheet-name"
@@ -143,6 +159,13 @@ export function ProfileStartForm({
             {nameError && <p id="sheet-name-error" className="hint font-bold text-signal-deep">{nameError}</p>}
           </div>
 
+
+          {needRank && (
+            <fieldset>
+              <legend className="label">あなたの現在のランク</legend>
+              <RankPicker value={rank} onChange={setRank} />
+            </fieldset>
+          )}
 
           <fieldset>
             <legend className="label">
@@ -178,7 +201,7 @@ export function ProfileStartForm({
           <div className={page ? 'space-y-2' : 'sticky bottom-0 -mx-4 space-y-2 border-t-2 border-ink bg-floor px-4 pt-3 pb-3'}>
             {error && <p className="alert-error" role="alert">{error}</p>}
             <button className="btn-primary btn-lg w-full text-base" disabled={pending || missing > 0}>
-              {pending ? '準備中…' : missing > 0 ? `はじめる (あと${missing}項目)` : 'はじめる'}
+              {pending ? '準備中…' : `${text?.submit ?? 'はじめる'}${missing > 0 ? ` (あと${missing}項目)` : ''}`}
               {!pending && missing === 0 && <ArrowRight className="size-5" aria-hidden />}
             </button>
           </div>
@@ -233,14 +256,17 @@ function ProfileSheet({ verb, onDone, onCancel }: { verb: string; onDone: () => 
         className="sheet-panel relative max-h-[92dvh] w-full max-w-lg overflow-y-auto bg-floor pb-[env(safe-area-inset-bottom)] lg:max-h-[88dvh]"
       >
         <div className="flex items-center justify-between bg-ink px-4 py-3 text-white">
-          <h2 id="sheet-title" className="type-heavy text-[17px]">
-            あなたの席をつくる
-          </h2>
+          <div>
+            {VERB_TEXT[verb] && <p className="text-[12px] font-bold text-white/70">{VERB_TEXT[verb].before}</p>}
+            <h2 id="sheet-title" className="type-heavy text-[17px]">
+              あなたのプロフィール
+            </h2>
+          </div>
           <button type="button" onClick={onCancel} disabled={pending} className="-mr-2 flex size-11 items-center justify-center" aria-label="閉じる">
             <X className="size-5" aria-hidden />
           </button>
         </div>
-        <ProfileStartForm onDone={onDone} />
+        <ProfileStartForm onDone={onDone} verb={verb} />
       </div>
     </div>
   );

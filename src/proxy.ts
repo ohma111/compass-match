@@ -7,7 +7,13 @@ import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
 // 2) v4: セッション cookie をサーバーの Set-Cookie で書き直して400日に延ばす (Safari ITP の7日制限への対策)
 // 3) ?src= (流入元) を30日間cookieに保存する (最初の流入元を優先して上書きしない)
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // 4) 画面側 (メンテナンス・BAN の画面を出さないページの判定) にパスを渡す
+  const next = () => {
+    const headers = new Headers(request.headers);
+    headers.set('x-pathname', request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers } });
+  };
+  let response = next();
   const refreshed = new Set<string>();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,7 +26,7 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-          response = NextResponse.next({ request });
+          response = next();
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
             refreshed.add(name);

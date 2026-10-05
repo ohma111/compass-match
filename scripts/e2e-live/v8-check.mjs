@@ -28,25 +28,24 @@ async function createRecruitment(p, name) {
   await p.locator('label', { hasText: '早い者勝ち' }).click();
   const btns = p.getByRole('button', { name: /^募集する/ });
   await btns.first().click();
-  if (name) {
-    const sheet = p.getByRole('dialog');
-    await sheet.waitFor({ timeout: 15_000 });
-    await sheet.locator('#sheet-name').fill(name);
-    await sheet.locator('input[type="checkbox"]').last().check();
-    await sheet.getByRole('button', { name: /^はじめる/ }).click();
-  }
-  const rank = p.getByRole('dialog', { name: '現在のランクを選んでください' });
-  if (name) {
-    await rank.waitFor({ timeout: 30_000 });
-    await rank.getByRole('radio', { name: 'S1以上' }).click();
-    await rank.getByRole('button', { name: '決定して続ける' }).click();
-  }
+  if (name) await fillSheet(p, name, 'S1以上');
   await p.waitForURL(/\/recruitments\/[0-9a-f-]{36}/, { timeout: 30_000 }).catch(async (e) => {
     await p.screenshot({ path: '/tmp/claude-0/v8-stuck.png', fullPage: true });
     console.log('   text:', (await p.locator('[role=alert]').allInnerTexts()).join(' / '));
     throw e;
   });
   return p.url().split('?')[0];
+}
+async function fillSheet(p, name, group) {
+  const sheet = p.getByRole('dialog');
+  await sheet.waitFor({ timeout: 15_000 });
+  await sheet.locator('#sheet-name').fill(name);
+  await sheet.getByRole('radio', { name: group }).click();
+  await sheet.locator('input[type="checkbox"]').last().check();
+  await sheet.getByRole('button', { name: /^登録して/ }).click();
+  await sheet.waitFor({ state: 'detached', timeout: 30_000 });
+  await p.waitForTimeout(800);
+  if (await p.getByRole('dialog', { name: '現在のランクを選んでください' }).count()) throw new Error('rank sheet opened again');
 }
 async function token(c) {
   const ck = (await c.cookies()).filter((x) => x.name.includes('auth-token')).sort((a, b) => a.name.localeCompare(b.name));
@@ -66,15 +65,7 @@ try {
     const p = Y.page;
     await p.goto(xUrl, { waitUntil: 'networkidle' });
     await p.getByRole('button', { name: /空いている席から/ }).click();
-    const sheet = p.getByRole('dialog');
-    await sheet.waitFor({ timeout: 15_000 });
-    await sheet.locator('#sheet-name').fill('確認Y');
-    await sheet.locator('input[type="checkbox"]').last().check();
-    await sheet.getByRole('button', { name: /^はじめる/ }).click();
-    const rank = p.getByRole('dialog', { name: '現在のランクを選んでください' });
-    await rank.waitFor({ timeout: 30_000 });
-    await rank.getByRole('radio', { name: 'A以下' }).click();
-    await rank.getByRole('button', { name: '決定して続ける' }).click();
+    await fillSheet(p, '確認Y', 'A以下');
     await p.waitForURL(/joined=1/, { timeout: 30_000 });
   });
   await step('Y が自分の募集を出す → X に「確認Yさんが募集を出しました」', async () => {
@@ -87,6 +78,26 @@ try {
       await p.waitForTimeout(3000);
     }
     throw new Error('follow notification not found');
+  });
+  await step('X に「メンバーがそろいました」が届く', async () => {
+    const p = X.page;
+    await p.goto(`${BASE}/notifications`, { waitUntil: 'networkidle' });
+    await p.getByText('メンバーがそろいました').first().waitFor({ timeout: 10_000 });
+  });
+  await step('プロフィール編集でランクを変えて保存しても、表示が組の一番上に戻らない', async () => {
+    const p = Y.page;
+    await p.goto(`${BASE}/profile/edit`, { waitUntil: 'networkidle' });
+    await p.getByRole('radio', { name: 'S1以上' }).click();
+    const select = p.locator('select').first();
+    await select.selectOption('s3');
+    await p.getByRole('button', { name: '保存する' }).click();
+    await p.getByText('プロフィールを保存しました').waitFor({ timeout: 15_000 });
+    await p.waitForTimeout(500);
+    const shown = await select.inputValue();
+    if (shown !== 's3') throw new Error(`after save the picker shows ${shown}`);
+    await p.reload({ waitUntil: 'networkidle' });
+    const reloaded = await p.locator('select').first().inputValue();
+    if (reloaded !== 's3') throw new Error(`after reload the picker shows ${reloaded}`);
   });
   await step('X が通知をすべて削除できる', async () => {
     const p = X.page;

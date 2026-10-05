@@ -80,17 +80,14 @@ async function fillSheet(page, name) {
   const sheet = page.getByRole('dialog');
   await sheet.waitFor({ timeout: 15_000 });
   await snap(page, `sheet-${name}`);
+  // 募集・参加の途中で開くシートは「〜する前に」と書かれ、ランクもここで選ぶ
+  await sheet.getByText(/する前に$|出す前に$/).first().waitFor({ timeout: 5_000 });
   await sheet.locator('#sheet-name').fill(name);
+  await sheet.getByRole('radio', { name: 'S1以上' }).click();
   await sheet.locator('input[type="checkbox"]').last().check();
-  await sheet.getByRole('button', { name: /^はじめる/ }).click();
-  // プロフィールのシートが閉じると、続けてランクのシートが開く (どちらも dialog なので名前で区別する)
-  // ランクは初めて募集・参加するときに聞かれる
-  const rank = page.getByRole('dialog', { name: '現在のランクを選んでください' });
-  await rank.waitFor({ timeout: 30_000 });
-  await rank.getByRole('radio', { name: 'S1以上' }).click();
-  await rank.getByRole('button', { name: '決定して続ける' }).click();
-  await rank.waitFor({ state: 'detached', timeout: 30_000 }).catch(async (e) => {
-    await snap(page, `rank-stuck-${name}`);
+  await sheet.getByRole('button', { name: /^登録して/ }).click();
+  await sheet.waitFor({ state: 'detached', timeout: 30_000 }).catch(async (e) => {
+    await snap(page, `sheet-stuck-${name}`);
     throw e;
   });
 }
@@ -163,16 +160,16 @@ try {
     await snap(p, 'B-joined');
   });
 
-  await step('A: 部屋番号 12345 → B に表示とコピー', async () => {
+  await step('A: 部屋番号 2580 → B に表示とコピー', async () => {
     const a = A.page;
     await a.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-    const input = a.locator('input[aria-label="部屋番号"]').locator('visible=true');
-    await input.first().fill('12345');
+    const input = a.locator('input[aria-label^="部屋番号"]').locator('visible=true');
+    await input.first().fill('2580');
     await a.getByRole('button', { name: '保存' }).locator('visible=true').first().click();
-    await a.getByText('12345').first().waitFor({ timeout: 15_000 });
+    await a.getByText('2580').first().waitFor({ timeout: 15_000 });
     await snap(a, 'A-roomcode');
     const b = B.page;
-    await eventually(b, () => b.getByText('12345', { exact: true }).locator('visible=true'));
+    await eventually(b, () => b.getByText('2580', { exact: true }).locator('visible=true'));
     await b.getByRole('button', { name: /コピー/ }).locator('visible=true').first().waitFor();
     await snap(b, 'B-roomcode');
   });
@@ -204,7 +201,7 @@ try {
   await step('A: 同じコンテキストの新しいタブでもログインしたまま (シートなし)', async () => {
     const p2 = await A.ctx.newPage();
     await p2.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-    await p2.getByText('12345').locator('visible=true').first().waitFor({ timeout: 15_000 });
+    await p2.getByText('2580').locator('visible=true').first().waitFor({ timeout: 15_000 });
     if (await p2.getByRole('dialog').count()) throw new Error('sheet shown on reload');
     await snap(p2, 'A-newtab');
     await p2.close();

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { RANK_GROUPS, RANK_LABELS, rankGroupOf, type RankBand, type RankGroup } from '@/lib/constants';
 
@@ -26,6 +26,23 @@ export function RankPicker({
   const v = onChange ? value : inner;
   const set = (next: RankBand | '') => (onChange ? onChange(next) : setInner(next));
   const group: RankGroup | 'none' = v ? rankGroupOf(v) : 'none';
+  // フォームの送信後に React がフォームを reset すると、<select> だけが初期の選択肢 (組の一番上) に戻り、
+  // 画面の表示と送る値がずれる (v8 の不具合: 保存後に S9 / A に戻って見えた)。reset のあとで今の値を入れ直す。
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const hiddenRef = useRef<HTMLInputElement>(null);
+  const current = useRef(v);
+  current.current = v;
+  useEffect(() => {
+    const form = (selectRef.current ?? hiddenRef.current)?.form;
+    if (!form) return;
+    const onReset = () =>
+      window.setTimeout(() => {
+        if (selectRef.current) selectRef.current.value = current.current;
+        if (hiddenRef.current) hiddenRef.current.value = current.current;
+      }, 0);
+    form.addEventListener('reset', onReset);
+    return () => form.removeEventListener('reset', onReset);
+  }, [group]);
   const seg = (on: boolean) =>
     `inline-flex min-h-12 items-center justify-center border-2 px-2 text-sm font-bold transition-colors ${
       on ? 'border-ink bg-ink text-white' : 'border-ink/25 bg-sheet text-ink-2 hover:border-ink'
@@ -39,7 +56,7 @@ export function RankPicker({
 
   return (
     <div className="space-y-2">
-      {name && <input type="hidden" name={name} value={v} />}
+      {name && <input ref={hiddenRef} type="hidden" name={name} value={v} />}
       <div className={`grid gap-2 ${min ? 'grid-cols-3' : 'grid-cols-2'}`} role="radiogroup" aria-label={min ? 'ランク条件' : 'ランク'}>
         {min && (
           <button type="button" role="radio" aria-checked={group === 'none'} className={seg(group === 'none')} onClick={() => set('')}>
@@ -56,6 +73,7 @@ export function RankPicker({
         <label className="relative block">
           <span className="sr-only">{min ? '最低ランク' : 'ランク'}</span>
           <select
+            ref={selectRef}
             id={id}
             value={v}
             onChange={(e) => set(e.target.value as RankBand)}

@@ -197,9 +197,9 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
 
 export async function setRoomCodeAction(recruitmentId: string, roomCode: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
-  const code = typeof roomCode === 'string' ? roomCode.trim() : '';
+  const code = typeof roomCode === 'string' ? roomCode.normalize('NFKC').trim() : '';
   if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
-  if (code && !/^[0-9A-Za-z-]{1,16}$/.test(code)) return fail('部屋番号は半角英数字16文字以内で入力してください');
+  if (code && !/^[0-9]{4}$/.test(code)) return fail('部屋番号は4桁の数字で入力してください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_room_code', { p_recruitment_id: id.data, p_room_code: code });
   if (error) return fail(toUserMessage(error));
@@ -365,7 +365,7 @@ export async function setAvailableNowAction(on: boolean): Promise<ActionResult> 
 // ---------------------------------------------------------------------
 // 管理者 (権限チェックはDB側 private.require_admin で強制)
 // ---------------------------------------------------------------------
-export async function adminUserAction(userId: string, action: 'suspend' | 'ban' | 'restore'): Promise<ActionResult> {
+export async function adminUserAction(userId: string, action: 'ban' | 'restore'): Promise<ActionResult> {
   const parsed = adminUserActionSchema.safeParse({ userId, action });
   if (!parsed.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
@@ -375,7 +375,7 @@ export async function adminUserAction(userId: string, action: 'suspend' | 'ban' 
   });
   if (error) return fail(toUserMessage(error));
   revalidatePath('/admin');
-  return { ok: true, message: '更新しました' };
+  return { ok: true, message: parsed.data.action === 'restore' ? 'BANを解除しました' : 'BANしました' };
 }
 
 export async function adminDeleteRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
@@ -430,6 +430,13 @@ async function persistAuthCookies(): Promise<void> {
 
 export async function persistSessionAction(): Promise<void> {
   await persistAuthCookies();
+  // 引き継ぎコードの作成・引き継ぎも「使っている」として最終利用を更新する
+  try {
+    const supabase = await createClient();
+    await supabase.rpc('touch_last_seen');
+  } catch {
+    // 記録できなくても続ける
+  }
 }
 
 /** シートの「はじめる」: プロフィールを作る (セッションはブラウザの signInAnonymously で作成済み) */
@@ -582,4 +589,64 @@ export async function adminRunCleanupAction(): Promise<ActionResult> {
   if (error) return fail(toUserMessage(error));
   revalidatePath('/admin');
   return { ok: true, message: '古いデータを削除しました' };
+}
+
+export async function adminDeleteUserAction(userId: string): Promise<ActionResult> {
+  if (!uuidSchema.safeParse(userId).success) return fail('操作できませんでした');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_delete_user', { p_user: userId });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: 'アカウントを削除しました' };
+}
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function adminDeleteRecruitmentLogsAction(from: string, to: string, withStats: boolean): Promise<ActionResult> {
+  if (!DAY.test(from) || !DAY.test(to)) return fail('期間を選び直してください');
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_delete_recruitment_logs', { p_from: from, p_to: to, p_with_stats: withStats });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: `募集を${data ?? 0}件削除しました` };
+}
+
+/** 管理画面の日時入力 (日本時間の「YYYY-MM-DDTHH:mm」) を ISO に */
+function jstInput(v: FormDataEntryValue | null): string | null {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}:00+09:00`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+export async function adminSetMaintenanceAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const supabase = await createClient();
+  const startsAt = jstInput(form.get('startsAt'));
+  const endsAt = jstInput(form.get('endsAt'));
+  if (Boolean(startsAt) !== Boolean(endsAt)) return fail('予定は開始と終了の両方を入力してください');
+  const message = String(form.get('message') ?? '').slice(0, 200);
+  const { error } = await supabase.rpc('admin_set_maintenance', {
+    p_manual_on: form.get('manualOn') === 'on',
+    p_starts_at: startsAt,
+    p_ends_at: endsAt,
+    p_message: message,
+  });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/', 'layout');
+  return { ok: true, message: '保存しました' };
+}
+
+export async function adminAnnounceAction(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const body = String(form.get('body') ?? '').trim();
+  if (!body || body.length > 300) return fail('お知らせは1〜300文字で入力してください');
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_announce', { p_body: body });
+  if (error) return fail(toUserMessage(error));
+  // 人数が多いと1回で送り切れないので、残りがなくなるまで続ける
+  after(async () => {
+    for (let i = 0; i < 50; i++) {
+      if ((await dispatchPush()) === 0) break;
+    }
+  });
+  revalidatePath('/', 'layout');
+  return { ok: true, message: `${data ?? 0}人に配信しました` };
 }

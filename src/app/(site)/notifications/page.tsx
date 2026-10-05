@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ShieldAlert, X, Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
+import { Megaphone, Users, ShieldAlert, X, Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
 import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { NOTIFICATION_LABELS } from '@/lib/constants';
@@ -15,6 +15,7 @@ interface Row {
   id: string;
   kind: string;
   recruitment_id: string | null;
+  body: string | null;
   read_at: string | null;
   created_at: string;
   recruitment: { title: string; owner: { display_name: string } | null } | null;
@@ -31,6 +32,8 @@ const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   new_message: { icon: MessageCircle, color: 'text-ink' },
   followed_posted: { icon: BellRing, color: 'text-ink' },
   blocked_joined: { icon: ShieldAlert, color: 'text-signal-deep' },
+  filled: { icon: Users, color: 'text-ok' },
+  announcement: { icon: Megaphone, color: 'text-signal-deep' },
 };
 
 export default async function NotificationsPage() {
@@ -38,7 +41,7 @@ export default async function NotificationsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('notifications')
-    .select('id, kind, recruitment_id, read_at, created_at, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
+    .select('id, kind, recruitment_id, body, read_at, created_at, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
     .eq('user_id', viewer.userId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -83,6 +86,7 @@ export default async function NotificationsPage() {
                   {!n.read_at && <span className="sr-only">(未読)</span>}
                 </span>
                 {n.recruitment && <span className="block truncate text-sm text-muted">{n.recruitment.title}</span>}
+                {n.body && <span className="block text-sm whitespace-pre-wrap text-ink-2">{n.body}</span>}
                 <span className="block text-xs text-muted tabular-nums">{formatJst(n.created_at)}</span>
               </span>
               {!n.read_at && <span className="size-2.5 shrink-0 rounded-full bg-brand shadow-[0_0_8px_var(--color-brand)]" aria-hidden />}

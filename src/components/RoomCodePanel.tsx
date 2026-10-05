@@ -3,7 +3,6 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pencil } from 'lucide-react';
 import { setRoomCodeAction } from '@/app/actions';
-import { LIMITS } from '@/lib/constants';
 import { CopyButton } from '@/components/CopyButton';
 
 /** 部屋番号。参加が確定したメンバーには大きく表示+コピー、募集者はその場で入力・変更できる */
@@ -44,14 +43,15 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
           <div className="flex gap-2">
             <input
               value={value}
-              onChange={(e) => setValue(e.target.value.trim())}
-              maxLength={LIMITS.roomCode}
+              onChange={(e) => setValue(e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4))}
+              maxLength={4}
+              pattern="[0-9]{4}"
               inputMode="numeric"
               autoComplete="off"
               autoFocus={Boolean(code)}
               className="font-mono font-bold min-h-14 w-full min-w-0 border-2 border-white/40 bg-ink-2 px-3 text-[28px] tracking-[0.08em] text-white outline-none placeholder:text-white/35 focus:border-white"
-              placeholder="12345"
-              aria-label="部屋番号"
+              placeholder="1234"
+              aria-label="部屋番号 (4桁)"
             />
             <button
               className="inline-flex min-h-14 shrink-0 items-center bg-signal px-5 font-bold text-ink disabled:opacity-50"

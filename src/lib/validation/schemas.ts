@@ -252,7 +252,7 @@ export const decisionSchema = z.object({
 });
 export const adminUserActionSchema = z.object({
   userId: z.uuid(),
-  action: z.enum(['suspend', 'ban', 'restore']),
+  action: z.enum(['ban', 'restore']),
 });
 export const adminResolveSchema = z.object({
   targetType: z.enum(['user', 'recruitment', 'message']),
