@@ -184,3 +184,14 @@ export function ProfileSeat({ id, roles, rank }: { id: string; roles: PlayRole[]
     </div>
   );
 }
+
+/** 一覧の行に置く小さな1席 (いっしょに遊んだ人など) */
+export function MiniSeat({ id, roles }: { id: string; roles: PlayRole[] }) {
+  return (
+    <span className="ml-1 flex h-10 w-8 shrink-0 items-center justify-center bg-ink text-white [transform:skewX(var(--seat-skew))]" aria-hidden>
+      <span className="[transform:skewX(calc(var(--seat-skew)*-1))]">
+        <Face s={{ kind: 'member', id, roles }} className="size-4" />
+      </span>
+    </span>
+  );
+}

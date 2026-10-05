@@ -1,4 +1,6 @@
-import { ProfileSeat } from '@/components/Lineup';
+import { MiniSeat, ProfileSeat } from '@/components/Lineup';
+import { FollowButton } from '@/components/FollowButton';
+import { PushToggle } from '@/components/PushToggle';
 import Link from 'next/link';
 import { ChevronRight, FileText, MessageSquareHeart, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
@@ -9,6 +11,16 @@ import { TransferIssue } from '@/components/TransferForms';
 import type { AccountKind } from '@/lib/transfer';
 import { PLAY_ROLE_LABELS, RANK_LABELS } from '@/lib/constants';
 import type { Profile, Recruitment } from '@/lib/types';
+import type { PlayRole, RankBand } from '@/lib/constants';
+
+export interface Mate {
+  id: string;
+  display_name: string;
+  rank_band: RankBand;
+  play_roles: PlayRole[];
+  times: number;
+  following: boolean;
+}
 import type { JoinState } from '@/lib/capacity';
 
 export interface MeViewProps {
@@ -25,10 +37,11 @@ export interface MeViewProps {
   hasContacts: boolean;
   mine: Recruitment[];
   joined: { status: JoinState; recruitment: Recruitment }[];
+  mates: Mate[];
   now: Date;
 }
 
-export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, now }: MeViewProps) {
+export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, mates, now }: MeViewProps) {
   const warnNoWayBack = accountKind === 'anonymous';
   const menu = 'flex min-h-12 w-full items-center gap-3 text-sm font-bold';
   return (
@@ -60,13 +73,18 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         </Link>
 
         {!hasContacts && (
-          <Link href="/profile/edit#contacts" className="flex items-center gap-3 border-l-4 border-ally bg-sheet p-3">
+          <Link href="/profile/edit#contacts" className="flex items-center gap-3 border-2 border-ink p-3">
             <span className="min-w-0 flex-1 text-sm">
               <span className="block font-bold">連絡先を追加</span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-slate" aria-hidden />
           </Link>
         )}
+
+        <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="push-title">
+          <h2 id="push-title" className="section-title">通知</h2>
+          <PushToggle />
+        </section>
 
         {(accountKind === 'anonymous' || accountKind === 'transfer') && (
           <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="transfer-title">
@@ -106,6 +124,30 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
                 <RecruitmentCard key={p.recruitment.id} r={p.recruitment} now={now} auth="ready" viewerId={userId} myState={p.status} />
               ))}
             </div>
+          )}
+        </section>
+
+        <section className="space-y-3 xl:col-span-2" aria-labelledby="mates-title">
+          <h2 id="mates-title" className="section-title">いっしょに遊んだ人</h2>
+          {mates.length === 0 ? (
+            <p className="text-sm text-slate">まだなし</p>
+          ) : (
+            <ul className="divide-y divide-ink/15 border-y-2 border-ink">
+              {mates.map((m) => (
+                <li key={m.id} className="flex items-center gap-3 py-2">
+                  <Link href={`/users/${m.id}`} className="flex min-h-12 min-w-0 flex-1 items-center gap-3">
+                    <MiniSeat id={m.id} roles={m.play_roles} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px] font-black">{m.display_name}</span>
+                      <span className="block font-mono text-[11px] text-slate">
+                        {RANK_LABELS[m.rank_band]} / {m.times}回
+                      </span>
+                    </span>
+                  </Link>
+                  <FollowButton userId={m.id} initial={m.following} compact />
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 

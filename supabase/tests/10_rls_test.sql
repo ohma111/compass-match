@@ -435,7 +435,7 @@ select public.send_message(:RAN, '1件目');
 reset role;
 update public.messages set created_at = now() - interval '1 minute' where user_id = :AN;
 insert into public.messages (recruitment_id, user_id, body, created_at)
-select :RAN, :AN, b || '件目', now() - interval '40 seconds' from generate_series(2, 10) b;
+select :RAN, :AN, b || '件目', now() - interval '70 seconds' from generate_series(2, 10) b;
 select pg_temp.as_user(:AN);
 do $t$ begin
   perform public.send_message((select id from public.recruitments where title = '匿名の募集'), '4件目');
@@ -458,6 +458,71 @@ select public.save_my_profile('匿名さん改', 's5_7', '{gunner}', '{}', '{}',
 select public.send_message(:RAN, 'リンク後');
 select pg_temp.assert((select display_name from public.profiles where id = :AN) = '匿名さん改', 'linked user keeps and edits profile');
 select pg_temp.assert(public.get_room_code(:RAN) = '555', 'linked user still owns the recruitment');
+reset role;
+
+-- ---------------------------------------------------------------------
+-- v6: 禁止語・20文字・連投・姿勢・いっしょに遊んだ人・通知を受け取る人
+-- ---------------------------------------------------------------------
+select pg_temp.assert(private.contains_banned('ライン交換しよ'), 'banned: katakana line exchange');
+select pg_temp.assert(private.contains_banned('ＬＩＮＥ ｉｄ'), 'banned: fullwidth line id');
+select pg_temp.assert(private.contains_banned('09012345678'), 'banned: phone number');
+select pg_temp.assert(private.contains_banned('a.b@example.com'), 'banned: email');
+select pg_temp.assert(private.contains_banned('何歳？'), 'banned: age');
+select pg_temp.assert(not private.contains_banned('エンジョイでカスタムやろ'), 'not banned: enjoy custom');
+select pg_temp.assert(not private.contains_banned('部屋番号12345です'), 'not banned: room number');
+select pg_temp.assert(not private.contains_banned('オンラインですか'), 'not banned: online');
+select pg_temp.as_user(:U2);
+do $t$ begin
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), 'らいん交換しよ');
+  raise exception 'ASSERT FAILED: banned chat accepted';
+exception when others then
+  if sqlerrm not like '%使えない言葉%' then raise exception 'ASSERT FAILED: wrong banned error: %', sqlerrm; end if;
+end $t$;
+do $t$ begin
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), repeat('あ', 21));
+  raise exception 'ASSERT FAILED: 21 chars accepted';
+exception when others then
+  if sqlerrm not like '%20文字%' then raise exception 'ASSERT FAILED: wrong length error: %', sqlerrm; end if;
+end $t$;
+select public.send_message((select id from public.recruitments where title = '匿名の募集'), 'よろしく');
+do $t$ begin
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), 'すぐ次');
+  raise exception 'ASSERT FAILED: 3 second rule';
+exception when others then
+  if sqlerrm not like '%連続%' then raise exception 'ASSERT FAILED: wrong rate error: %', sqlerrm; end if;
+end $t$;
+reset role;
+update public.messages set created_at = now() - interval '10 seconds' where user_id = :U2 and body = 'よろしく';
+select pg_temp.as_user(:U2);
+do $t$ begin
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), 'よろしく');
+  raise exception 'ASSERT FAILED: duplicate accepted';
+exception when others then
+  if sqlerrm not like '%同じ文%' then raise exception 'ASSERT FAILED: wrong dup error: %', sqlerrm; end if;
+end $t$;
+-- 募集の参加が確定したので、募集者 (AN) といっしょに遊んだ人になっている
+select pg_temp.assert((select count(*) from public.play_mates where mate_id = :AN) = 1, 'play mate recorded for joiner');
+select pg_temp.assert((select count(*) from public.play_mates where user_id <> :U2) = 0, 'only own play mates visible');
+-- 通知を受け取る → 相手が募集を出すと通知が来る
+select public.set_follow(:AN, true);
+select pg_temp.assert((select count(*) from public.follows where follower_id = :U2) = 1, 'follow saved');
+reset role;
+select pg_temp.as_user(:AN);
+select pg_temp.assert((select count(*) from public.play_mates where mate_id = :U2) = 1, 'play mate recorded for owner');
+select pg_temp.assert((select count(*) from public.follows) = 0, 'cannot see others follows');
+select public.create_recruitment('次の募集', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'win');
+select pg_temp.expect_error($$select public.create_recruitment('姿勢なし', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'x')$$, 'bad stance rejected');
+select pg_temp.expect_error($$select public.create_recruitment('ライン教えて', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'banned title rejected');
+reset role;
+select pg_temp.assert((select count(*) from public.notifications where user_id = :U2 and kind = 'followed_posted') = 1, 'follower notified');
+select pg_temp.assert((select stance from public.recruitments where title = '次の募集') = 'win', 'stance saved');
+-- 直接は書けない
+select pg_temp.as_user(:U2);
+select pg_temp.expect_error($$insert into public.follows (follower_id, followee_id) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001')$$, 'no direct follow insert');
+select pg_temp.expect_error($$select * from public.server_secrets$$, 'server secrets hidden');
+select pg_temp.expect_error($$select * from public.push_subscriptions$$, 'push subscriptions hidden');
+select public.save_push_subscription('https://push.example.com/abc', 'key', 'auth');
+select pg_temp.assert(public.has_push_subscription(), 'push subscription saved');
 reset role;
 
 select 'ALL RLS TESTS PASSED' as result;

@@ -9,6 +9,7 @@ import { MOOD_TAG_LABELS, PLAY_ROLE_LABELS, PROFILE_VC_LABELS, PURPOSE_LABELS, R
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
 import { RoleIcon } from '@/components/RoleIcon';
+import { FollowButton } from '@/components/FollowButton';
 import { blockUserAction } from '@/app/actions';
 import type { Profile } from '@/lib/types';
 
@@ -19,10 +20,12 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   if (!uuidSchema.safeParse(id).success) notFound();
   const viewer = await requireViewer(`/users/${id}`);
   const supabase = await createClient();
-  const [profileRes, { data: block }] = await Promise.all([
+  const [profileRes, { data: block }, { data: follow }, { data: mate }] = await Promise.all([
     // 列を明示する (select('*') は非公開列の権限エラーになる)
     supabase.from('profiles').select(PROFILE_SELECT).eq('id', id).maybeSingle(),
     supabase.from('blocks').select('blocked_id').eq('blocker_id', viewer.userId).eq('blocked_id', id).maybeSingle(),
+    supabase.from('follows').select('followee_id').eq('follower_id', viewer.userId).eq('followee_id', id).maybeSingle(),
+    supabase.from('play_mates').select('times').eq('user_id', viewer.userId).eq('mate_id', id).maybeSingle(),
   ]);
   if (profileRes.error) throw new Error('プロフィールを読み込めませんでした');
   const p = profileRes.data as unknown as Profile | null;
@@ -65,7 +68,13 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           ))}
         </div>
       )}
-      {p.bio && <p className="border-l-4 border-line bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{p.bio}</p>}
+      {p.bio && <p className="border-2 border-ink/20 bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{p.bio}</p>}
+      {!isMe && !blocked && (
+        <div className="space-y-1">
+          {mate && <p className="font-mono text-xs font-bold text-slate">いっしょに遊んだ回数 {(mate as { times: number }).times}</p>}
+          <FollowButton userId={id} initial={Boolean(follow)} />
+        </div>
+      )}
       <p className="text-xs text-slate">連絡先は、募集で参加が確定した相手にだけ表示されます。</p>
       {isMe ? (
         <Link href="/profile/edit" className="btn-outline w-full">プロフィールを編集</Link>

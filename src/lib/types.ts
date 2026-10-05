@@ -1,4 +1,4 @@
-import type { JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
+import type { Stance, JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
 
 export interface Profile {
   id: string;
@@ -21,6 +21,7 @@ export interface Profile {
 export interface Recruitment {
   id: string;
   owner_id: string;
+  stance?: Stance;
   title: string;
   purpose: Purpose;
   starts_at: string;

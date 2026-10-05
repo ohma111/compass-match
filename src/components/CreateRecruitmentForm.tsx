@@ -1,7 +1,7 @@
 'use client';
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Gamepad2, Hand, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
+import { Flame, Gamepad2, Hand, Smile, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
 import { createRecruitmentAction } from '@/app/actions';
 import {
   JOIN_MODES,
@@ -11,8 +11,12 @@ import {
   PURPOSES,
   PURPOSE_LABELS,
   RANK_BANDS,
+  RANK_BANDS_DESC,
   RANK_MIN_LABELS,
   RECRUIT_VC,
+  STANCES,
+  STANCE_LABELS,
+  type Stance,
   type JoinMode,
   type MoodTag,
   type Purpose,
@@ -20,7 +24,7 @@ import {
   type RecruitVc,
 } from '@/lib/constants';
 import { capacityOptions, clampCapacity } from '@/lib/capacity';
-import { autoEnd, autoTitle, resolveStart, startChips, startPreview, START_KEYS, type StartKey } from '@/lib/recruit';
+import { autoEnd, autoTitle, nextSlot, resolveStart, selectableHours, slotAt, startPreview, START_DAYS, START_KEYS, SLOT_MINUTES, type StartDay, type StartKey } from '@/lib/recruit';
 import { formatJstTime } from '@/lib/time';
 import { containsUrl } from '@/lib/validation/url';
 import { takeIntent } from '@/lib/intent';
@@ -29,6 +33,9 @@ import { useEnsureProfile } from '@/components/ProfileSheet';
 
 const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2 };
 const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', any: 'どちらでも', off: 'なし' };
+const STANCE_ICON: Record<Stance, LucideIcon> = { win: Flame, fun: Smile };
+/** 姿勢 (勝ちたい / 楽しみたい) と重なるタグは選ばせない */
+const PICK_TAGS = MOOD_TAGS.filter((t) => t !== 'serious' && t !== 'relaxed');
 
 const LAST_KEY = 'cm_last_recruit';
 const DRAFT_KEY = 'cm_recruit_draft';
@@ -36,7 +43,9 @@ const DRAFT_KEY = 'cm_recruit_draft';
 interface Choices {
   purpose: Purpose;
   startKey: StartKey;
+  startDay: StartDay;
   startTime: string;
+  stance: Stance | '';
   capacity: number;
   joinMode: JoinMode;
   minRank: RankBand | '';
@@ -45,13 +54,14 @@ interface Choices {
 }
 interface Draft extends Choices {
   title: string;
-  roomCode: string;
 }
 
 const DEFAULTS: Choices = {
   purpose: 'enjoy',
   startKey: 'now',
+  startDay: 'today',
   startTime: '',
+  stance: '',
   capacity: 3,
   joinMode: 'instant',
   minRank: '',
@@ -66,14 +76,15 @@ function sanitize(raw: unknown): Partial<Draft> {
   const out: Partial<Draft> = {};
   if (PURPOSES.includes(r.purpose as Purpose)) out.purpose = r.purpose as Purpose;
   if (START_KEYS.includes(r.startKey as StartKey)) out.startKey = r.startKey as StartKey;
+  if (START_DAYS.includes(r.startDay as StartDay)) out.startDay = r.startDay as StartDay;
   if (typeof r.startTime === 'string' && /^\d{2}:\d{2}$/.test(r.startTime)) out.startTime = r.startTime;
+  if (STANCES.includes(r.stance as Stance)) out.stance = r.stance as Stance;
   if (typeof r.capacity === 'number') out.capacity = r.capacity;
   if (JOIN_MODES.includes(r.joinMode as JoinMode)) out.joinMode = r.joinMode as JoinMode;
   if (r.minRank === '' || RANK_BANDS.includes(r.minRank as RankBand)) out.minRank = r.minRank as RankBand | '';
   if (RECRUIT_VC.includes(r.vc as RecruitVc)) out.vc = r.vc as RecruitVc;
   if (Array.isArray(r.tags)) out.tags = r.tags.filter((t): t is MoodTag => MOOD_TAGS.includes(t as MoodTag));
   if (typeof r.title === 'string') out.title = r.title.slice(0, LIMITS.title);
-  if (typeof r.roomCode === 'string') out.roomCode = r.roomCode.slice(0, LIMITS.roomCode);
   return out;
 }
 
@@ -112,8 +123,6 @@ export function CreateRecruitmentForm({
   const [now, setNow] = useState(() => new Date(serverNow));
   const [c, setC] = useState<Choices>(DEFAULTS);
   const [title, setTitle] = useState('');
-  const [roomCode, setRoomCode] = useState('');
-  const [open, setOpen] = useState(false);
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [resumed, setResumed] = useState(false);
   const ensureProfile = useEnsureProfile();
@@ -130,13 +139,12 @@ export function CreateRecruitmentForm({
   // 前回の選択を初期値に。ログイン前に「募集する」を押していた場合は下書きを復元して自動送信
   useEffect(() => {
     const last = sanitize(readJson(LAST_KEY));
-    let next: Choices = { ...DEFAULTS, ...last, startTime: last.startTime ?? '' };
+    // 開始時刻は前回の値を引き継がない (毎回「今すぐ」から)
+    let next: Choices = { ...DEFAULTS, ...last, startKey: 'now', startDay: 'today', startTime: '' };
     if (auth === 'ready' && takeIntent((i) => i.kind === 'post')) {
       const draft = sanitize(readJson(DRAFT_KEY));
       next = { ...next, ...draft };
       setTitle(draft.title ?? '');
-      setRoomCode(draft.roomCode ?? '');
-      if (draft.minRank || draft.tags?.length || draft.title || draft.roomCode) setOpen(true);
       setResumed(true);
       setAutoSubmit(true);
     }
@@ -144,16 +152,12 @@ export function CreateRecruitmentForm({
     setC(next);
   }, [auth]);
 
-  const chips = useMemo(() => startChips(now), [now]);
-  const chipKeys = chips.map((x) => x.key);
-  // 前回のチップがもう過ぎていたら「今すぐ」に戻す
-  const startKey: StartKey = c.startKey === 'custom' || chipKeys.includes(c.startKey) ? c.startKey : 'now';
-  const startAt = resolveStart(startKey, c.startTime, now);
+  const startKey: StartKey = c.startKey;
+  const startAt = resolveStart(startKey, c.startDay, c.startTime, now);
   const capacity = clampCapacity(c.purpose, c.capacity);
   const placeholderTitle = autoTitle({ purpose: c.purpose, minRank: c.minRank || null, capacity });
   const titleError = containsUrl(title) ? 'URLは入力できません' : null;
-  const roomError = roomCode && !/^[0-9A-Za-z-]{1,16}$/.test(roomCode) ? '半角英数字16文字以内' : null;
-  const ready = Boolean(startAt) && !titleError && !roomError;
+  const ready = Boolean(startAt) && Boolean(c.stance) && !titleError;
 
   useEffect(() => {
     if (autoSubmit && startAt) {
@@ -189,6 +193,7 @@ export function CreateRecruitmentForm({
   const summaryParts = [
     PURPOSE_LABELS[c.purpose],
     !startAt ? '時刻を選んでください' : startKey === 'now' ? '今すぐ' : `${startPreview(startAt, now).replace('今日 ', '')}〜`,
+    ...(c.stance ? [STANCE_LABELS[c.stance]] : ['姿勢を選んでください']),
     `あと${capacity - 1}人`,
   ];
   const previewSeats: Seat[] = [
@@ -217,19 +222,19 @@ export function CreateRecruitmentForm({
   return (
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={`tone-${c.purpose} lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-14`}>
       <input type="hidden" name="src" value={src} />
-      <div className="space-y-8 pb-24 lg:pb-0">
+      <div className="space-y-8 pb-28 lg:pb-0">
         {resumed && <p className="alert-ok">さっきの内容で募集を出しています…</p>}
 
         {/* 目的 */}
         <fieldset>
           <legend className={legend}>目的</legend>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {PURPOSES.map((p) => {
               const Icon = PURPOSE_ICON[p];
               return (
                 <label
                   key={p}
-                  className={`tone-${p} pick h-20 flex-col gap-1.5 px-1 text-[13px]`}
+                  className={`pick h-14 gap-2 px-2 text-[14px] sm:h-20 sm:flex-col sm:gap-1.5 sm:text-[13px]`}
                 >
                   <input
                     type="radio"
@@ -247,57 +252,40 @@ export function CreateRecruitmentForm({
           </div>
         </fieldset>
 
+        {/* ゲームへの姿勢 */}
+        <fieldset>
+          <legend className={legend}>ゲームへの姿勢</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {STANCES.map((st) => {
+              const Icon = STANCE_ICON[st];
+              return (
+                <label key={st} className="pick gap-1.5">
+                  <input type="radio" name="stance" value={st} checked={c.stance === st} onChange={() => set('stance', st)} className="sr-only" required />
+                  <Icon className="size-4" aria-hidden />
+                  {STANCE_LABELS[st]}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+
         {/* 開始 */}
         <fieldset>
           <legend className={legend}>
             <span>開始</span>
             {startAt && (
               <span className="text-[13px] font-medium text-slate tabular-nums">
-                {startPreview(startAt, now)}〜{formatJstTime(autoEnd(startAt))} (1時間)
+                {startPreview(startAt, now)}〜{formatJstTime(autoEnd(startAt))}
               </span>
             )}
           </legend>
-          <div className="grid grid-cols-3 gap-2">
-            {chips.map((chip) => (
-              <label key={chip.key} className="pick">
-                <input
-                  type="radio"
-                  name="startKey"
-                  value={chip.key}
-                  checked={startKey === chip.key}
-                  onChange={() => set('startKey', chip.key)}
-                  className="sr-only"
-                />
-                {chip.label}
-              </label>
-            ))}
-            <label className="pick">
-              <input
-                type="radio"
-                name="startKey"
-                value="custom"
-                checked={startKey === 'custom'}
-                onChange={() => set('startKey', 'custom')}
-                className="sr-only"
-              />
-              その他
-            </label>
-          </div>
-          {startKey === 'custom' && (
-            <div className="mt-3 flex items-center gap-3">
-              <input
-                type="time"
-                name="startTime"
-                value={c.startTime}
-                onChange={(e) => set('startTime', e.target.value)}
-                step={300}
-                required
-                aria-label="開始時刻"
-                className="input w-36 text-center text-lg font-bold tabular-nums"
-              />
-              <span className="text-xs text-slate">過ぎた時刻は翌日になります</span>
-            </div>
-          )}
+          <StartPicker
+            now={now}
+            startKey={startKey}
+            day={c.startDay}
+            hm={c.startTime}
+            onChange={(k, d, hm) => setC((prev) => ({ ...prev, startKey: k, startDay: d, startTime: hm }))}
+          />
         </fieldset>
 
         {/* 人数 */}
@@ -345,30 +333,18 @@ export function CreateRecruitmentForm({
           </div>
         </fieldset>
 
-        {/* 詳細 (任意) */}
-        <section className="border-y-2 border-ink">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-controls="details"
-            className="flex min-h-14 w-full items-center justify-between gap-3 text-left"
-          >
-            <span className="min-w-0">
-              <span className="block text-[15px] font-bold">くわしく決める (任意)</span>
-              <span className="block truncate text-xs text-slate">ランク条件・VC・雰囲気・ひとこと・部屋番号</span>
-            </span>
-            <ChevronDown className={`size-5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
-          </button>
-          <div id="details" hidden={!open} className="space-y-8 pt-2 pb-6">
+        {/* 条件・ひとこと */}
+        <section className="border-t-2 border-ink pt-6">
+          <h2 className="sr-only">条件</h2>
+          <div className="space-y-8">
             <fieldset>
               <legend className={legend}>ランク条件</legend>
-              <div className="grid grid-cols-5 gap-2">
-                <label className="pick px-1 text-[13px]">
+              <div className="grid grid-cols-[1.4fr_repeat(4,minmax(0,1fr))] gap-1.5">
+                <label className="pick px-1 text-[13px] whitespace-nowrap">
                   <input type="radio" name="minRank" value="" checked={c.minRank === ''} onChange={() => set('minRank', '')} className="sr-only" />
                   指定なし
                 </label>
-                {RANK_BANDS.map((r) => (
+                {RANK_BANDS_DESC.map((r) => (
                   <label key={r} className="pick px-1">
                     <input type="radio" name="minRank" value={r} checked={c.minRank === r} onChange={() => set('minRank', r)} className="sr-only" />
                     {RANK_MIN_LABELS[r]}
@@ -390,7 +366,7 @@ export function CreateRecruitmentForm({
             <fieldset>
               <legend className={legend}>雰囲気</legend>
               <div className="flex flex-wrap gap-2">
-                {MOOD_TAGS.map((t) => (
+                {PICK_TAGS.map((t) => (
                   <label key={t} className="pick">
                     <input
                       type="checkbox"
@@ -424,24 +400,6 @@ export function CreateRecruitmentForm({
                 <span className="tabular-nums">{Array.from(title).length}/{LIMITS.title}</span>
               </p>
             </div>
-            <div>
-              <label className="label" htmlFor="roomCode">
-                部屋番号 <span className="text-xs font-medium text-slate">(あとでOK)</span>
-              </label>
-              <input
-                id="roomCode"
-                name="roomCode"
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.trim())}
-                maxLength={LIMITS.roomCode}
-                inputMode="numeric"
-                autoComplete="off"
-                className="input tracking-widest"
-                placeholder="例: 12345"
-                aria-describedby="room-hint"
-              />
-              <p id="room-hint" className={`hint ${roomError ? 'font-bold text-signal-deep' : ''}`}>{roomError ?? 'メンバーにだけ表示'}</p>
-            </div>
           </div>
         </section>
       </div>
@@ -459,7 +417,7 @@ export function CreateRecruitmentForm({
       </aside>
 
       {/* スマホ: タブバーの上に固定 */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-sheet pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t-2 border-ink bg-sheet lg:hidden">
         <div className="mx-auto max-w-xl space-y-2 px-4 py-2">
           {state && !state.ok && (
             <p className="alert-error" role="alert">
@@ -475,5 +433,117 @@ export function CreateRecruitmentForm({
         </div>
       </div>
     </form>
+  );
+}
+
+/**
+ * 開始時刻: 「今すぐ / 今日 / 明日」を選び、今日か明日なら「時」と「分 (15分刻み)」を選ぶ。
+ * 時は横に流れる1行にして、縦に長くならないようにする。
+ */
+function StartPicker({
+  now,
+  startKey,
+  day,
+  hm,
+  onChange,
+}: {
+  now: Date;
+  startKey: StartKey;
+  day: StartDay;
+  hm: string;
+  onChange: (k: StartKey, d: StartDay, hm: string) => void;
+}) {
+  const hourRef = useRef<HTMLDivElement>(null);
+  const hours = selectableHours(day, now);
+  const [h, m] = hm ? hm.split(':').map(Number) : [NaN, NaN];
+  const pad = (n: number) => String(n).padStart(2, '0');
+
+  // 選んだ時がスクロールの中で見えるように
+  useEffect(() => {
+    const el = hourRef.current?.querySelector<HTMLElement>('[data-on="true"]');
+    el?.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [day, h]);
+
+  function pickDay(d: StartDay) {
+    if (d === 'today') {
+      const n = nextSlot(now);
+      onChange('slot', n.day, n.hm);
+    } else {
+      onChange('slot', 'tomorrow', hm && day === 'tomorrow' ? hm : '21:00');
+    }
+  }
+  function pickHour(hour: number) {
+    const mins = SLOT_MINUTES.filter((mi) => slotAt(day, `${pad(hour)}:${pad(mi)}`, now));
+    const keep = mins.includes(m as (typeof SLOT_MINUTES)[number]) ? m : mins[0];
+    onChange('slot', day, `${pad(hour)}:${pad(keep ?? 0)}`);
+  }
+  const seg = (on: boolean) =>
+    `inline-flex min-h-12 items-center justify-center border-2 text-sm font-bold transition-colors ${
+      on ? 'border-ink bg-ink text-white' : 'border-ink/25 bg-sheet text-ink-2 hover:border-ink'
+    }`;
+
+  return (
+    <div className="space-y-2">
+      <input type="hidden" name="startKey" value={startKey} />
+      <input type="hidden" name="startDay" value={day} />
+      <input type="hidden" name="startTime" value={startKey === 'slot' ? hm : ''} />
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="開始">
+        <button type="button" role="radio" aria-checked={startKey === 'now'} className={seg(startKey === 'now')} onClick={() => onChange('now', day, hm)}>
+          今すぐ
+        </button>
+        <button type="button" role="radio" aria-checked={startKey === 'slot' && day === 'today'} className={seg(startKey === 'slot' && day === 'today')} onClick={() => pickDay('today')} disabled={selectableHours('today', now).every((hh) => SLOT_MINUTES.every((mi) => !slotAt('today', `${pad(hh)}:${pad(mi)}`, now)))}>
+          今日
+        </button>
+        <button type="button" role="radio" aria-checked={startKey === 'slot' && day === 'tomorrow'} className={seg(startKey === 'slot' && day === 'tomorrow')} onClick={() => pickDay('tomorrow')}>
+          明日
+        </button>
+      </div>
+      {startKey === 'slot' && (
+        <div className="space-y-2 border-2 border-ink/15 p-2">
+          <div
+            ref={hourRef}
+            className="no-scrollbar -mx-2 flex snap-x gap-1 overflow-x-auto px-2 [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)]"
+            role="radiogroup"
+            aria-label="時"
+          >
+            {hours.map((hour) => {
+              const on = hour === h;
+              return (
+                <button
+                  key={hour}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  data-on={on}
+                  onClick={() => pickHour(hour)}
+                  className={`type-time min-h-11 min-w-12 shrink-0 snap-center px-1 text-[22px] ${on ? 'bg-ink text-white' : 'text-ink hover:bg-tint'}`}
+                >
+                  {pad(hour)}
+                </button>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-4 gap-1" role="radiogroup" aria-label="分">
+            {SLOT_MINUTES.map((mi) => {
+              const ok = Number.isFinite(h) && Boolean(slotAt(day, `${pad(h)}:${pad(mi)}`, now));
+              const on = ok && mi === m;
+              return (
+                <button
+                  key={mi}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!ok}
+                  onClick={() => onChange('slot', day, `${pad(h)}:${pad(mi)}`)}
+                  className={`type-time min-h-11 text-[20px] disabled:opacity-25 ${on ? 'bg-ink text-white' : 'border border-ink/20 text-ink hover:border-ink'}`}
+                >
+                  :{pad(mi)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

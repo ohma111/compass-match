@@ -18,8 +18,6 @@ function tabOf(path: string): TabKey {
 export function TabBar({ unread, active }: { unread: number; active?: TabKey }) {
   const path = usePathname() ?? '/';
   const current = active ?? tabOf(path);
-  // 募集作成は画面下の「募集する」ボタンを1つにするため、登録・ログインは入力に集中するため、タブバーを出さない
-  if (current === 'new' || current === 'auth') return null;
   const item = (on: boolean) =>
     `relative flex h-full flex-col items-center justify-center gap-0.5 text-xs font-bold ${on ? 'text-ink' : 'text-slate hover:text-ink'}`;
   const bar = <span aria-hidden className="absolute top-0 left-1/2 h-[3px] w-8 -translate-x-1/2 bg-ink" />;

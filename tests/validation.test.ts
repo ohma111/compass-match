@@ -46,9 +46,10 @@ describe('profileSchema', () => {
     expect(r.success).toBe(false);
     if (!r.success) expect(firstError(r.error)).toBe('URLは入力できません');
   });
-  it('rejects bio over 200 chars', () => {
-    expect(profileSchema.safeParse({ ...baseProfile, bio: 'あ'.repeat(201) }).success).toBe(false);
-    expect(profileSchema.safeParse({ ...baseProfile, bio: 'あ'.repeat(200) }).success).toBe(true);
+  it('rejects bio over 100 chars and banned words', () => {
+    expect(profileSchema.safeParse({ ...baseProfile, bio: 'あ'.repeat(101) }).success).toBe(false);
+    expect(profileSchema.safeParse({ ...baseProfile, bio: 'あ'.repeat(100) }).success).toBe(true);
+    expect(profileSchema.safeParse({ ...baseProfile, bio: 'インスタやってます' }).success).toBe(false);
   });
   it('rejects more than 3 characters', () => {
     expect(profileSchema.safeParse({ ...baseProfile, characters: ['a', 'b', 'c', 'd'] }).success).toBe(false);
@@ -89,14 +90,16 @@ describe('onboardingSchema', () => {
 const NOW = new Date('2026-10-01T11:42:00Z');
 const baseRecruit = {
   purpose: 'rank',
-  startKey: 'h21',
+  startKey: 'slot',
+  startDay: 'today',
+  startTime: '21:00',
+  stance: 'win',
   capacity: '2',
   joinMode: 'instant',
   minRank: 's5_7',
   vc: 'on',
   tags: ['serious', 'serious'],
   title: '',
-  roomCode: '',
   src: 'guild',
 };
 
@@ -111,11 +114,11 @@ describe('buildRecruitment (tap-based create)', () => {
     if (!r.ok) return;
     expect(r.data.startsAt.toISOString()).toBe('2026-10-01T12:00:00.000Z');
     expect(r.data.endsAt.toISOString()).toBe('2026-10-01T13:00:00.000Z');
-    expect(r.data.title).toBe('ランク S5〜の募集');
+    expect(r.data.title).toBe('バトルアリーナ S5↑の募集');
     expect(r.data.capacity).toBe(2);
     expect(r.data.joinMode).toBe('instant');
     expect(r.data.tags).toEqual(['serious']);
-    expect(r.data.roomCode).toBeNull();
+    expect(r.data.stance).toBe('win');
     expect(r.data.src).toBe('guild');
   });
   it('keeps a custom title (ひとこと)', () => {
@@ -136,23 +139,22 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(build({ joinMode: 'auto' }).ok).toBe(false);
     expect(build({ joinMode: undefined }).ok).toBe(false);
   });
-  it('rejects a fixed chip that has already passed (no rollover to tomorrow)', () => {
-    const r = build({ startKey: 'h21' }, new Date('2026-10-01T12:45:00Z')); // JST 21:45
+  it('rejects a slot that has already passed (no rollover to tomorrow)', () => {
+    const r = build({}, new Date('2026-10-01T12:45:00Z')); // JST 21:45
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/過ぎています/);
   });
-  it('custom time rolls past times to the next day', () => {
-    const r = build({ startKey: 'custom', startTime: '00:30' });
+  it('tomorrow slot, 15 minute steps only, stance required', () => {
+    const r = build({ startDay: 'tomorrow', startTime: '00:30' });
     expect(r.ok && r.data.startsAt.toISOString()).toBe('2026-10-01T15:30:00.000Z');
-    expect(build({ startKey: 'custom', startTime: '' }).ok).toBe(false);
-    expect(build({ startKey: 'tomorrow' }).ok).toBe(false);
+    expect(build({ startTime: '' }).ok).toBe(false);
+    expect(build({ startTime: '21:10' }).ok).toBe(false);
+    expect(build({ stance: '' }).ok).toBe(false);
   });
-  it('rejects URLs in the title and bad room codes', () => {
+  it('rejects URLs and banned words in the title', () => {
     expect(build({ title: 'discord.gg/xxx' }).ok).toBe(false);
     expect(build({ title: 'あ'.repeat(41) }).ok).toBe(false);
-    expect(build({ roomCode: '12 34' }).ok).toBe(false);
-    const ok = build({ roomCode: '12345' });
-    expect(ok.ok && ok.data.roomCode).toBe('12345');
+    expect(build({ title: 'ライン交換できる人' }).ok).toBe(false);
   });
   it('drops invalid src and unknown vc falls back to any', () => {
     const r = build({ src: '<script>', vc: 'loud' });
@@ -175,9 +177,10 @@ describe('validateStartWindow', () => {
 
 describe('messageSchema', () => {
   const id = '10000000-0000-4000-8000-000000000001';
-  it('accepts up to 300 chars', () => {
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(300) }).success).toBe(true);
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(301) }).success).toBe(false);
+  it('accepts up to 20 chars and rejects banned words', () => {
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(20) }).success).toBe(true);
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(21) }).success).toBe(false);
+    expect(messageSchema.safeParse({ recruitmentId: id, body: '何歳ですか' }).success).toBe(false);
   });
   it('rejects empty, URLs and control chars', () => {
     expect(messageSchema.safeParse({ recruitmentId: id, body: '   ' }).success).toBe(false);
@@ -234,7 +237,7 @@ describe('v4.1 rank bands', () => {
   it('has exactly the 4 new bands and rejects the old codes', async () => {
     const { RANK_BANDS, RANK_LABELS } = await import('@/lib/constants');
     expect([...RANK_BANDS]).toEqual(['fa', 's1_4', 's5_7', 's8p']);
-    expect(Object.values(RANK_LABELS)).toEqual(['F–A', 'S1–4', 'S5–7', 'S8+']);
+    expect(Object.values(RANK_LABELS)).toEqual(['A–F', 'S4–1', 'S7–5', 'S8↑']);
     const { onboardingSchema } = await import('@/lib/validation/schemas');
     for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p']) {
       expect(onboardingSchema.safeParse({ displayName: 'a', rankBand: old, playRoles: [], agreeTerms: true, src: null }).success).toBe(false);

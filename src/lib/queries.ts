@@ -6,7 +6,7 @@ import type { JoinState } from './capacity';
 import type { Recruitment } from './types';
 
 export const RECRUIT_BASE_COLUMNS =
-  'id, owner_id, title, purpose, starts_at, ends_at, capacity, min_rank, vc, tags, note, status, join_mode, approved_count, hidden_at, created_at';
+  'id, owner_id, title, purpose, starts_at, ends_at, capacity, min_rank, vc, tags, note, status, join_mode, stance, approved_count, hidden_at, created_at';
 const RECRUIT_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles)`;
 
 /** 「今すぐ」フィルタ: 開始が30分以内、または開催中 */

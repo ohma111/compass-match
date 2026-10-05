@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react';
 import { onboardAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
 import { RoleIcon } from '@/components/RoleIcon';
-import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_LABELS, type RankBand } from '@/lib/constants';
+import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_BANDS_DESC, RANK_LABELS, type RankBand } from '@/lib/constants';
 
 export function OnboardingForm({ next, suggestedName }: { next: string; suggestedName: string }) {
   const [state, formAction, pending] = useActionState(onboardAction, null);
@@ -35,7 +35,7 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
       <fieldset>
         <legend className="label">ランク帯</legend>
         <div className="grid grid-cols-4 gap-2">
-          {RANK_BANDS.map((r) => (
+          {RANK_BANDS_DESC.map((r) => (
             <label key={r} className="pick">
               <input type="radio" name="rankBand" value={r} checked={rank === r} onChange={() => setRank(r)} required className="sr-only" />
               {RANK_LABELS[r]}
@@ -72,7 +72,7 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
           <Link href="/terms" className="link" target="_blank">利用規約</Link>と
           <Link href="/privacy" className="link" target="_blank">プライバシーポリシー</Link>
           に同意します
-          <span className="mt-1 block text-xs text-muted">13歳未満の方は利用できません。18歳未満の方は保護者の同意を得てください。</span>
+
         </span>
       </label>
 

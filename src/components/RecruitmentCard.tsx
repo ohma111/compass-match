@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Recruitment } from '@/lib/types';
 import { canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
-import { JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RANK_SHORT, RECRUIT_VC_LABELS } from '@/lib/constants';
+import { STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RANK_SHORT, RECRUIT_VC_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
@@ -81,6 +81,7 @@ export function RecruitmentCard({
           </h3>
           <p className="mt-1.5 flex min-w-0 items-center gap-x-2.5 overflow-hidden text-[12px] font-bold whitespace-nowrap text-slate [mask-image:linear-gradient(to_right,#000_calc(100%-1.5rem),transparent)]">
             <span className={`shrink-0 font-black ${left > 0 ? 'text-ink' : 'text-slate'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
+            {r.stance && <span className="shrink-0 text-ink">{STANCE_LABELS[r.stance]}</span>}
             <span className="shrink-0">{JOIN_MODE_LABELS[r.join_mode]}</span>
             <span className="shrink-0">{RECRUIT_VC_LABELS[r.vc]}</span>
             {r.min_rank && <span className="shrink-0 text-ink-2">条件 {RANK_MIN_LABELS[r.min_rank]}</span>}

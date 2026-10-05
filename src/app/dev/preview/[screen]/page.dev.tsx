@@ -10,8 +10,9 @@ import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView'
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { LoginView, TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
+import { GuestMeView } from '@/components/views/GuestMeView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
-import { ME_ID, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
+import { ME_ID, people, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'プレビュー', robots: { index: false } };
@@ -27,6 +28,12 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   let sheetOpen = false;
 
   switch (screen) {
+    case 'me-guest':
+      active = 'me';
+      signedIn = false;
+      unread = 0;
+      body = <GuestMeView />;
+      break;
     case 'loading':
       active = 'home';
       body = <HomeSkeleton />;
@@ -108,6 +115,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           transferEmail={null}
           previewTransferCode={screen === 'transfer-code' ? 'K7QMX4RT9WHB2NCE5PLA' : undefined}
           isAdmin={false}
+          mates={[people.taro, people.rin, people.kei].map((x, i) => ({ id: x.id, display_name: x.display_name, rank_band: x.rank_band, play_roles: x.play_roles, times: 3 - i, following: i === 0 }))}
           hasContacts={false}
           mine={myRecruitments(now)}
           joined={[{ status: 'approved', recruitment: detail(now, true).r }]}

@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { ChevronLeft, Lock, Share2 } from 'lucide-react';
+import { ChevronLeft, Lock } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { formatJst, formatJstRange } from '@/lib/time';
-import { PURPOSE_LABELS, RANK_LABELS, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
+import { STANCE_LABELS, PURPOSE_LABELS, RANK_LABELS, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
 import { TimeRail } from '@/components/TimeRail';
+import { ShareButton } from '@/components/ShareButton';
 import { JoinButton } from '@/components/JoinButton';
 import { LobbyLineup } from '@/components/LobbyLineup';
 import { ActionButton } from '@/components/ActionButton';
@@ -34,11 +35,11 @@ export interface RecruitmentDetailViewProps {
 }
 
 /** X の投稿画面を開くだけのリンク (APIは使わない)。流入計測のため ?src=x を付ける */
-function shareHref(r: Recruitment, base: string): string {
+function shareData(r: Recruitment, base: string): { text: string; url: string } {
   const url = `${base}/recruitments/${r.id}?src=x`;
   const left = remainingSlots(r.capacity, r.approved_count);
-  const text = `#コンパス ${PURPOSE_LABELS[r.purpose]}募集「${r.title}」\n${formatJst(r.starts_at)}〜${left > 0 ? ` あと${left}人` : ''}`;
-  return `https://x.com/intent/post?${new URLSearchParams({ text, url }).toString()}`;
+  const text = `#コンパス ${PURPOSE_LABELS[r.purpose]}募集「${r.title}」\n${formatJst(r.starts_at)}〜${left > 0 ? ` あと${left}人` : ''}\n`;
+  return { text, url };
 }
 
 export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
@@ -136,6 +137,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             {r.title}
           </h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {r.stance && <span className="text-xs font-black">{STANCE_LABELS[r.stance]}</span>}
             <JoinModeBadge mode={r.join_mode} />
             <VcBadge vc={r.vc} />
             {r.min_rank && <span className="text-xs font-bold text-ink-2">ランク条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
@@ -161,10 +163,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           )}
           {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
           {active && !r.hidden_at && (
-            <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full">
-              <Share2 className="size-4" aria-hidden />
-              Xで共有
-            </a>
+            <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full" />
           )}
           {signedIn && !isOwner && (
             <div className="flex justify-end">
@@ -274,10 +273,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           )}
           <div className={`flex flex-col gap-2 ${isMember ? '' : 'lg:flex-row lg:items-center lg:justify-end'}`}>
             {active && !r.hidden_at && (
-              <a href={shareHref(r, props.siteUrl)} target="_blank" rel="noopener noreferrer" className="btn-outline w-full lg:hidden">
-                <Share2 className="size-4" aria-hidden />
-                Xで共有
-              </a>
+              <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full lg:hidden" />
             )}
             {isOwner && active && (
               <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消す?">

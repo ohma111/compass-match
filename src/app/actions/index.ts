@@ -2,6 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
+import { dispatchPush } from '@/lib/push/server';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
@@ -29,6 +31,11 @@ async function srcFromCookie(explicit?: unknown): Promise<string | null> {
   if (direct) return direct;
   const store = await cookies();
   return sanitizeSrc(store.get(SRC_COOKIE)?.value);
+}
+
+/** この操作で作られた通知を、応答を返したあとにプッシュする */
+function pushLater() {
+  after(() => dispatchPush());
 }
 
 function fail(error: string): ActionResult<never> {
@@ -139,14 +146,15 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
   const built = buildRecruitment({
     purpose: fd.get('purpose') ?? '',
     startKey: fd.get('startKey') ?? '',
+    startDay: fd.get('startDay') ?? 'today',
     startTime: (fd.get('startTime') as string | null) ?? undefined,
+    stance: fd.get('stance') ?? '',
     capacity: fd.get('capacity') ?? '',
     joinMode: fd.get('joinMode') ?? '',
     minRank: fd.get('minRank') ?? '',
     vc: fd.get('vc') ?? 'any',
     tags: formStrings(fd, 'tags'),
     title: fd.get('title') ?? '',
-    roomCode: fd.get('roomCode') ?? '',
     src: await srcFromCookie(fd.get('src')),
   });
   if (!built.ok) return fail(built.error);
@@ -163,11 +171,13 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     p_vc: v.vc,
     p_tags: v.tags,
     p_note: '',
-    p_room_code: v.roomCode,
+    p_room_code: null,
     p_src: v.src,
     p_join_mode: v.joinMode,
+    p_stance: v.stance,
   });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   revalidatePath('/');
   redirect(`/recruitments/${data as string}?created=1`);
 }
@@ -178,6 +188,7 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
   const supabase = await createClient();
   const { error } = await supabase.rpc('cancel_recruitment', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   revalidatePath(`/recruitments/${id.data}`);
   revalidatePath('/');
   return { ok: true, message: '募集を取り消しました' };
@@ -210,6 +221,7 @@ export async function requestJoinAction(
     p_src: await srcFromCookie(src),
   });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   const { data: row } = await supabase.from('participations').select('status').eq('id', data as string).maybeSingle();
   const joined = (row as { status: string } | null)?.status === 'approved';
   revalidatePath(`/recruitments/${id.data}`);
@@ -227,6 +239,7 @@ export async function cancelParticipationAction(recruitmentId: string): Promise<
   const supabase = await createClient();
   const { error } = await supabase.rpc('cancel_participation', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   revalidatePath(`/recruitments/${id.data}`);
   revalidatePath('/');
   return { ok: true, message: '参加を取り消しました' };
@@ -245,6 +258,7 @@ export async function decideParticipationAction(
     p_decision: parsed.data.decision,
   });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   if (uuidSchema.safeParse(recruitmentId).success) revalidatePath(`/recruitments/${recruitmentId}`);
   return { ok: true, message: decision === 'approved' ? '承認しました' : '更新しました' };
 }
@@ -265,6 +279,7 @@ export async function sendMessageAction(
     p_body: parsed.data.body,
   });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   return { ok: true, data: { id: data as string, body: parsed.data.body, created_at: new Date().toISOString() } };
 }
 
@@ -459,4 +474,43 @@ export async function createProfileAction(input: {
   await persistAuthCookies();
   revalidatePath('/', 'layout');
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------
+// v6: 通知を受け取る人 / プッシュ通知
+// ---------------------------------------------------------------------
+export async function setFollowAction(userId: string, on: boolean): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(userId);
+  if (!id.success) return fail('不正なリクエストです');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_follow', { p_target: id.data, p_on: Boolean(on) });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/me');
+  revalidatePath(`/users/${id.data}`);
+  return { ok: true, message: on ? '募集を出したら通知します' : '通知をやめました' };
+}
+
+export async function savePushSubscriptionAction(sub: { endpoint: string; p256dh: string; auth: string }): Promise<ActionResult> {
+  const ok =
+    sub &&
+    typeof sub.endpoint === 'string' &&
+    /^https:\/\//.test(sub.endpoint) &&
+    sub.endpoint.length <= 1000 &&
+    typeof sub.p256dh === 'string' &&
+    sub.p256dh.length <= 200 &&
+    typeof sub.auth === 'string' &&
+    sub.auth.length <= 100;
+  if (!ok) return fail('通知を登録できませんでした');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('save_push_subscription', { p_endpoint: sub.endpoint, p_p256dh: sub.p256dh, p_auth: sub.auth });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true, message: '通知をオンにしました' };
+}
+
+export async function deletePushSubscriptionAction(endpoint: string): Promise<ActionResult> {
+  if (typeof endpoint !== 'string' || endpoint.length > 1000) return fail('不正なリクエストです');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('delete_push_subscription', { p_endpoint: endpoint });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true, message: '通知をオフにしました' };
 }

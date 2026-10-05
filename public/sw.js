@@ -14,3 +14,40 @@ self.addEventListener('fetch', (event) => {
     ),
   );
 });
+
+// プッシュ通知 (v6)。本文は募集のタイトルだけで、チャットの中身は載せない
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = {};
+  }
+  const title = data.title || 'コンパスマッチ';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      icon: '/icon.svg',
+      badge: '/icon.svg',
+      tag: data.tag || undefined,
+      renotify: Boolean(data.tag),
+      data: { url: data.url || '/notifications' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || '/notifications', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url === url && 'focus' in c) return c.focus();
+      }
+      for (const c of list) {
+        if ('navigate' in c && 'focus' in c) return c.navigate(url).then((w) => (w ? w.focus() : undefined));
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});

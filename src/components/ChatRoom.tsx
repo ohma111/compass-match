@@ -4,6 +4,7 @@ import { MessageCircle, SendHorizontal } from 'lucide-react';
 import { sendMessageAction } from '@/app/actions';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { formatJstTime } from '@/lib/time';
+import { BANNED_MESSAGE, containsBanned } from '@/lib/moderation/banned';
 import { containsUrl } from '@/lib/validation/url';
 import { LIMITS } from '@/lib/constants';
 import { ReportButton } from '@/components/ReportButton';
@@ -71,7 +72,9 @@ export function ChatRoom({
       ? `${LIMITS.message}文字以内で入力してください`
       : containsUrl(trimmed)
         ? 'URLは送信できません'
-        : null;
+        : containsBanned(trimmed)
+          ? BANNED_MESSAGE
+          : null;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +100,7 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <span className="text-xs text-slate">6時間後に消えます</span>
+        <span className="text-xs text-slate">終了の6時間後に消えます</span>
       </div>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
         {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだ会話なし</p>}
@@ -120,10 +123,10 @@ export function ChatRoom({
               </div>
               <p
                 className={`max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed ${
-                  mine ? 'bg-ally text-white' : 'bg-tint text-ink'
+                  mine ? 'bg-ink text-white' : 'bg-tint text-ink'
                 }`}
               >
-                {m.body}
+                {containsBanned(m.body) ? <span className="text-slate italic">表示できない言葉が含まれています</span> : m.body}
               </p>
               {reportingId === m.id && <ReportButtonOpen id={m.id} />}
             </div>
@@ -133,13 +136,14 @@ export function ChatRoom({
       {open ? (
         <form onSubmit={submit} className="space-y-1">
           <div className="flex items-end gap-2">
-            <textarea
+            <input
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              rows={1}
-              maxLength={LIMITS.message + 50}
-              className="input field-sizing-content max-h-32 resize-none"
-              placeholder="メッセージ"
+              maxLength={LIMITS.message}
+              enterKeyHint="send"
+              autoComplete="off"
+              className="input"
+              placeholder="20文字まで"
               aria-label="メッセージ"
             />
             <button

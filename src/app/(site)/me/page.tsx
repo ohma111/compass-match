@@ -1,7 +1,9 @@
-import { getSessionClaims, requireViewer } from '@/lib/auth';
+import { getSessionClaims } from '@/lib/auth';
+import { getViewerSafe } from '@/lib/viewer-safe';
+import { GuestMeView } from '@/components/views/GuestMeView';
 import { createClient } from '@/lib/supabase/server';
 import { RECRUIT_BASE_COLUMNS } from '@/lib/queries';
-import { MeView } from '@/components/views/MeView';
+import { MeView, type Mate } from '@/components/views/MeView';
 import { accountKindOf, isTransferEmail } from '@/lib/transfer';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
@@ -12,10 +14,11 @@ export const metadata = { title: 'マイページ' };
 const OWNER_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles)`;
 
 export default async function MePage() {
-  const viewer = await requireViewer('/me');
+  const viewer = await getViewerSafe();
+  if (!viewer || !viewer.profile) return <GuestMeView />;
   const supabase = await createClient();
   const now = new Date();
-  const [{ data: mine }, { data: parts }, { data: contacts }, { data: account }] = await Promise.all([
+  const [{ data: mine }, { data: parts }, { data: contacts }, { data: account }, { data: mateRows }, { data: follows }] = await Promise.all([
     supabase
       .from('recruitments')
       .select(OWNER_COLUMNS)
@@ -34,7 +37,18 @@ export default async function MePage() {
     supabase.from('profile_contacts').select('contact_discord, contact_x, contact_ingame').eq('user_id', viewer.userId).maybeSingle(),
     // ユーザーIDで登録した人だけ行がある (Discord で登録した人は null)
     supabase.from('accounts').select('login_id').eq('user_id', viewer.userId).maybeSingle(),
+    supabase
+      .from('play_mates')
+      .select('mate_id, times, last_played_at, mate:profiles!play_mates_mate_id_fkey(id, display_name, rank_band, play_roles)')
+      .eq('user_id', viewer.userId)
+      .order('last_played_at', { ascending: false })
+      .limit(30),
+    supabase.from('follows').select('followee_id').eq('follower_id', viewer.userId),
   ]);
+  const followSet = new Set(((follows ?? []) as { followee_id: string }[]).map((f) => f.followee_id));
+  const mates = ((mateRows ?? []) as unknown as { times: number; mate: Omit<Mate, 'times' | 'following'> | null }[])
+    .filter((m): m is { times: number; mate: Omit<Mate, 'times' | 'following'> } => Boolean(m.mate))
+    .map((m) => ({ ...m.mate, times: m.times, following: followSet.has(m.mate.id) }));
   const joined = ((parts ?? []) as unknown as { status: JoinState; recruitment: Recruitment | null }[]).filter(
     (p): p is { status: JoinState; recruitment: Recruitment } =>
       Boolean(p.recruitment) && new Date(p.recruitment!.ends_at).getTime() > now.getTime(),
@@ -53,6 +67,7 @@ export default async function MePage() {
       hasContacts={hasContacts}
       mine={(mine ?? []) as unknown as Recruitment[]}
       joined={joined}
+      mates={mates}
       now={now}
     />
   );

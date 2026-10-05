@@ -8,11 +8,13 @@ import {
   PURPOSES,
   RANK_BANDS,
   RECRUIT_VC,
+  STANCES,
 } from '../constants';
 import { containsUrl } from './url';
+import { BANNED_MESSAGE, containsBanned } from '../moderation/banned';
 import { sanitizeSrc } from '../src-param';
 import { isValidCapacity } from '../capacity';
-import { autoEnd, autoTitle, resolveStart, START_KEYS } from '../recruit';
+import { autoEnd, autoTitle, resolveStart, START_DAYS, START_KEYS } from '../recruit';
 import {
   LOGIN_ID_PATTERN,
   LOGIN_ID_RULE,
@@ -36,7 +38,8 @@ const safeText = (max: number, opts: { min?: number; label: string }) =>
         .string()
         .min(opts.min ?? 0, `${opts.label}を入力してください`)
         .max(max, `${opts.label}は${max}文字以内で入力してください`)
-        .refine((s) => !containsUrl(s), NO_URL),
+        .refine((s) => !containsUrl(s), NO_URL)
+        .refine((s) => !containsBanned(s), BANNED_MESSAGE),
     );
 
 /** 空文字は null にする任意入力 */
@@ -135,7 +138,9 @@ export const recruitmentSchema = z
   .object({
     purpose: z.enum(PURPOSES, { message: '目的を選んでください' }),
     startKey: z.enum(START_KEYS, { message: '開始時刻を選んでください' }),
+    startDay: z.enum(START_DAYS).catch('today'),
     startTime: z.string().max(5).optional(),
+    stance: z.enum(STANCES, { message: 'ゲームへの姿勢を選んでください' }),
     capacity: z.coerce.number().int(),
     joinMode: z.enum(JOIN_MODES, { message: '参加方式を選んでください' }),
     minRank: z
@@ -145,7 +150,6 @@ export const recruitmentSchema = z
     vc: z.enum(RECRUIT_VC).catch('any'),
     tags: uniqueArray(MOOD_TAGS),
     title: safeText(LIMITS.title, { label: 'ひとこと' }),
-    roomCode: optionalPattern(/^[0-9A-Za-z-]{1,16}$/, '部屋番号は半角英数字16文字以内です'),
     src: z.unknown().transform(sanitizeSrc),
   })
   .superRefine((v, ctx) => {
@@ -159,7 +163,7 @@ export const recruitmentSchema = z
   });
 export type RecruitmentInput = z.input<typeof recruitmentSchema>;
 
-export interface RecruitmentData extends Omit<z.output<typeof recruitmentSchema>, 'startKey' | 'startTime'> {
+export interface RecruitmentData extends Omit<z.output<typeof recruitmentSchema>, 'startKey' | 'startDay' | 'startTime'> {
   startsAt: Date;
   endsAt: Date;
 }
@@ -174,13 +178,10 @@ export function buildRecruitment(
 ): { ok: true; data: RecruitmentData } | { ok: false; error: string } {
   const parsed = recruitmentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const { startKey, startTime, ...v } = parsed.data;
-  const startsAt = resolveStart(startKey, startTime, now);
+  const { startKey, startDay, startTime, ...v } = parsed.data;
+  const startsAt = resolveStart(startKey, startDay, startTime, now);
   if (!startsAt) {
-    return {
-      ok: false,
-      error: startKey === 'custom' ? '開始時刻を選んでください' : 'その時刻はすでに過ぎています。開始時刻を選び直してください',
-    };
+    return { ok: false, error: startTime ? 'その時刻はすでに過ぎています。開始時刻を選び直してください' : '開始時刻を選んでください' };
   }
   const windowError = validateStartWindow(startsAt, now);
   if (windowError) return { ok: false, error: windowError };
@@ -206,8 +207,9 @@ export const messageSchema = z.object({
       z
         .string()
         .min(1, 'メッセージを入力してください')
-        .max(LIMITS.message, `メッセージは${LIMITS.message}文字以内です`)
+        .max(LIMITS.message, `メッセージは${LIMITS.message}文字までです`)
         .refine((s) => !containsUrl(s), 'URLは送信できません')
+        .refine((s) => !containsBanned(s), BANNED_MESSAGE)
         .refine((s) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(s), '使用できない文字が含まれています'),
     ),
 });

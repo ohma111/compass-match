@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useActionState } from 'react';
 import { saveProfileAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
@@ -13,7 +14,7 @@ import {
   PROFILE_VC_LABELS,
   PURPOSES,
   PURPOSE_LABELS,
-  RANK_BANDS,
+  RANK_BANDS, RANK_BANDS_DESC,
   RANK_LABELS,
 } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
@@ -26,6 +27,16 @@ interface Contacts {
 
 /** マイページのプロフィール編集 (全項目。初回登録で聞かなかった項目もここで追加する) */
 export function ProfileForm({ profile, contacts }: { profile: Profile; contacts: Contacts | null }) {
+  // 「連絡先を追加」から来たときは、連絡先の欄まで移動して最初の入力欄にカーソルを置く
+  useEffect(() => {
+    if (window.location.hash !== '#contacts') return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById('contacts');
+      el?.scrollIntoView({ block: 'start' });
+      document.getElementById('contactDiscord')?.focus({ preventScroll: true });
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, []);
   const [state, formAction, pending] = useActionState(saveProfileAction, null);
   const chars = [...profile.characters, '', '', ''].slice(0, LIMITS.maxCharacters);
 
@@ -38,7 +49,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
       <fieldset>
         <legend className="label">ランク帯</legend>
         <div className="grid grid-cols-4 gap-2">
-          {RANK_BANDS.map((r) => (
+          {RANK_BANDS_DESC.map((r) => (
             <label key={r} className="pick">
               <input type="radio" name="rankBand" value={r} defaultChecked={profile.rank_band === r} required className="sr-only" />
               {RANK_LABELS[r]}
@@ -99,11 +110,11 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         </div>
       </fieldset>
       <div>
-        <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(200字まで・URL不可)</span></label>
+        <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(100字まで・URL不可)</span></label>
         <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile.bio} className="input" />
       </div>
 
-      <fieldset id="contacts" className="card scroll-mt-16 space-y-4">
+      <fieldset id="contacts" className="card scroll-mt-20 space-y-4">
         <legend className="px-1 text-sm font-extrabold">連絡先 (任意)</legend>
         <p className="text-xs text-slate">パーティのメンバーにだけ表示</p>
         <div>

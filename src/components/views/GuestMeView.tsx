@@ -1,0 +1,26 @@
+'use client';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ProfileStartForm } from '@/components/ProfileSheet';
+
+/** マイページ (プロフィールがまだない人): 席をつくるフォームが主。前に使っていた人の入口は見出しのすぐ下に */
+export function GuestMeView() {
+  const router = useRouter();
+  return (
+    <div className="mx-auto max-w-lg">
+      <h1 className="text-[28px] leading-tight font-black tracking-[-0.01em] lg:text-[36px]">あなたの席をつくる</h1>
+      <p className="mt-3 flex flex-wrap items-center gap-x-5 border-y-2 border-ink py-1 text-[13px]">
+        <span className="w-full font-bold text-slate">前に使っていた人</span>
+        <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4">
+          引き継ぎコードで戻る
+        </Link>
+        <Link href="/login" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4">
+          以前の方法でログイン
+        </Link>
+      </p>
+      <div className="mt-6">
+        <ProfileStartForm page autoFocus={false} onDone={() => router.refresh()} />
+      </div>
+    </div>
+  );
+}

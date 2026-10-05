@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { Bell, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
+import { Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
 import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { NOTIFICATION_LABELS } from '@/lib/constants';
 import { formatJst } from '@/lib/time';
+import { PushToggle } from '@/components/PushToggle';
 import { ActionButton } from '@/components/ActionButton';
 import { markNotificationsReadAction } from '@/app/actions';
 
@@ -27,7 +28,8 @@ const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   removed: { icon: UserMinus, color: 'text-muted' },
   participant_cancelled: { icon: LogOut, color: 'text-warn' },
   recruitment_cancelled: { icon: CircleX, color: 'text-danger' },
-  new_message: { icon: MessageCircle, color: 'text-p-rank' },
+  new_message: { icon: MessageCircle, color: 'text-ink' },
+  followed_posted: { icon: BellRing, color: 'text-ink' },
 };
 
 export default async function NotificationsPage() {
@@ -51,6 +53,7 @@ export default async function NotificationsPage() {
           </ActionButton>
         )}
       </div>
+      <PushToggle />
       {rows.length === 0 && (
         <div className="card flex flex-col items-center gap-2 py-10 text-center text-sm text-muted">
           <Bell className="size-8" aria-hidden />

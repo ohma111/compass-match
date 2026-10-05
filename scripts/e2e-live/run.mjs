@@ -115,8 +115,9 @@ try {
     await snap(p, 'A-home');
     await p.getByRole('navigation', { name: 'メインメニュー' }).getByRole('link', { name: /募集する/ }).click();
     await p.waitForURL('**/recruitments/new');
-    await p.locator('label', { hasText: 'エンジョイ' }).first().click();
-    await p.locator('label', { hasText: '今すぐ' }).click();
+    await p.locator('label', { hasText: 'フリーバトル' }).first().click();
+    await p.locator('label', { hasText: '楽しみたい' }).click();
+    await p.getByRole('radio', { name: '今すぐ' }).click();
     await p.locator('label', { hasText: 'あと1人' }).click();
     await p.locator('label', { hasText: '早い者勝ち' }).click();
     await snap(p, 'A-new');
@@ -185,6 +186,11 @@ try {
     await eventually(B.page, () => bubble(B.page, 'テストAです よろしく'));
     await snap(A.page, 'A-chat');
     await snap(B.page, 'B-chat');
+    // 禁止語は送る前に止まる
+    await B.page.getByLabel('メッセージ').fill('ライン交換しよ');
+    await B.page.getByText('使えない言葉が入っています').waitFor({ timeout: 5_000 });
+    if (!(await B.page.getByRole('button', { name: '送信' }).isDisabled())) throw new Error('banned word not blocked');
+    await B.page.getByLabel('メッセージ').fill('');
   });
 
   await step('A: 同じコンテキストの新しいタブでもログインしたまま (シートなし)', async () => {
@@ -198,7 +204,7 @@ try {
 
   await step('B: 作成10分以内の匿名アカウントは11件目で止まる', async () => {
     const p = B.page;
-    // 1件送信済み。一般の制限 (2秒に1件・30秒に5件) に当たらないよう 6.5秒あける
+    // 1件送信済み。一般の制限 (3秒に1件・1分に8件) に当たらないよう 6.5秒あける
     let sent = 1;
     let limitError = null;
     while (sent < 11) {
@@ -220,7 +226,7 @@ try {
       if (!ok) {
         limitError = await p.locator('section[aria-labelledby="chat-title"] [role="alert"]').allInnerTexts();
         const state = await p.evaluate(() => ({
-          value: document.querySelector('textarea[aria-label="メッセージ"]')?.value,
+          value: document.querySelector('input[aria-label="メッセージ"]')?.value,
           disabled: document.querySelector('button[aria-label="送信"]')?.disabled,
         }));
         console.log('chat-limit stop', sent, JSON.stringify(limitError), JSON.stringify(state));

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { NavProgress } from './NavProgress';
-import { Bell, Plus } from 'lucide-react';
+import { Bell, ChevronRight, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
 import { OnboardingProvider } from './ProfileSheet';
@@ -92,15 +92,28 @@ export function AppShell({
 
       {/* スマホは下の固定バー (タブバーか募集ボタン、どちらも64px) の分だけ余白を取る */}
       <footer className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] text-xs text-slate lg:px-8 lg:pb-12">
-        <div className="border-t-2 border-ink pt-4">
-          <nav className="flex flex-wrap gap-x-5" aria-label="サイト情報">
-            <Link href="/feedback" className="inline-flex min-h-11 items-center font-bold text-ink underline underline-offset-4">
-              フィードバック
-            </Link>
-            <Link href="/terms" className="inline-flex min-h-11 items-center">利用規約</Link>
-            <Link href="/privacy" className="inline-flex min-h-11 items-center">プライバシー</Link>
+        <div className="border-t-2 border-ink pt-2 lg:pt-4">
+          <nav aria-label="サイト情報">
+            <ul className="divide-y divide-ink/15 text-[14px] font-bold text-ink lg:flex lg:gap-x-8 lg:divide-y-0 lg:text-xs">
+              {[
+                ['/feedback', 'フィードバック'],
+                ['/terms', '利用規約'],
+                ['/privacy', 'プライバシーポリシー'],
+              ].map(([href, label]) => (
+                <li key={href}>
+                  <Link href={href} className="flex min-h-12 items-center justify-between lg:min-h-11 lg:hover:underline lg:underline-offset-4">
+                    {label}
+                    <ChevronRight className="size-4 text-slate lg:hidden" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </nav>
-          <p className="mt-1 leading-relaxed">非公式のファンサイトです。ゲームの運営会社とは関係ありません。</p>
+          <p className="mt-3 leading-relaxed">
+            非公式のファンサイトです。
+            <br />
+            ゲームの開発・運営会社とは関係ありません。
+          </p>
         </div>
       </footer>
       </div>
