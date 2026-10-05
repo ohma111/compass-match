@@ -157,7 +157,8 @@ export function CreateRecruitmentForm({
   const capacity = clampCapacity(c.purpose, c.capacity);
   const placeholderTitle = autoTitle({ purpose: c.purpose, minRank: c.minRank || null, capacity });
   const titleError = containsUrl(title) ? 'URLは入力できません' : null;
-  const ready = Boolean(startAt) && Boolean(c.stance) && !titleError;
+  const ready = Boolean(startAt) && !titleError;
+  const [needStance, setNeedStance] = useState(false);
 
   useEffect(() => {
     if (autoSubmit && startAt) {
@@ -172,6 +173,12 @@ export function CreateRecruitmentForm({
     const choices: Choices = { ...c, startKey, capacity };
     if (!ready) {
       e.preventDefault();
+      return;
+    }
+    if (!c.stance) {
+      e.preventDefault();
+      setNeedStance(true);
+      document.getElementById('stance')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
     if ((auth === 'guest' || auth === 'no-profile') && !profileOk.current) {
@@ -193,7 +200,7 @@ export function CreateRecruitmentForm({
   const summaryParts = [
     PURPOSE_LABELS[c.purpose],
     !startAt ? '時刻を選んでください' : startKey === 'now' ? '今すぐ' : `${startPreview(startAt, now).replace('今日 ', '')}〜`,
-    ...(c.stance ? [STANCE_LABELS[c.stance]] : ['姿勢を選んでください']),
+    ...(c.stance ? [STANCE_LABELS[c.stance]] : []),
     `あと${capacity - 1}人`,
   ];
   const previewSeats: Seat[] = [
@@ -205,7 +212,12 @@ export function CreateRecruitmentForm({
   const submitButton = (
     <button type="submit" className="btn-primary min-h-12 w-full flex-col gap-0 px-3 leading-tight lg:min-h-16 lg:gap-0.5" disabled={pending || !ready}>
       <span className="text-base font-bold">{pending ? '募集を出しています…' : '募集する'}</span>
-      {!pending && <span className="max-w-full truncate text-xs font-medium opacity-85">{summaryParts.join(' / ')}</span>}
+      {!pending && (
+        <span className="max-w-full truncate text-xs font-medium opacity-85">
+          {summaryParts.join(' / ')}
+          {!c.stance && <span className="ml-1 font-bold text-[#ffb39c]">/ 姿勢 未選択</span>}
+        </span>
+      )}
     </button>
   );
   const submit = (
@@ -253,14 +265,17 @@ export function CreateRecruitmentForm({
         </fieldset>
 
         {/* ゲームへの姿勢 */}
-        <fieldset>
-          <legend className={legend}>ゲームへの姿勢</legend>
+        <fieldset id="stance" className={needStance && !c.stance ? 'outline-2 outline-offset-4 outline-signal-deep' : ''}>
+          <legend className={legend}>
+            <span>ゲームへの姿勢</span>
+            {needStance && !c.stance && <span className="text-[13px] font-bold text-signal-deep">選んでください</span>}
+          </legend>
           <div className="grid grid-cols-2 gap-2">
             {STANCES.map((st) => {
               const Icon = STANCE_ICON[st];
               return (
                 <label key={st} className="pick gap-1.5">
-                  <input type="radio" name="stance" value={st} checked={c.stance === st} onChange={() => set('stance', st)} className="sr-only" required />
+                  <input type="radio" name="stance" value={st} checked={c.stance === st} onChange={() => set('stance', st)} className="sr-only" />
                   <Icon className="size-4" aria-hidden />
                   {STANCE_LABELS[st]}
                 </label>
@@ -424,12 +439,7 @@ export function CreateRecruitmentForm({
               {state.error}
             </p>
           )}
-          <div className="flex items-center gap-3">
-            <div className="w-[5.5rem] shrink-0">
-              <Lineup seats={previewSeats} label={`あなたと、あと${capacity - 1}人`} />
-            </div>
-            <div className="min-w-0 flex-1">{submitButton}</div>
-          </div>
+          {submitButton}
         </div>
       </div>
     </form>

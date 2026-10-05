@@ -1,69 +1,71 @@
 {
   "base": "https://compass-match.vercel.app",
-  "at": "2026-10-04T13:57:01.742Z",
-  "recruitment": "https://compass-match.vercel.app/recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
+  "at": "2026-10-05T00:25:10.517Z",
+  "recruitment": "https://compass-match.vercel.app/recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
   "results": [
     {
       "step": "A: 募集する → シート → はじめる → 募集が続けて出る",
       "ok": true,
-      "ms": 18018
+      "ms": 20360
     },
     {
       "step": "A: 募集がホームに出る",
       "ok": true,
-      "ms": 6004
+      "ms": 4430
     },
     {
       "step": "B: ホーム → 空き席をタップ → シート → リロードなしで参加 → 満員",
       "ok": true,
-      "ms": 19403
+      "ms": 23253
     },
     {
       "step": "A: 部屋番号 12345 → B に表示とコピー",
       "ok": true,
-      "ms": 10719
+      "ms": 12472
     },
     {
       "step": "A・B がチャットを1件ずつ → 両方に両方が見える",
       "ok": true,
-      "ms": 18833
+      "ms": 17786
     },
     {
       "step": "A: 同じコンテキストの新しいタブでもログインしたまま (シートなし)",
       "ok": true,
-      "ms": 4919
+      "ms": 3827
     },
     {
       "step": "B: 作成10分以内の匿名アカウントは11件目で止まる",
       "ok": true,
-      "ms": 91251
+      "ms": 90951
     },
     {
       "step": "A: マイページで引き継ぎコードを作る",
       "ok": true,
-      "ms": 6747
+      "ms": 5740
     },
     {
       "step": "C: 引き継ぐ → テストAとしてログイン",
       "ok": true,
-      "ms": 15031
+      "ms": 15962
     },
     {
       "step": "片付け: B が参加をやめる",
       "ok": true,
-      "ms": 5343
+      "ms": 5166
     },
     {
       "step": "片付け: A が募集を取り消す → ホームに出ない",
       "ok": true,
-      "ms": 7740
+      "ms": 7582
     }
   ],
   "consoleErrors": [
+    "[A] HTTP 502 https://compass-match.vercel.app/_next/static/immutable/media/002ad56b38a46c9f-s.p.206gj4ml91fe2.woff2",
+    "[A] console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
-    "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
+    "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[B] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
     "[A] console: WebSocket connection to 'wss://jjhnmqeukfrknujtkash.supabase.co/realtime/v1/websocket?apikey=sb_publishable_DNZxhx8TggQHujiY68tClQ_QSmtOGWt&vsn=2.0.0' failed: Error during WebSocket handshake: Unexpected response code: 500",
@@ -107,25 +109,25 @@
   "actionLog": [
     "[A] action POST /recruitments/new",
     "[A] action POST /recruitments/new",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[A] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[A] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
     "[A] action POST /me",
     "[C] action POST /transfer",
-    "[B] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8",
-    "[A] action POST /recruitments/ae972d84-ad41-4748-9644-b40e5c14b6d8"
+    "[B] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c",
+    "[A] action POST /recruitments/37afd183-b0af-48cc-b842-bcfaa879398c"
   ],
   "friction": []
 }

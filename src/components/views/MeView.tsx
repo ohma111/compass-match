@@ -2,7 +2,7 @@ import { MiniSeat, ProfileSeat } from '@/components/Lineup';
 import { FollowButton } from '@/components/FollowButton';
 import { PushToggle } from '@/components/PushToggle';
 import Link from 'next/link';
-import { ChevronRight, FileText, MessageSquareHeart, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
+import { ChevronRight, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { RoleIcon } from '@/components/RoleIcon';
 import { ReissueRecoveryCode } from '@/components/ReissueRecoveryCode';
@@ -98,7 +98,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         </nav>
       </aside>
 
-      <div className="mt-12 space-y-12 lg:mt-0 xl:grid xl:grid-cols-2 xl:items-start xl:gap-8 xl:space-y-0">
+      <div className="mt-12 min-w-0 space-y-12 lg:mt-0">
         <section className="space-y-3" aria-labelledby="mine-title">
           <h2 id="mine-title" className="section-title">自分の募集</h2>
           {mine.length === 0 ? (
@@ -127,7 +127,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           )}
         </section>
 
-        <section className="space-y-3 xl:col-span-2" aria-labelledby="mates-title">
+        <section className="space-y-3" aria-labelledby="mates-title">
           <h2 id="mates-title" className="section-title">いっしょに遊んだ人</h2>
           {mates.length === 0 ? (
             <p className="text-sm text-slate">まだなし</p>
@@ -151,7 +151,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           )}
         </section>
 
-        <nav className="divide-y divide-line border-y-2 border-ink lg:hidden xl:col-span-2" aria-label="アカウント">
+        <nav className="divide-y divide-line border-y-2 border-ink lg:hidden" aria-label="アカウント">
           <AccountMenu userId={userId} loginId={loginId} isAdmin={isAdmin} menu={menu} warnNoWayBack={warnNoWayBack} />
         </nav>
       </div>
@@ -184,16 +184,6 @@ function AccountMenu({
       <Link href="/me/blocks" className={menu}>
         <ShieldBan className={icon} aria-hidden />
         <span className="flex-1">ブロックしたユーザー</span>
-        <ChevronRight className="size-4 text-slate" aria-hidden />
-      </Link>
-      <Link href="/feedback" className={menu}>
-        <MessageSquareHeart className={icon} aria-hidden />
-        <span className="flex-1">フィードバックを送る</span>
-        <ChevronRight className="size-4 text-slate" aria-hidden />
-      </Link>
-      <Link href="/terms" className={menu}>
-        <FileText className={icon} aria-hidden />
-        <span className="flex-1">利用規約・プライバシー</span>
         <ChevronRight className="size-4 text-slate" aria-hidden />
       </Link>
       {isAdmin && (
