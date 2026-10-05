@@ -4,8 +4,8 @@ import { ChevronDown } from 'lucide-react';
 import { RANK_GROUPS, RANK_LABELS, rankGroupOf, type RankBand, type RankGroup } from '@/lib/constants';
 
 /**
- * ランクを選ぶ: まず「S1以上 / A以下」を押し、その中の細かいランクをドロップダウンで選ぶ。
- * min を付けると募集の条件用 (「指定なし」が選べ、表示は S5↑)。
+ * ランクを選ぶ: 「S1以上」を押すとドロップダウンで S1〜S9 を選ぶ。「A以下」はそれだけで決まる (細かく分けない)。
+ * min を付けると募集の条件用 (「指定なし」か S1〜S9。表示は S5↑)。
  * name を渡すとフォームに hidden input で送る。
  */
 export function RankPicker({
@@ -57,19 +57,19 @@ export function RankPicker({
   return (
     <div className="space-y-2">
       {name && <input ref={hiddenRef} type="hidden" name={name} value={v} />}
-      <div className={`grid gap-2 ${min ? 'grid-cols-3' : 'grid-cols-2'}`} role="radiogroup" aria-label={min ? 'ランク条件' : 'ランク'}>
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={min ? 'ランク条件' : 'ランク'}>
         {min && (
           <button type="button" role="radio" aria-checked={group === 'none'} className={seg(group === 'none')} onClick={() => set('')}>
             指定なし
           </button>
         )}
-        {(['high', 'low'] as const).map((g) => (
+        {(min ? (['high'] as const) : (['high', 'low'] as const)).map((g) => (
           <button key={g} type="button" role="radio" aria-checked={group === g} className={seg(group === g)} onClick={() => pickGroup(g)}>
             {RANK_GROUPS[g].label}
           </button>
         ))}
       </div>
-      {group !== 'none' && (
+      {group === 'high' && (
         <label className="relative block">
           <span className="sr-only">{min ? '最低ランク' : 'ランク'}</span>
           <select

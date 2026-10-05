@@ -4,7 +4,7 @@ import { MessageCircle, SendHorizontal } from 'lucide-react';
 import { sendMessageAction } from '@/app/actions';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { formatJstTime } from '@/lib/time';
-import { BANNED_MESSAGE, containsBanned } from '@/lib/moderation/banned';
+import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '@/lib/moderation/banned';
 import { containsUrl } from '@/lib/validation/url';
 import { LIMITS } from '@/lib/constants';
 import { ReportButton } from '@/components/ReportButton';
@@ -16,12 +16,15 @@ export function ChatRoom({
   viewerId,
   initialMessages,
   names,
+  blockedIds = [],
   open,
 }: {
   recruitmentId: string;
   viewerId: string;
   initialMessages: Message[];
   names: Record<string, string>;
+  /** ブロックしている方の発言は中身を出さない */
+  blockedIds?: string[];
   open: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -74,7 +77,9 @@ export function ChatRoom({
         ? 'URLは送信できません'
         : containsBanned(trimmed)
           ? BANNED_MESSAGE
-          : null;
+          : containsContact(trimmed)
+            ? CONTACT_MESSAGE
+            : null;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -126,7 +131,13 @@ export function ChatRoom({
                   mine ? 'bg-ink text-white' : 'bg-tint text-ink'
                 }`}
               >
-                {containsBanned(m.body) ? <span className="text-slate italic">このメッセージは表示できません</span> : m.body}
+                {!mine && blockedIds.includes(m.user_id) ? (
+                  <span className="text-slate italic">ブロックしている方のメッセージです</span>
+                ) : containsBanned(m.body) || containsContact(m.body) ? (
+                  <span className="text-slate italic">このメッセージは表示できません</span>
+                ) : (
+                  m.body
+                )}
               </p>
               {reportingId === m.id && <ReportButtonOpen id={m.id} />}
             </div>

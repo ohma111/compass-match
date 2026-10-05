@@ -35,7 +35,7 @@ export default async function RecruitmentDetailPage({
   const supabase = await createClient();
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
-  const [r, viewer, partsRes, rc, ct, ms, blocked] = await Promise.all([
+  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks] = await Promise.all([
     getRecruitment(id).catch(() => null),
     getViewerSafe(),
     signedIn
@@ -56,6 +56,7 @@ export default async function RecruitmentDetailPage({
           .limit(200)
       : null,
     signedIn ? blockedRecruitmentIds([id]) : Promise.resolve(new Set<string>()),
+    signedIn && claims ? supabase.from('blocks').select('blocked_id').eq('blocker_id', claims.userId) : null,
   ]);
   if (!r) notFound();
   const isOwner = viewer?.userId === r.owner_id;
@@ -93,6 +94,7 @@ export default async function RecruitmentDetailPage({
       justJoined={Boolean(sp.joined)}
       siteUrl={siteUrl()}
       blockedHere={blocked.has(id)}
+      blockedIds={((myBlocks?.data ?? []) as { blocked_id: string }[]).map((b) => b.blocked_id)}
     />
   );
 }

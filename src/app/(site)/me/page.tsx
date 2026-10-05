@@ -39,16 +39,18 @@ export default async function MePage() {
     supabase.from('accounts').select('login_id').eq('user_id', viewer.userId).maybeSingle(),
     supabase
       .from('play_mates')
-      .select('mate_id, times, last_played_at, mate:profiles!play_mates_mate_id_fkey(id, display_name, rank_band, play_roles)')
+      .select('mate_id, times, last_played_at, mate:profiles!play_mates_mate_id_fkey(id, display_name, rank_band, play_roles, banned_at, hidden_at)')
       .eq('user_id', viewer.userId)
       .order('last_played_at', { ascending: false })
       .limit(30),
     supabase.from('follows').select('followee_id').eq('follower_id', viewer.userId),
   ]);
   const followSet = new Set(((follows ?? []) as { followee_id: string }[]).map((f) => f.followee_id));
-  const mates = ((mateRows ?? []) as unknown as { times: number; mate: Omit<Mate, 'times' | 'following'> | null }[])
-    .filter((m): m is { times: number; mate: Omit<Mate, 'times' | 'following'> } => Boolean(m.mate))
-    .map((m) => ({ ...m.mate, times: m.times, following: followSet.has(m.mate.id) }));
+  // 削除された方 (行ごと消える)・BAN された方・通報で非表示の方は出さない。管理者は RLS で全員見えるので、ここでも除く
+  type MateRow = { times: number; mate: (Omit<Mate, 'times' | 'following'> & { banned_at: string | null; hidden_at: string | null }) | null };
+  const mates = ((mateRows ?? []) as unknown as MateRow[])
+    .filter((m): m is MateRow & { mate: NonNullable<MateRow['mate']> } => Boolean(m.mate && !m.mate.banned_at && !m.mate.hidden_at))
+    .map(({ times, mate: { banned_at: _b, hidden_at: _h, ...mate } }) => ({ ...mate, times, following: followSet.has(mate.id) }));
   const joined = ((parts ?? []) as unknown as { status: JoinState; recruitment: Recruitment | null }[]).filter(
     (p): p is { status: JoinState; recruitment: Recruitment } =>
       Boolean(p.recruitment) && new Date(p.recruitment!.ends_at).getTime() > now.getTime(),

@@ -498,7 +498,7 @@ do $t$ begin
   perform public.send_message((select id from public.recruitments where title = '匿名の募集'), 'よろしく');
   raise exception 'ASSERT FAILED: duplicate accepted';
 exception when others then
-  if sqlerrm not like '%同じ文%' then raise exception 'ASSERT FAILED: wrong dup error: %', sqlerrm; end if;
+  if sqlerrm not like '%同じ内容%' then raise exception 'ASSERT FAILED: wrong dup error: %', sqlerrm; end if;
 end $t$;
 -- 募集の参加が確定したので、募集者 (AN) といっしょに遊んだ人になっている
 select pg_temp.assert((select count(*) from public.play_mates where mate_id = :AN) = 1, 'play mate recorded for joiner');
@@ -594,6 +594,28 @@ select public.admin_delete_user(:U5);
 reset role;
 select pg_temp.assert((select count(*) from public.notifications where kind = 'announcement' and user_id = :U4) = 1, 'announcement delivered');
 select pg_temp.assert(not exists (select 1 from public.profiles where id = :U5), 'admin deleted user');
+
+-- v10: ランクは A以下にまとめる / チャットで ID や分けて送った電話番号を弾く / 通報の詳細
+select pg_temp.assert((select count(*) from public.profiles where rank_band in ('f', 'e', 'd', 'c', 'b')) = 0, 'low ranks merged into a');
+select pg_temp.expect_error($$update public.profiles set rank_band = 'b' where id = '00000000-0000-4000-8000-000000000004'$$, 'rank b rejected');
+select pg_temp.assert(private.contains_contact('abc123'), 'id-like blocked');
+select pg_temp.assert(private.contains_contact('@taro_9'), 'handle blocked');
+select pg_temp.assert(not private.contains_contact('3on3やろ'), '3on3 ok');
+select pg_temp.assert(private.contains_banned('〇九〇一二三四五六七八'), 'kanji phone blocked');
+select pg_temp.assert(not private.contains_banned('かえろうか'), 'kaerou ok');
+update public.messages set created_at = now() - interval '1 hour' where user_id = :U2;
+select pg_temp.as_user(:U2);
+select public.send_message((select id from public.recruitments where title = '匿名の募集'), '0901');
+reset role;
+update public.messages set created_at = created_at - interval '5 seconds' where user_id = :U2 and body = '0901';
+select pg_temp.as_user(:U2);
+select public.send_message((select id from public.recruitments where title = '匿名の募集'), '2345');
+reset role;
+update public.messages set created_at = created_at - interval '5 seconds' where user_id = :U2 and body = '2345';
+select pg_temp.as_user(:U2);
+select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = '匿名の募集'), '678')$$, 'split phone number blocked');
+select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = '匿名の募集'), 'id abc123')$$, 'id in chat blocked');
+reset role;
 
 select 'ALL RLS TESTS PASSED' as result;
 

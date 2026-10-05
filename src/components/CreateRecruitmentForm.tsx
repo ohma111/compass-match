@@ -368,7 +368,10 @@ export function CreateRecruitmentForm({
           <h2 className="sr-only">条件</h2>
           <div className="space-y-8">
             <fieldset>
-              <legend className={legend}>ランク条件</legend>
+              <legend className={legend}>
+                <span>ランク条件</span>
+                <span className="text-[13px] font-medium text-slate">目安として表示</span>
+              </legend>
               <input type="hidden" name="minRank" value={c.minRank} />
               <RankPicker min value={c.minRank} onChange={(v) => set('minRank', v)} />
             </fieldset>

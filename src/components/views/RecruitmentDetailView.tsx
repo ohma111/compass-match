@@ -34,6 +34,8 @@ export interface RecruitmentDetailViewProps {
   siteUrl: string;
   /** 自分がブロックしている人が募集者か参加者にいる */
   blockedHere?: boolean;
+  /** 自分がブロックしている方 (チャットで発言を隠す) */
+  blockedIds?: string[];
 }
 
 /** X の投稿画面を開くだけのリンク (APIは使わない)。流入計測のため ?src=x を付ける */
@@ -304,6 +306,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               viewerId={viewerId!}
               initialMessages={messages}
               names={Object.fromEntries(nameOf)}
+              blockedIds={props.blockedIds ?? []}
               open={chatOpen && !restricted}
             />
           </div>

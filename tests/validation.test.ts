@@ -240,11 +240,11 @@ describe('helpers', () => {
 describe('v4.1 rank bands', () => {
   it('has exactly the 4 new bands and rejects the old codes', async () => {
     const { RANK_BANDS, RANK_LABELS } = await import('@/lib/constants');
-    expect([...RANK_BANDS]).toEqual(['f', 'e', 'd', 'c', 'b', 'a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9']);
+    expect([...RANK_BANDS]).toEqual(['a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9']);
     expect(RANK_LABELS.s9).toBe('S9');
-    expect(RANK_LABELS.a).toBe('A');
+    expect(RANK_LABELS.a).toBe('A以下');
     const { onboardingSchema } = await import('@/lib/validation/schemas');
-    for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p', 'fa', 's1_4', 's5_7', 's8p', 's10']) {
+    for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p', 'fa', 's1_4', 's5_7', 's8p', 's10', 'b', 'f']) {
       expect(onboardingSchema.safeParse({ displayName: 'a', rankBand: old, playRoles: [], agreeTerms: true, src: null }).success).toBe(false);
     }
   });

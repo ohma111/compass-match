@@ -7,11 +7,12 @@ import {
   PROFILE_VC,
   PURPOSES,
   RANK_BANDS,
+  MIN_RANKS,
   RECRUIT_VC,
   STANCES,
 } from '../constants';
 import { containsUrl } from './url';
-import { BANNED_MESSAGE, containsBanned } from '../moderation/banned';
+import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '../moderation/banned';
 import { sanitizeSrc } from '../src-param';
 import { isValidCapacity } from '../capacity';
 import { autoEnd, autoTitle, resolveStart, START_DAYS, START_KEYS } from '../recruit';
@@ -144,7 +145,7 @@ export const recruitmentSchema = z
     capacity: z.coerce.number().int(),
     joinMode: z.enum(JOIN_MODES, { message: '参加方式を選んでください' }),
     minRank: z
-      .union([z.literal(''), z.enum(RANK_BANDS)])
+      .union([z.literal(''), z.enum(MIN_RANKS)])
       .optional()
       .transform((v) => (v ? v : null)),
     vc: z.enum(RECRUIT_VC).catch('any'),
@@ -210,6 +211,7 @@ export const messageSchema = z.object({
         .max(LIMITS.message, `メッセージは${LIMITS.message}文字以内で入力してください`)
         .refine((s) => !containsUrl(s), 'URLは送信できません')
         .refine((s) => !containsBanned(s), BANNED_MESSAGE)
+        .refine((s) => !containsContact(s), CONTACT_MESSAGE)
         .refine((s) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(s), '使用できない文字が含まれています'),
     ),
 });

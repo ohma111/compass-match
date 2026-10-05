@@ -1,7 +1,7 @@
 /**
  * 禁止語。チャット・募集のひとこと・表示名・自己紹介に使う。
  * 文字は normalizeForFilter() をかけた形 (ひらがな・小文字・記号と空白を除いた形) で書く。
- * DB 側 (supabase/migrations/20261005000010_v6.sql の private.banned_terms) と同じ並び。
+ * DB 側 (最新の private.banned_terms。今は supabase/migrations/20261006000014_v10.sql) と同じ並び。
  * tests/banned.test.ts で両方が一致することを確かめている。片方だけ変えないこと。
  *
  * 誤判定しやすい語 (えんじょい ⊃ えんじょ、かすたむ ⊃ かす、ただいま ⊃ たいま、おんらいん ⊃ らいん) は、
@@ -30,6 +30,9 @@ export const BANNED_TERMS: readonly string[] = [
   // 暴言
   '死ね', 'しね', '殺す', 'ころす', '殺し', 'ころし', 'きもい', 'きもすぎ', 'うざい', 'がいじ', '池沼', 'ちしょう', '雑魚',
   'ざこ',
+  // v10 で追加 (誤判定が多い「えろ ⊂ かえろう」「しんで ⊂ 死んでた (ゲーム内)」「ちね ⊂ いちねん」は入れない)
+  'ついった', 'twitter', 'でぃーえむ', 'dmして', 'dmくだ', 'dmおく', 'きえろ', '消えろ', 'ぶさいく', 'ぶす', 'でぶ', 'ごみ',
+  'ぱんちら', 'ふたりきり', '二人きり', 'ないしょで', '内緒で', 'ひみつで', '秘密で', '親には', 'おやには',
 ];
 
 /** 全角/半角・大文字/小文字・カタカナ/ひらがなの違いと、空白・記号を消してそろえる */
@@ -38,19 +41,28 @@ export function normalizeForFilter(s: string): string {
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
-    .replace(/[^0-9a-zぁ-ゖー一-鿯々]/g, '');
+    .replace(/[^0-9a-zぁ-ゖー一-鿯々〇]/g, '');
 }
 
 const EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i;
-/** 10桁以上の数字 (電話番号など)。部屋番号 (5桁) は通る */
+/** 10桁以上の数字 (電話番号など)。部屋番号 (4桁) は通る。漢数字で書いても数字として数える */
 const LONG_DIGITS = /[0-9]{10,}/;
+const KANJI_DIGITS: Record<string, string> = { 〇: '0', 零: '0', 一: '1', 二: '2', 三: '3', 四: '4', 五: '5', 六: '6', 七: '7', 八: '8', 九: '9' };
 
 /** 禁止語・メールアドレス・電話番号らしきものを含むか */
 export function containsBanned(raw: string): boolean {
   if (EMAIL.test(raw.normalize('NFKC'))) return true;
   const n = normalizeForFilter(raw);
-  if (LONG_DIGITS.test(n)) return true;
+  if (LONG_DIGITS.test(n.replace(/[〇零一二三四五六七八九]/g, (c) => KANJI_DIGITS[c]))) return true;
   return BANNED_TERMS.some((t) => n.includes(t));
 }
 
+/** チャットだけ: @ID と、英字と数字が混ざった6文字以上 (ID らしいもの) */
+export function containsContact(raw: string): boolean {
+  if (/@[a-z0-9_.]{3,}/i.test(raw.normalize('NFKC'))) return true;
+  const runs = normalizeForFilter(raw).match(/[a-z0-9]{6,}/g) ?? [];
+  return runs.some((r) => /[a-z]/.test(r) && /[0-9]/.test(r));
+}
+
 export const BANNED_MESSAGE = '使用できない言葉が含まれています';
+export const CONTACT_MESSAGE = '連絡先やIDは送信できません';

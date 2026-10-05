@@ -31,11 +31,12 @@ interface ReportRow {
   reasons: string[];
   latest_at: string;
   is_hidden: boolean | null;
+  /** 通報された人 (ユーザーならその人、募集なら募集者、チャットなら発言者) の表示名 */
+  owner_name: string | null;
+  reports: { reporter_id: string; reporter_name: string | null; reason: string; at: string }[] | null;
 }
 
 const TYPE_LABEL = { user: 'ユーザー', recruitment: '募集', message: 'チャット' } as const;
-/** 通報された対象の持ち主の呼び方 (ユーザーへの通報なら、そのユーザー本人) */
-const OWNER_LABEL = { user: 'このユーザー', recruitment: '募集者', message: '発言者' } as const;
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const viewer = await requireViewer('/admin');
@@ -108,17 +109,33 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
               {r.is_hidden && <span className="chip">自動非表示中</span>}
               <span className="ml-auto text-xs text-muted">{formatJst(r.latest_at)}</span>
             </div>
-            <ul className="list-disc space-y-0.5 pl-5 text-sm">
-              {r.reasons.slice(0, 5).map((reason, i) => (
-                <li key={i} className="break-words">{reason}</li>
+            <p className="text-sm">
+              <span className="font-bold text-slate">通報された人</span>{' '}
+              {r.target_owner ? (
+                <Link href={`/admin?tab=users&q=${r.target_owner}`} className="link font-bold">
+                  {r.owner_name ?? '(名前なし)'}
+                </Link>
+              ) : (
+                '(削除済み)'
+              )}
+            </p>
+            <ul className="divide-y divide-line border-y border-line text-sm">
+              {(r.reports ?? []).slice(0, 10).map((x, i) => (
+                <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5">
+                  <span className="min-w-0 flex-1 break-words">{x.reason}</span>
+                  <span className="shrink-0 text-xs text-muted">
+                    通報した人{' '}
+                    <Link href={`/admin?tab=users&q=${x.reporter_id}`} className="link font-bold text-ink">
+                      {x.reporter_name ?? '(削除済み)'}
+                    </Link>
+                    ・{formatJst(x.at)}
+                  </span>
+                </li>
               ))}
             </ul>
             <div className="flex flex-wrap gap-2">
               {r.target_type === 'recruitment' && (
                 <Link href={`/recruitments/${r.target_id}`} className="btn-outline btn-sm">募集を見る</Link>
-              )}
-              {r.target_owner && (
-                <Link href={`/admin?tab=users&q=${r.target_owner}`} className="btn-outline btn-sm">{OWNER_LABEL[r.target_type]}を確認</Link>
               )}
               <ActionButton action={adminDeleteReportsAction.bind(null, r.target_type, r.target_id, false)} className="btn-ghost btn-sm" confirm="この対象への通報を削除しますか？ (対象そのものは残ります)">
                 通報を削除
@@ -137,8 +154,12 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
                 </ActionButton>
               )}
               {r.target_owner && (
-                <ActionButton action={adminUserAction.bind(null, r.target_owner, 'ban')} className="btn-danger btn-sm" confirm={`${OWNER_LABEL[r.target_type]}をBANしますか？`}>
-                  {OWNER_LABEL[r.target_type]}をBAN
+                <ActionButton
+                  action={adminUserAction.bind(null, r.target_owner, 'ban')}
+                  className="btn-danger btn-sm"
+                  confirm={`通報された人 (${r.owner_name ?? '名前なし'}) をBANしますか？`}
+                >
+                  通報された人をBAN
                 </ActionButton>
               )}
             </div>

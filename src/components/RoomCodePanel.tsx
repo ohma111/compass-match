@@ -68,7 +68,9 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
           <CopyButton text={code} onInk />
         </div>
       ) : (
-        <p className="mt-2 text-sm text-white/85">まだ入力されていません</p>
+        <p className="mt-2 text-sm text-white/85">
+          {isOwner ? 'ゲームで部屋を作ったら、4桁の部屋番号を入力してください。参加が決まったメンバーにだけ表示されます。' : 'まだ入力されていません'}
+        </p>
       )}
     </section>
   );

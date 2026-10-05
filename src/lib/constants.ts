@@ -1,15 +1,17 @@
 // 選択肢と表示ラベル (DBのCHECK制約と一致させること)
 
-// v7: ランクは1つずつ (F〜A、S1〜S9)。DB の値は小文字。並びは低い順
-export const RANK_BANDS = ['f', 'e', 'd', 'c', 'b', 'a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'] as const;
+// v10: ランクは S1〜S9 を1つずつ、A以下は1つにまとめる (DB の値は a)。並びは低い順
+export const RANK_BANDS = ['a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'] as const;
 export type RankBand = (typeof RANK_BANDS)[number];
-export const RANK_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, r.toUpperCase()])) as Record<RankBand, string>;
+export const RANK_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, r === 'a' ? 'A以下' : r.toUpperCase()])) as Record<RankBand, string>;
 /** 選ぶ画面の並び (高い順) */
 export const RANK_BANDS_DESC: readonly RankBand[] = [...RANK_BANDS].reverse();
-/** ランクを選ぶときの2つの組。それぞれの中はドロップダウン */
+/** 募集のランク条件に使える値 (A以下は条件にならないので S だけ) */
+export const MIN_RANKS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'] as const;
+/** ランクを選ぶときの2つの組。S1以上はドロップダウン、A以下はそれだけで決まる */
 export const RANK_GROUPS = {
   high: { label: 'S1以上', ranks: ['s9', 's8', 's7', 's6', 's5', 's4', 's3', 's2', 's1'] as RankBand[] },
-  low: { label: 'A以下', ranks: ['a', 'b', 'c', 'd', 'e', 'f'] as RankBand[] },
+  low: { label: 'A以下', ranks: ['a'] as RankBand[] },
 } as const;
 export type RankGroup = keyof typeof RANK_GROUPS;
 export function rankGroupOf(r: RankBand): RankGroup {
@@ -22,7 +24,7 @@ export function rankLabel(r: RankBand | null | undefined): string {
 }
 
 /** 席の中など狭い所に出す短い表記 */
-export const RANK_SHORT: Record<RankBand, string> = RANK_LABELS;
+export const RANK_SHORT: Record<RankBand, string> = { ...RANK_LABELS, a: 'A↓' };
 
 export const PLAY_ROLES = ['attacker', 'gunner', 'tank', 'sprinter'] as const;
 export type PlayRole = (typeof PLAY_ROLES)[number];
@@ -48,7 +50,7 @@ export const PURPOSE_LABELS: Record<Purpose, string> = {
 export const DEFAULT_RANK_BAND: RankBand = 's1';
 
 /** 募集条件「S4〜」のような短い下限表記 */
-export const RANK_MIN_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, `${r.toUpperCase()}↑`])) as Record<RankBand, string>;
+export const RANK_MIN_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, r === 'a' ? '' : `${r.toUpperCase()}↑`])) as Record<RankBand, string>;
 
 /** 遊び方 (DB の値は win / fun) */
 export const STANCES = ['win', 'fun'] as const;

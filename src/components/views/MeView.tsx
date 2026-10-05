@@ -83,6 +83,9 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         {(accountKind === 'anonymous' || accountKind === 'transfer') && (
           <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="transfer-title">
             <h2 id="transfer-title" className="section-title">別の端末でも使う</h2>
+            <p className="text-[13px] leading-relaxed text-slate">
+              このプロフィールは、この端末のブラウザにだけ保存されています。機種変更やブラウザのデータ削除に備えて、引き継ぎコードを作って保存しておいてください。
+            </p>
             <TransferIssue email={transferEmail} initialCode={previewTransferCode} />
           </section>
         )}
@@ -123,6 +126,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
 
         <section className="space-y-3" aria-labelledby="mates-title">
           <h2 id="mates-title" className="section-title">一緒に遊んだ人</h2>
+          <p className="text-[13px] text-slate">ベルがオンの方が募集を出すと、通知が届きます。</p>
           {mates.length === 0 ? (
             <p className="text-sm text-slate">まだいません</p>
           ) : (
