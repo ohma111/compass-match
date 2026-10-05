@@ -16,7 +16,7 @@ import { toUserMessage } from '@/lib/db-error';
 
 const baseProfile = {
   displayName: ' テスト ',
-  rankBand: 's5_7',
+  rankBand: 's6',
   playRoles: ['attacker', 'attacker', 'tank'],
   characters: ['ジャスティス', '', '  '],
   purposes: ['enjoy'],
@@ -67,7 +67,7 @@ describe('profileSchema', () => {
 });
 
 describe('onboardingSchema', () => {
-  const base = { displayName: ' こんぱす ', rankBand: 's1_4', playRoles: ['tank', 'tank'], agreeTerms: true, src: 'guild' };
+  const base = { displayName: ' こんぱす ', rankBand: 's3', playRoles: ['tank', 'tank'], agreeTerms: true, src: 'guild' };
   it('accepts the one-screen signup', () => {
     const r = onboardingSchema.parse(base);
     expect(r.displayName).toBe('こんぱす');
@@ -96,7 +96,7 @@ const baseRecruit = {
   stance: 'win',
   capacity: '2',
   joinMode: 'instant',
-  minRank: 's5_7',
+  minRank: 's5',
   vc: 'on',
   tags: ['serious', 'serious'],
   title: '',
@@ -132,6 +132,8 @@ describe('buildRecruitment (tap-based create)', () => {
     if (!bad.ok) expect(bad.error).toMatch(/あと2人/);
     expect(build({ purpose: 'custom', capacity: '6' }).ok).toBe(true);
     expect(build({ purpose: 'custom', capacity: '7' }).ok).toBe(false);
+    expect(build({ purpose: 'challenge', capacity: '3' }).ok).toBe(true);
+    expect(build({ purpose: 'challenge', capacity: '4' }).ok).toBe(false);
     expect(build({ capacity: '1' }).ok).toBe(false);
   });
   it('validates join mode (instant / approval only)', () => {
@@ -236,10 +238,11 @@ describe('helpers', () => {
 describe('v4.1 rank bands', () => {
   it('has exactly the 4 new bands and rejects the old codes', async () => {
     const { RANK_BANDS, RANK_LABELS } = await import('@/lib/constants');
-    expect([...RANK_BANDS]).toEqual(['fa', 's1_4', 's5_7', 's8p']);
-    expect(Object.values(RANK_LABELS)).toEqual(['A–F', 'S4–1', 'S7–5', 'S8↑']);
+    expect([...RANK_BANDS]).toEqual(['f', 'e', 'd', 'c', 'b', 'a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9']);
+    expect(RANK_LABELS.s9).toBe('S9');
+    expect(RANK_LABELS.a).toBe('A');
     const { onboardingSchema } = await import('@/lib/validation/schemas');
-    for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p']) {
+    for (const old of ['fc', 'ba', 's1_3', 's4_6', 's7_9', 's10p', 'fa', 's1_4', 's5_7', 's8p', 's10']) {
       expect(onboardingSchema.safeParse({ displayName: 'a', rankBand: old, playRoles: [], agreeTerms: true, src: null }).success).toBe(false);
     }
   });

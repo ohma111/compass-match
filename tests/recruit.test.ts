@@ -37,7 +37,7 @@ describe('auto end / title / preview', () => {
     expect(autoEnd(at('2026-10-01T12:00:00Z')).toISOString()).toBe('2026-10-01T13:00:00.000Z');
   });
   it('builds a title from purpose and rank', () => {
-    expect(autoTitle({ purpose: 'rank', minRank: 's5_7' })).toBe('バトルアリーナ S5↑の募集');
+    expect(autoTitle({ purpose: 'rank', minRank: 's5' })).toBe('バトルアリーナ S5↑の募集');
     expect(autoTitle({ purpose: 'enjoy', minRank: null })).toBe('フリーバトルの募集');
   });
   it('previews today / tomorrow in JST', () => {

@@ -12,9 +12,9 @@ on conflict (id) do nothing;
 
 insert into public.profiles (id, display_name, rank_band, play_roles, characters, purposes, vc, tags, bio, terms_agreed_at, terms_version)
 values
-  ('00000000-0000-4000-8000-000000000001', 'サンプル募集者', 's5_7', '{attacker}', '{ジャスティス}', '{enjoy,rank}', 'yes', '{beginner_welcome,relaxed}', '夜にまったり遊んでいます。', now(), '2026-09-30'),
-  ('00000000-0000-4000-8000-000000000002', 'サンプル参加者', 's1_4', '{tank}', '{}', '{enjoy}', 'listen', '{relaxed}', 'はじめたばかりです。', now(), '2026-09-30'),
-  ('00000000-0000-4000-8000-000000000003', 'サンプルガチ勢', 's8p', '{gunner,sprinter}', '{}', '{tournament}', 'yes', '{serious,practice}', '', now(), '2026-09-30')
+  ('00000000-0000-4000-8000-000000000001', 'サンプル募集者', 's5', '{attacker}', '{ジャスティス}', '{enjoy,rank}', 'yes', '{beginner_welcome,relaxed}', '夜にまったり遊んでいます。', now(), '2026-09-30'),
+  ('00000000-0000-4000-8000-000000000002', 'サンプル参加者', 's1', '{tank}', '{}', '{enjoy}', 'listen', '{relaxed}', 'はじめたばかりです。', now(), '2026-09-30'),
+  ('00000000-0000-4000-8000-000000000003', 'サンプルガチ勢', 's8', '{gunner,sprinter}', '{}', '{tournament}', 'yes', '{serious,practice}', '', now(), '2026-09-30')
 on conflict (id) do nothing;
 
 insert into public.profile_contacts (user_id, contact_discord, contact_x, contact_ingame)

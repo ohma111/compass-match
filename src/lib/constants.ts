@@ -1,17 +1,20 @@
 // 選択肢と表示ラベル (DBのCHECK制約と一致させること)
 
-// v4.1: 4段階 (シーズン中もエンジョイ期間も同じ区切り)。旧コードは 20261003000008_v41.sql で移行済み
-export const RANK_BANDS = ['fa', 's1_4', 's5_7', 's8p'] as const;
+// v7: ランクは1つずつ (F〜A、S1〜S9)。DB の値は小文字。並びは低い順
+export const RANK_BANDS = ['f', 'e', 'd', 'c', 'b', 'a', 's1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9'] as const;
 export type RankBand = (typeof RANK_BANDS)[number];
-/** 表示は高い順 (左が高い)。DB の値の並び (低い順) とは逆 */
-export const RANK_LABELS: Record<RankBand, string> = {
-  fa: 'A–F',
-  s1_4: 'S4–1',
-  s5_7: 'S7–5',
-  s8p: 'S8↑',
-};
-/** 選ぶ画面・表示の並び (高い順) */
-export const RANK_BANDS_DESC: readonly RankBand[] = ['s8p', 's5_7', 's1_4', 'fa'];
+export const RANK_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, r.toUpperCase()])) as Record<RankBand, string>;
+/** 選ぶ画面の並び (高い順) */
+export const RANK_BANDS_DESC: readonly RankBand[] = [...RANK_BANDS].reverse();
+/** ランクを選ぶときの2つの組。それぞれの中はドロップダウン */
+export const RANK_GROUPS = {
+  high: { label: 'S1以上', ranks: ['s9', 's8', 's7', 's6', 's5', 's4', 's3', 's2', 's1'] as RankBand[] },
+  low: { label: 'A以下', ranks: ['a', 'b', 'c', 'd', 'e', 'f'] as RankBand[] },
+} as const;
+export type RankGroup = keyof typeof RANK_GROUPS;
+export function rankGroupOf(r: RankBand): RankGroup {
+  return r.startsWith('s') ? 'high' : 'low';
+}
 
 /** 席の中など狭い所に出す短い表記 */
 export const RANK_SHORT: Record<RankBand, string> = RANK_LABELS;
@@ -26,25 +29,21 @@ export const PLAY_ROLE_LABELS: Record<PlayRole, string> = {
 };
 
 // 表示順 (チップの並び)。DBの値は変えない
-export const PURPOSES = ['rank', 'enjoy', 'tournament', 'custom'] as const;
+export const PURPOSES = ['rank', 'enjoy', 'tournament', 'custom', 'challenge'] as const;
 export type Purpose = (typeof PURPOSES)[number];
 export const PURPOSE_LABELS: Record<Purpose, string> = {
   rank: 'バトルアリーナ',
   enjoy: 'フリーバトル',
   tournament: '大会練習',
   custom: 'カスタム',
+  challenge: 'チャレンジバトル',
 };
 
 /** 仮のランク帯 (ユーザーID登録時)。初めての募集・参加のときに本人が1タップで選び直す */
-export const DEFAULT_RANK_BAND: RankBand = 's1_4';
+export const DEFAULT_RANK_BAND: RankBand = 's1';
 
 /** 募集条件「S4〜」のような短い下限表記 */
-export const RANK_MIN_LABELS: Record<RankBand, string> = {
-  fa: 'F↑',
-  s1_4: 'S1↑',
-  s5_7: 'S5↑',
-  s8p: 'S8↑',
-};
+export const RANK_MIN_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, `${r.toUpperCase()}↑`])) as Record<RankBand, string>;
 
 /** ゲームへの姿勢 (DB の値は win / fun) */
 export const STANCES = ['win', 'fun'] as const;

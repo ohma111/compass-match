@@ -32,6 +32,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       signedIn={Boolean(viewer)}
       restricted={isRestricted(viewer?.profile ?? null)}
       configured={isSupabaseConfigured()}
+      confirmRank={viewer?.profile && viewer.profile.rank_confirmed === false ? viewer.profile.rank_band : null}
     >
       {children}
     </AppShell>

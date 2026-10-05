@@ -10,7 +10,7 @@ import {
   type RecruitVc,
 } from '@/lib/constants';
 
-/** 目的の刻印 (色を使わず形で分ける: ランク■ エンジョイ● 大会練習▲ カスタム◆) */
+/** 目的の刻印 (色を使わず形で分ける: バトルアリーナ■ フリーバトル● 大会練習▲ カスタム◆ チャレンジバトル★) */
 export function PurposeMark({ purpose, className = 'size-2.5' }: { purpose: Purpose; className?: string }) {
   return (
     <svg viewBox="0 0 10 10" className={`${className} shrink-0`} fill="currentColor" aria-hidden>
@@ -18,6 +18,7 @@ export function PurposeMark({ purpose, className = 'size-2.5' }: { purpose: Purp
       {purpose === 'enjoy' && <circle cx="5" cy="5" r="4.6" />}
       {purpose === 'tournament' && <path d="M5 0.3 9.8 9.5H0.2Z" />}
       {purpose === 'custom' && <path d="M5 0 10 5 5 10 0 5Z" />}
+      {purpose === 'challenge' && <path d="M5 0 6.2 3.6H10L6.9 5.8 8.1 9.5 5 7.2 1.9 9.5 3.1 5.8 0 3.6H3.8Z" />}
     </svg>
   );
 }

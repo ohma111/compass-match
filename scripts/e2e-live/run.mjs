@@ -81,7 +81,7 @@ async function fillSheet(page, name) {
   await sheet.waitFor({ timeout: 15_000 });
   await snap(page, `sheet-${name}`);
   await sheet.locator('#sheet-name').fill(name);
-  await sheet.locator('label', { hasText: 'S7–5' }).click();
+  await sheet.getByRole('radio', { name: 'S1以上' }).click();
   await sheet.locator('input[type="checkbox"]').last().check();
   await sheet.getByRole('button', { name: /^はじめる/ }).click();
   await sheet.waitFor({ state: 'detached', timeout: 30_000 });

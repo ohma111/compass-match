@@ -1,4 +1,5 @@
 'use client';
+import { RankPicker } from '@/components/RankPicker';
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
@@ -33,15 +34,8 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
       </div>
 
       <fieldset>
-        <legend className="label">ランク帯</legend>
-        <div className="grid grid-cols-4 gap-2">
-          {RANK_BANDS_DESC.map((r) => (
-            <label key={r} className="pick">
-              <input type="radio" name="rankBand" value={r} checked={rank === r} onChange={() => setRank(r)} required className="sr-only" />
-              {RANK_LABELS[r]}
-            </label>
-          ))}
-        </div>
+        <legend className="label">ランク</legend>
+        <RankPicker name="rankBand" value={rank} onChange={setRank} />
       </fieldset>
 
       <fieldset>

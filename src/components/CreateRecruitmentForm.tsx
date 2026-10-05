@@ -1,7 +1,7 @@
 'use client';
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Flame, Gamepad2, Hand, Smile, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
+import { Flame, Gamepad2, Medal, Hand, Smile, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
 import { createRecruitmentAction } from '@/app/actions';
 import {
   JOIN_MODES,
@@ -29,9 +29,10 @@ import { formatJstTime } from '@/lib/time';
 import { containsUrl } from '@/lib/validation/url';
 import { takeIntent } from '@/lib/intent';
 import { Lineup, type Seat } from '@/components/Lineup';
+import { RankPicker } from '@/components/RankPicker';
 import { useEnsureProfile } from '@/components/ProfileSheet';
 
-const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2 };
+const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2, challenge: Medal };
 const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', any: 'どちらでも', off: 'なし' };
 const STANCE_ICON: Record<Stance, LucideIcon> = { win: Flame, fun: Smile };
 /** 姿勢 (勝ちたい / 楽しみたい) と重なるタグは選ばせない */
@@ -354,18 +355,8 @@ export function CreateRecruitmentForm({
           <div className="space-y-8">
             <fieldset>
               <legend className={legend}>ランク条件</legend>
-              <div className="grid grid-cols-[1.4fr_repeat(4,minmax(0,1fr))] gap-1.5">
-                <label className="pick px-1 text-[13px] whitespace-nowrap">
-                  <input type="radio" name="minRank" value="" checked={c.minRank === ''} onChange={() => set('minRank', '')} className="sr-only" />
-                  指定なし
-                </label>
-                {RANK_BANDS_DESC.map((r) => (
-                  <label key={r} className="pick px-1">
-                    <input type="radio" name="minRank" value={r} checked={c.minRank === r} onChange={() => set('minRank', r)} className="sr-only" />
-                    {RANK_MIN_LABELS[r]}
-                  </label>
-                ))}
-              </div>
+              <input type="hidden" name="minRank" value={c.minRank} />
+              <RankPicker min value={c.minRank} onChange={(v) => set('minRank', v)} />
             </fieldset>
             <fieldset>
               <legend className={legend}>VC</legend>

@@ -24,6 +24,7 @@ import {
   buildRecruitment,
   reportSchema,
   uuidSchema,
+  rankBandSchema,
 } from '@/lib/validation/schemas';
 
 async function srcFromCookie(explicit?: unknown): Promise<string | null> {
@@ -513,4 +514,14 @@ export async function deletePushSubscriptionAction(endpoint: string): Promise<Ac
   const { error } = await supabase.rpc('delete_push_subscription', { p_endpoint: endpoint });
   if (error) return fail(toUserMessage(error));
   return { ok: true, message: '通知をオフにしました' };
+}
+
+export async function confirmRankAction(rank: string): Promise<ActionResult> {
+  const v = rankBandSchema.safeParse(rank);
+  if (!v.success) return fail('ランクを選んでください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('confirm_my_rank', { p_rank_band: v.data });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/', 'layout');
+  return { ok: true, message: 'ランクを保存しました' };
 }

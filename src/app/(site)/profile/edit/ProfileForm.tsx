@@ -1,4 +1,5 @@
 'use client';
+import { RankPicker } from '@/components/RankPicker';
 import { useEffect } from 'react';
 import { useActionState } from 'react';
 import { saveProfileAction } from '@/app/actions';
@@ -47,15 +48,8 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile.display_name} className="input" />
       </div>
       <fieldset>
-        <legend className="label">ランク帯</legend>
-        <div className="grid grid-cols-4 gap-2">
-          {RANK_BANDS_DESC.map((r) => (
-            <label key={r} className="pick">
-              <input type="radio" name="rankBand" value={r} defaultChecked={profile.rank_band === r} required className="sr-only" />
-              {RANK_LABELS[r]}
-            </label>
-          ))}
-        </div>
+        <legend className="label">ランク</legend>
+        <RankPicker name="rankBand" value={profile.rank_band} />
       </fieldset>
       <fieldset>
         <legend className="label">得意ロール <span className="text-xs font-normal text-muted">(複数可)</span></legend>

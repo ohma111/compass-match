@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { NavProgress } from './NavProgress';
+import { RankConfirmSheet } from './RankConfirmSheet';
+import type { RankBand } from '@/lib/constants';
 import { Bell, ChevronRight, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
@@ -18,6 +20,7 @@ export function AppShell({
   configured,
   active,
   sheetOpen = false,
+  confirmRank = null,
 }: {
   children: React.ReactNode;
   unread: number;
@@ -28,6 +31,8 @@ export function AppShell({
   active?: TabKey;
   /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
   sheetOpen?: boolean;
+  /** v7: ランクを選び直してもらう人の、今 (仮) のランク */
+  confirmRank?: RankBand | null;
 }) {
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-ink-2 underline-offset-[6px] decoration-2 decoration-signal hover:text-ink hover:underline';
   return (
@@ -119,6 +124,7 @@ export function AppShell({
       </div>
 
       <TabBar unread={unread} active={active} />
+      {confirmRank && <RankConfirmSheet current={confirmRank} />}
     </OnboardingProvider>
   );
 }

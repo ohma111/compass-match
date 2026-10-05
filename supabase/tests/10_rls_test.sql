@@ -7,9 +7,9 @@ insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000005'),
   ('00000000-0000-4000-8000-000000000009');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
-  ('00000000-0000-4000-8000-000000000004', 'テスト4', 'fa', now(), 't'),
-  ('00000000-0000-4000-8000-000000000005', 'テスト5', 'fa', now(), 't'),
-  ('00000000-0000-4000-8000-000000000009', '管理者', 'fa', now(), 't');
+  ('00000000-0000-4000-8000-000000000004', 'テスト4', 'a', now(), 't'),
+  ('00000000-0000-4000-8000-000000000005', 'テスト5', 'a', now(), 't'),
+  ('00000000-0000-4000-8000-000000000009', '管理者', 'a', now(), 't');
 insert into public.user_roles (user_id, role) values ('00000000-0000-4000-8000-000000000009', 'admin');
 
 create or replace function pg_temp.as_user(p uuid) returns void language plpgsql as $$
@@ -200,9 +200,9 @@ reset role;
 -- 13. プロフィール作成には同意が必要。URL入りの自己紹介は拒否
 insert into auth.users (id) values ('00000000-0000-4000-8000-000000000006');
 select pg_temp.as_user('00000000-0000-4000-8000-000000000006');
-select pg_temp.expect_error($$select public.save_my_profile('新人', 'fa', '{}', '{}', '{}', 'no', '{}', '', null, null, null, false, 'v1')$$, 'terms required');
-select pg_temp.expect_error($$select public.save_my_profile('新人', 'fa', '{}', '{}', '{}', 'no', '{}', 'https://x.test', null, null, null, true, 'v1')$$, 'url bio rejected');
-select public.save_my_profile('新人', 'fa', '{tank}', '{}', '{enjoy}', 'no', '{relaxed}', 'よろしく', null, 'new_user', null, true, 'v1', 'yt');
+select pg_temp.expect_error($$select public.save_my_profile('新人', 'a', '{}', '{}', '{}', 'no', '{}', '', null, null, null, false, 'v1')$$, 'terms required');
+select pg_temp.expect_error($$select public.save_my_profile('新人', 'a', '{}', '{}', '{}', 'no', '{}', 'https://x.test', null, null, null, true, 'v1')$$, 'url bio rejected');
+select public.save_my_profile('新人', 'a', '{tank}', '{}', '{enjoy}', 'no', '{relaxed}', 'よろしく', null, 'new_user', null, true, 'v1', 'yt');
 reset role;
 select pg_temp.assert((select signup_src from public.profiles where id = '00000000-0000-4000-8000-000000000006') = 'yt', 'signup src stored');
 
@@ -224,7 +224,7 @@ select pg_temp.expect_error($$select public.create_recruitment('x', 'enjoy', now
 select pg_temp.expect_error($$select public.create_recruitment('x', 'rank', now(), now() + interval '1 hour', 3, null, 'any', '{}', '', null, null, 'auto')$$, 'bad join mode');
 select public.create_recruitment('カスタム 6人', 'custom', now(), now() + interval '1 hour', 6, null, 'any', '{}', '', null, null, 'approval');
 -- 引数を省略すると早い者勝ち
-select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's5_7', 'on', '{serious}', '', '777', 'x');
+select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's5', 'on', '{serious}', '', '777', 'x');
 reset role;
 \set RI '(select id from public.recruitments where title = ''ランク S4〜 あと2人'')'
 \set RA '(select id from public.recruitments where title = ''カスタム 6人'')'
@@ -245,7 +245,7 @@ select pg_temp.assert((select decided_at is not null from public.participations 
 
 insert into auth.users (id) values ('00000000-0000-4000-8000-000000000007');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version)
-  values ('00000000-0000-4000-8000-000000000007', 'テスト7', 's5_7', now(), 't');
+  values ('00000000-0000-4000-8000-000000000007', 'テスト7', 's5', now(), 't');
 select pg_temp.as_user('00000000-0000-4000-8000-000000000006');
 select public.request_join(:RI, null);
 reset role;
@@ -330,7 +330,7 @@ select pg_temp.assert(public.verify_recovery('player_one', :H2) = :P1, 'new code
 reset role;
 
 -- 本人は自分のユーザーIDだけ読める。ハッシュは本人にも見えない
-insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values (:P1, 'プレイヤー1', 's1_4', now(), 't');
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values (:P1, 'プレイヤー1', 's1', now(), 't');
 select pg_temp.as_user(:P1);
 select pg_temp.assert((select login_id from public.accounts) = 'player_one', 'owner reads own login id');
 select pg_temp.expect_error('select recovery_hash from public.accounts', 'recovery hash not readable');
@@ -350,16 +350,16 @@ insert into auth.users (id, raw_app_meta_data) values
   ('00000000-0000-4000-8000-000000000013', '{"provider":"email","providers":["email"]}'),
   ('00000000-0000-4000-8000-000000000014', '{"provider":"discord","providers":["discord"]}');
 select pg_temp.as_user('00000000-0000-4000-8000-000000000012');
-select pg_temp.expect_error($$select public.save_my_profile('直接', 'fa', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3')$$, 'email user without account cannot create profile');
+select pg_temp.expect_error($$select public.save_my_profile('直接', 'a', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3')$$, 'email user without account cannot create profile');
 reset role;
 set role service_role;
 select public.register_account('00000000-0000-4000-8000-000000000013', 'player_three', repeat('4', 64));
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8000-000000000013');
-select public.save_my_profile('ID登録', 'fa', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3');
+select public.save_my_profile('ID登録', 'a', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8000-000000000014');
-select public.save_my_profile('Discord', 'fa', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3');
+select public.save_my_profile('Discord', 'a', '{}', '{}', '{}', 'no', '{}', '', null, null, null, true, 'v3');
 reset role;
 select pg_temp.assert((select count(*) from public.profiles where id in ('00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000014')) = 2, 'id-registered and discord users can create profiles');
 select pg_temp.assert((select count(*) from public.profiles where id = '00000000-0000-4000-8000-000000000012') = 0, 'no profile for raw email signup');
@@ -368,19 +368,19 @@ select pg_temp.assert((select rank_confirmed from public.profiles where id = '00
 select pg_temp.assert((select rank_confirmed from public.profiles where id = '00000000-0000-4000-8000-000000000014') = true, 'discord signup rank confirmed');
 select pg_temp.as_user('00000000-0000-4000-8000-000000000013');
 select pg_temp.expect_error($$select public.confirm_my_rank('zz')$$, 'invalid rank rejected');
-select public.confirm_my_rank('s5_7');
-select pg_temp.assert((select rank_confirmed and rank_band = 's5_7' from public.profiles where id = '00000000-0000-4000-8000-000000000013'), 'rank confirmed');
+select public.confirm_my_rank('s6');
+select pg_temp.assert((select rank_confirmed and rank_band = 's6' from public.profiles where id = '00000000-0000-4000-8000-000000000013'), 'rank confirmed');
 reset role;
 select pg_temp.as_user(null);
-select pg_temp.expect_error($$select public.confirm_my_rank('fa')$$, 'anon cannot confirm rank');
+select pg_temp.expect_error($$select public.confirm_my_rank('a')$$, 'anon cannot confirm rank');
 reset role;
 
 -- 16. v3: 通報時点で作成24時間未満のアカウントの通報は自動非表示の人数に数えない
 insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000021'), ('00000000-0000-4000-8000-000000000022');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
-  ('00000000-0000-4000-8000-000000000021', '新規1', 'fa', now(), 't'),
-  ('00000000-0000-4000-8000-000000000022', '新規2', 'fa', now(), 't');
+  ('00000000-0000-4000-8000-000000000021', '新規1', 'a', now(), 't'),
+  ('00000000-0000-4000-8000-000000000022', '新規2', 'a', now(), 't');
 insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity)
 values ('10000000-0000-4000-8000-000000000016', '00000000-0000-4000-8000-000000000007', '通報テスト', 'enjoy', now(), now() + interval '1 hour', 3);
 \set RT '''10000000-0000-4000-8000-000000000016'''
@@ -422,7 +422,7 @@ insert into auth.users (id, is_anonymous, raw_app_meta_data, created_at)
 values (:AN, true, '{"provider":"anonymous","providers":["anonymous"]}', now());
 select pg_temp.as_user(:AN);
 -- v3 のトリガー (メールで直接作ったアカウントを拒否) に止められずにプロフィールを作れる
-select public.save_my_profile('匿名さん', 's5_7', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, true, 'v4');
+select public.save_my_profile('匿名さん', 's5', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, true, 'v4');
 select pg_temp.assert((select rank_confirmed from public.profiles where id = :AN), 'anonymous profile rank confirmed');
 -- 募集も作れる
 select public.create_recruitment('匿名の募集', 'enjoy', now() + interval '5 minutes', now() + interval '65 minutes', 3, null, 'any', '{}', '', '555', null, 'instant');
@@ -454,7 +454,7 @@ update auth.users set is_anonymous = false, email = 't.abcd2345@example.edu',
 update public.messages set created_at = now() - interval '1 minute' where user_id = :AN;
 select pg_temp.as_user(:AN);
 -- リンク後もプロフィールの更新 (v3 トリガーは insert のみ)・チャットができる
-select public.save_my_profile('匿名さん改', 's5_7', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, false, 'v4');
+select public.save_my_profile('匿名さん改', 's5', '{gunner}', '{}', '{}', 'listen', '{}', '', null, null, null, false, 'v4');
 select public.send_message(:RAN, 'リンク後');
 select pg_temp.assert((select display_name from public.profiles where id = :AN) = '匿名さん改', 'linked user keeps and edits profile');
 select pg_temp.assert(public.get_room_code(:RAN) = '555', 'linked user still owns the recruitment');
@@ -523,6 +523,11 @@ select pg_temp.expect_error($$select * from public.server_secrets$$, 'server sec
 select pg_temp.expect_error($$select * from public.push_subscriptions$$, 'push subscriptions hidden');
 select public.save_push_subscription('https://push.example.com/abc', 'key', 'auth');
 select pg_temp.assert(public.has_push_subscription(), 'push subscription saved');
+reset role;
+
+-- v7: チャレンジバトル
+select pg_temp.as_user(:AN);
+select pg_temp.expect_error($$select public.create_recruitment('チャレ4人', 'challenge', now() + interval '20 minutes', now() + interval '80 minutes', 4, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'challenge max 3');
 reset role;
 
 select 'ALL RLS TESTS PASSED' as result;

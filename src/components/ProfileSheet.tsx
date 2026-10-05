@@ -1,4 +1,5 @@
 'use client';
+import { RankPicker } from '@/components/RankPicker';
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -145,15 +146,8 @@ export function ProfileStartForm({
           </div>
 
           <fieldset>
-            <legend className="label">ランク帯</legend>
-            <div className="grid grid-cols-4 gap-2">
-              {RANK_BANDS_DESC.map((r) => (
-                <label key={r} className="pick">
-                  <input type="radio" name="sheet-rank" value={r} checked={rank === r} onChange={() => setRank(r)} className="sr-only" />
-                  {RANK_LABELS[r]}
-                </label>
-              ))}
-            </div>
+            <legend className="label">ランク</legend>
+            <RankPicker value={rank} onChange={setRank} />
           </fieldset>
 
           <fieldset>
