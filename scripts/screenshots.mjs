@@ -21,7 +21,7 @@ function loadPlaywright() {
 const { chromium } = loadPlaywright();
 const BASE = process.env.BASE ?? 'http://localhost:3000';
 const OUT = process.env.OUT ?? 'docs/screenshots';
-const ALL = ['home', 'home-empty', 'sheet', 'new', 'detail', 'detail-joined', 'me', 'transfer-code', 'transfer', 'login'];
+const ALL = ['home', 'home-empty', 'sheet', 'new', 'detail', 'detail-joined', 'me', 'transfer-code', 'transfer', 'me-guest'];
 const screens = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
 const viewports = [
   { name: '375', width: 375, height: 812, mobile: true },

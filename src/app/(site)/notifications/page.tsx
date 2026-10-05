@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
+import { ShieldAlert, X, Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
 import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { NOTIFICATION_LABELS } from '@/lib/constants';
 import { formatJst } from '@/lib/time';
 import { PushToggle } from '@/components/PushToggle';
 import { ActionButton } from '@/components/ActionButton';
-import { markNotificationsReadAction } from '@/app/actions';
+import { markNotificationsReadAction, deleteNotificationsAction } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '通知' };
@@ -17,7 +17,7 @@ interface Row {
   recruitment_id: string | null;
   read_at: string | null;
   created_at: string;
-  recruitment: { title: string } | null;
+  recruitment: { title: string; owner: { display_name: string } | null } | null;
 }
 
 const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
@@ -30,6 +30,7 @@ const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
   recruitment_cancelled: { icon: CircleX, color: 'text-danger' },
   new_message: { icon: MessageCircle, color: 'text-ink' },
   followed_posted: { icon: BellRing, color: 'text-ink' },
+  blocked_joined: { icon: ShieldAlert, color: 'text-signal-deep' },
 };
 
 export default async function NotificationsPage() {
@@ -37,7 +38,7 @@ export default async function NotificationsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('notifications')
-    .select('id, kind, recruitment_id, read_at, created_at, recruitment:recruitments(title)')
+    .select('id, kind, recruitment_id, read_at, created_at, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
     .eq('user_id', viewer.userId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -47,17 +48,24 @@ export default async function NotificationsPage() {
     <div className="mx-auto max-w-xl space-y-4">
       <div className="flex items-end justify-between gap-3">
         <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">通知</h1>
-        {unread && (
-          <ActionButton action={markNotificationsReadAction} className="btn-outline btn-sm">
-            すべて既読
-          </ActionButton>
-        )}
+        <div className="flex gap-2">
+          {unread && (
+            <ActionButton action={markNotificationsReadAction} className="btn-outline btn-sm">
+              すべて既読にする
+            </ActionButton>
+          )}
+          {rows.length > 0 && (
+            <ActionButton action={deleteNotificationsAction.bind(null, null)} className="btn-ghost btn-sm" confirm="すべての通知を削除しますか？">
+              すべて削除
+            </ActionButton>
+          )}
+        </div>
       </div>
       <PushToggle />
       {rows.length === 0 && (
         <div className="card flex flex-col items-center gap-2 py-10 text-center text-sm text-muted">
           <Bell className="size-8" aria-hidden />
-          まだ通知なし
+          通知はありません
         </div>
       )}
       <ul className="space-y-2">
@@ -71,7 +79,7 @@ export default async function NotificationsPage() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold">
-                  {NOTIFICATION_LABELS[n.kind] ?? 'お知らせ'}
+                  {n.kind === 'followed_posted' && n.recruitment?.owner ? `${n.recruitment.owner.display_name}さんが募集を出しました` : (NOTIFICATION_LABELS[n.kind] ?? 'お知らせ')}
                   {!n.read_at && <span className="sr-only">(未読)</span>}
                 </span>
                 {n.recruitment && <span className="block truncate text-sm text-muted">{n.recruitment.title}</span>}
@@ -82,12 +90,15 @@ export default async function NotificationsPage() {
           );
           const cls = `card flex items-center gap-3 py-3 ${n.read_at ? 'opacity-70' : 'border-brand/40'}`;
           return (
-            <li key={n.id}>
+            <li key={n.id} className="flex items-stretch gap-1">
               {n.recruitment_id ? (
-                <Link href={`/recruitments/${n.recruitment_id}`} className={cls}>{body}</Link>
+                <Link href={`/recruitments/${n.recruitment_id}`} className={`${cls} min-w-0 flex-1`}>{body}</Link>
               ) : (
-                <div className={cls}>{body}</div>
+                <div className={`${cls} min-w-0 flex-1`}>{body}</div>
               )}
+              <ActionButton action={deleteNotificationsAction.bind(null, n.id)} className="btn-ghost h-full w-11 shrink-0 px-0" ariaLabel="この通知を削除" quiet pendingText="…">
+                <X className="size-4" aria-hidden />
+              </ActionButton>
             </li>
           );
         })}

@@ -56,3 +56,11 @@ export async function myJoinStates(userId: string, recruitmentIds: string[]): Pr
   for (const row of (data ?? []) as { recruitment_id: string; status: JoinState }[]) out[row.recruitment_id] = row.status;
   return out;
 }
+
+/** 表示中の募集のうち、自分がブロックしている人が募集者か参加者になっているもの */
+export async function blockedRecruitmentIds(recruitmentIds: string[]): Promise<Set<string>> {
+  if (recruitmentIds.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('recruitments_with_blocked', { p_ids: recruitmentIds });
+  return new Set(((data ?? []) as unknown as string[]).map(String));
+}

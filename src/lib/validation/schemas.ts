@@ -26,7 +26,7 @@ import {
   passwordByteLength,
 } from '../account';
 
-const NO_URL = 'URLは入力できません';
+const NO_URL = 'URLは使えません';
 
 /** 前後の空白を除去し、URLを禁止した文字列 */
 const safeText = (max: number, opts: { min?: number; label: string }) =>
@@ -59,7 +59,7 @@ const uniqueArray = <T extends string>(values: readonly [T, ...T[]], max?: numbe
 
 export const profileSchema = z.object({
   displayName: safeText(LIMITS.displayName, { min: 1, label: '表示名' }),
-  rankBand: z.enum(RANK_BANDS, { message: 'ランク帯を選んでください' }),
+  rankBand: z.union([z.literal(''), z.enum(RANK_BANDS)]).nullish().transform((v) => (v ? v : null)),
   playRoles: uniqueArray(PLAY_ROLES),
   characters: z
     .array(z.string())
@@ -69,24 +69,24 @@ export const profileSchema = z.object({
         .array(
           z
             .string()
-            .max(LIMITS.characterName, `キャラ名は${LIMITS.characterName}文字以内です`)
+            .max(LIMITS.characterName, `キャラ名は${LIMITS.characterName}文字以内で入力してください`)
             .refine((s) => !containsUrl(s), NO_URL),
         )
-        .max(LIMITS.maxCharacters, `よく使うキャラは${LIMITS.maxCharacters}人までです`),
+        .max(LIMITS.maxCharacters, `よく使うキャラは${LIMITS.maxCharacters}人まで登録できます`),
     ),
   purposes: uniqueArray(PURPOSES),
   vc: z.enum(PROFILE_VC),
   tags: uniqueArray(MOOD_TAGS),
   bio: safeText(LIMITS.bio, { label: '自己紹介' }),
-  contactDiscord: optionalPattern(/^[a-z0-9_.]{2,32}$/, 'DiscordのユーザーIDは半角英小文字・数字・_ . の2〜32文字です'),
-  contactX: optionalPattern(/^@?[A-Za-z0-9_]{1,15}$/, 'XのIDは半角英数字と_の15文字以内です').transform((s) =>
+  contactDiscord: optionalPattern(/^[a-z0-9_.]{2,32}$/, 'Discordのユーザー名は、半角英小文字・数字・_ . の2〜32文字で入力してください'),
+  contactX: optionalPattern(/^@?[A-Za-z0-9_]{1,15}$/, 'XのIDは、半角英数字と _ の15文字以内で入力してください').transform((s) =>
     s ? s.replace(/^@/, '') : s,
   ),
   contactIngame: z
     .string()
     .optional()
     .transform((s) => (s ?? '').trim())
-    .pipe(z.string().max(20, 'ゲーム内IDは20文字以内です').refine((s) => !containsUrl(s), NO_URL))
+    .pipe(z.string().max(20, 'ゲーム内IDは20文字以内で入力してください').refine((s) => !containsUrl(s), NO_URL))
     .transform((s) => (s === '' ? null : s)),
   agreeTerms: z.boolean(),
   src: z.unknown().transform(sanitizeSrc),
@@ -97,7 +97,7 @@ export type ProfileData = z.output<typeof profileSchema>;
 /** 初回登録(1画面)。その他の項目はマイページで後から追加する */
 export const onboardingSchema = z.object({
   displayName: safeText(LIMITS.displayName, { min: 1, label: '表示名' }),
-  rankBand: z.enum(RANK_BANDS, { message: 'ランク帯を選んでください' }),
+  rankBand: z.union([z.literal(''), z.enum(RANK_BANDS)]).nullish().transform((v) => (v ? v : null)),
   playRoles: uniqueArray(PLAY_ROLES),
   agreeTerms: z.literal(true, { message: '利用規約とプライバシーポリシーへの同意が必要です' }),
   src: z.unknown().transform(sanitizeSrc),
@@ -119,7 +119,7 @@ export const passwordSchema = z
   .refine((s) => passwordByteLength(s) <= PASSWORD_MAX_BYTES, 'パスワードが長すぎます (半角72文字まで)')
   .refine((s) => s.trim() === s, 'パスワードの前後に空白は使えません');
 
-export const rankBandSchema = z.enum(RANK_BANDS, { message: 'ランク帯を選んでください' });
+export const rankBandSchema = z.enum(RANK_BANDS, { message: 'ランクを選んでください' });
 
 export { DEFAULT_RANK_BAND } from '../constants';
 
@@ -129,7 +129,7 @@ export const recoverSchema = z.object({
   code: z
     .string({ message: '引き継ぎコードを入力してください' })
     .transform(normalizeRecoveryCode)
-    .refine(isValidRecoveryCode, '引き継ぎコードは16桁です (ハイフンはあってもなくても大丈夫です)'),
+    .refine(isValidRecoveryCode, '引き継ぎコードは16桁です (ハイフンは省略できます)'),
   password: passwordSchema,
 });
 
@@ -140,7 +140,7 @@ export const recruitmentSchema = z
     startKey: z.enum(START_KEYS, { message: '開始時刻を選んでください' }),
     startDay: z.enum(START_DAYS).catch('today'),
     startTime: z.string().max(5).optional(),
-    stance: z.enum(STANCES, { message: 'ゲームへの姿勢を選んでください' }),
+    stance: z.enum(STANCES, { message: '遊び方を選んでください' }),
     capacity: z.coerce.number().int(),
     joinMode: z.enum(JOIN_MODES, { message: '参加方式を選んでください' }),
     minRank: z
@@ -207,7 +207,7 @@ export const messageSchema = z.object({
       z
         .string()
         .min(1, 'メッセージを入力してください')
-        .max(LIMITS.message, `メッセージは${LIMITS.message}文字までです`)
+        .max(LIMITS.message, `メッセージは${LIMITS.message}文字以内で入力してください`)
         .refine((s) => !containsUrl(s), 'URLは送信できません')
         .refine((s) => !containsBanned(s), BANNED_MESSAGE)
         .refine((s) => !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(s), '使用できない文字が含まれています'),
@@ -224,7 +224,7 @@ export const reportSchema = z.object({
       z
         .string()
         .min(1, '通報理由を入力してください')
-        .max(LIMITS.reportReason, `通報理由は${LIMITS.reportReason}文字以内です`),
+        .max(LIMITS.reportReason, `通報理由は${LIMITS.reportReason}文字以内で入力してください`),
     ),
 });
 
@@ -236,7 +236,7 @@ export const feedbackSchema = z.object({
       z
         .string()
         .min(1, 'フィードバックを入力してください')
-        .max(LIMITS.feedback, `フィードバックは${LIMITS.feedback}文字以内です`),
+        .max(LIMITS.feedback, `フィードバックは${LIMITS.feedback}文字以内で入力してください`),
     ),
   page: z
     .string()

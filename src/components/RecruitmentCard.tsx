@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Recruitment } from '@/lib/types';
 import { canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
-import { STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RANK_SHORT, RECRUIT_VC_LABELS } from '@/lib/constants';
+import { STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
@@ -21,6 +21,7 @@ export function RecruitmentCard({
   showJoin = true,
   repeatTime = false,
   index = 0,
+  blockedHere = false,
 }: {
   r: Recruitment;
   now: Date;
@@ -32,6 +33,8 @@ export function RecruitmentCard({
   repeatTime?: boolean;
   /** 一覧での順番 (出てくるときの時差) */
   index?: number;
+  /** 自分がブロックしている人が参加している */
+  blockedHere?: boolean;
   /** v4 までの「大きく見せる」指定。v5 では使わない */
   featured?: boolean;
 }) {
@@ -70,7 +73,7 @@ export function RecruitmentCard({
             <span aria-hidden>/</span>
             <span className="truncate text-ink-2">
               {r.owner?.display_name ?? '―'}
-              {r.owner && <span className="text-slate"> {RANK_SHORT[r.owner.rank_band]}</span>}
+              {r.owner && <span className="text-slate"> {rankLabel(r.owner.rank_band)}</span>}
             </span>
           </p>
           <h3
@@ -87,6 +90,7 @@ export function RecruitmentCard({
             {r.min_rank && <span className="shrink-0 text-ink-2">条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
             <MoodTags tags={r.tags} max={1} />
           </p>
+          {blockedHere && <p className="mt-1.5 text-[12px] font-bold text-signal-deep">ブロックしている方がいます</p>}
         </Link>
         <div className="mt-3 flex items-center gap-2.5 lg:mt-0 lg:flex-col lg:items-stretch lg:gap-2 lg:pt-5">
           <div className="min-w-0 flex-1">
@@ -102,6 +106,7 @@ export function RecruitmentCard({
                 reason={join.reason}
                 isOwner={isOwner}
                 joined={myState === 'approved'}
+                warnBlocked={blockedHere}
                 compact
               />
             </div>

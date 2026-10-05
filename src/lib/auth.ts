@@ -15,7 +15,7 @@ export interface Viewer {
 /** プロフィール取得の失敗。「プロフィールなし」とは区別する (初回登録へ戻さない) */
 export class ProfileLoadError extends Error {
   constructor() {
-    super('プロフィールを読み込めませんでした。再読み込みしてください');
+    super('プロフィールを読み込めませんでした。ページを再読み込みしてください');
     this.name = 'ProfileLoadError';
   }
 }
@@ -66,7 +66,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 export async function requireViewer(next: string, opts: { allowNoProfile?: boolean } = {}): Promise<Viewer> {
   // 未設定時はログイン画面へ (ログイン画面に設定不足の案内が出る)
   const viewer = isSupabaseConfigured() ? await getViewer() : null;
-  if (!viewer) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (!viewer) redirect("/me");
   if (!viewer.profile && !opts.allowNoProfile) redirect(`/welcome?next=${encodeURIComponent(next)}`);
   return viewer;
 }

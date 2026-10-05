@@ -24,7 +24,7 @@ export function ReissueRecoveryCode({ loginId }: { loginId: string }) {
         disabled={pending}
         className="flex min-h-12 w-full items-center gap-3 text-left text-sm font-bold disabled:opacity-50"
         onClick={() => {
-          if (!window.confirm('引き継ぎコードを作り直しますか? 今のコードは使えなくなります。')) return;
+          if (!window.confirm('引き継ぎコードを作り直しますか？ 今のコードは使えなくなります。')) return;
           setError(null);
           start(async () => {
             const r = await reissueRecoveryCodeAction();

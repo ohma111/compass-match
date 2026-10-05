@@ -21,7 +21,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   return (
     <div className="mx-auto max-w-xl space-y-8">
       <div>
-        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">あと1ステップです</h1>
+        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">プロフィールを作成してください</h1>
       </div>
       <OnboardingForm next={next} suggestedName={suggested} />
     </div>

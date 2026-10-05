@@ -49,7 +49,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
       </div>
       <fieldset>
         <legend className="label">ランク</legend>
-        <RankPicker name="rankBand" value={profile.rank_band} />
+        <RankPicker name="rankBand" value={profile.rank_band ?? ''} />
       </fieldset>
       <fieldset>
         <legend className="label">得意ロール <span className="text-xs font-normal text-muted">(複数可)</span></legend>
@@ -104,20 +104,20 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         </div>
       </fieldset>
       <div>
-        <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(100字まで・URL不可)</span></label>
+        <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(100文字まで・URLは使えません)</span></label>
         <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile.bio} className="input" />
       </div>
 
       <fieldset id="contacts" className="card scroll-mt-20 space-y-4">
         <legend className="px-1 text-sm font-extrabold">連絡先 (任意)</legend>
-        <p className="text-xs text-slate">パーティのメンバーにだけ表示</p>
+        <p className="text-xs text-slate">参加が確定したメンバーにだけ表示されます</p>
         <div>
-          <label className="label" htmlFor="contactDiscord">DiscordのユーザーID</label>
+          <label className="label" htmlFor="contactDiscord">Discordのユーザー名</label>
           <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="contactX">XのID</label>
-          <input id="contactX" name="contactX" maxLength={16} defaultValue={contacts?.contact_x ?? ''} className="input" placeholder="@なしでも可" autoCapitalize="off" autoComplete="off" />
+          <input id="contactX" name="contactX" maxLength={16} defaultValue={contacts?.contact_x ?? ''} className="input" placeholder="@は省略できます" autoCapitalize="off" autoComplete="off" />
         </div>
         <div>
           <label className="label" htmlFor="contactIngame">ゲーム内ID / プレイヤー名</label>

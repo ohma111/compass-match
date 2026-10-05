@@ -20,7 +20,7 @@ export function FollowButton({ userId, initial, compact = false }: { userId: str
       }
     });
   }
-  const label = on ? '募集の通知を受け取り中' : '募集を通知';
+  const label = on ? '募集を通知中' : '募集を通知で受け取る';
   return (
     <span className="inline-flex flex-col items-end">
       <button

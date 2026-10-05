@@ -16,6 +16,11 @@ export function rankGroupOf(r: RankBand): RankGroup {
   return r.startsWith('s') ? 'high' : 'low';
 }
 
+/** ランクの表示 (まだ選んでいない人は空) */
+export function rankLabel(r: RankBand | null | undefined): string {
+  return r ? RANK_LABELS[r] : '';
+}
+
 /** 席の中など狭い所に出す短い表記 */
 export const RANK_SHORT: Record<RankBand, string> = RANK_LABELS;
 
@@ -45,12 +50,12 @@ export const DEFAULT_RANK_BAND: RankBand = 's1';
 /** 募集条件「S4〜」のような短い下限表記 */
 export const RANK_MIN_LABELS = Object.fromEntries(RANK_BANDS.map((r) => [r, `${r.toUpperCase()}↑`])) as Record<RankBand, string>;
 
-/** ゲームへの姿勢 (DB の値は win / fun) */
+/** 遊び方 (DB の値は win / fun) */
 export const STANCES = ['win', 'fun'] as const;
 export type Stance = (typeof STANCES)[number];
 export const STANCE_LABELS: Record<Stance, string> = {
-  win: '勝ちたい',
-  fun: '楽しみたい',
+  win: '本気で勝ちたい',
+  fun: '楽しく遊びたい',
 };
 
 // 参加方式: 早い者勝ち(即参加) / 承認制
@@ -93,7 +98,7 @@ export const RECRUIT_STATUS_LABELS = {
   open: '募集中',
   full: '満員',
   ended: '終了',
-  cancelled: '取り消し',
+  cancelled: '取り消し済み',
 } as const;
 export type RecruitStatus = keyof typeof RECRUIT_STATUS_LABELS;
 
@@ -133,12 +138,16 @@ export const TERMS_VERSION = '2026-09-30';
 
 export const NOTIFICATION_LABELS: Record<string, string> = {
   join_request: '参加申請が届きました',
-  joined: 'あなたの募集に参加者が入りました',
+  joined: 'あなたの募集に参加がありました',
   approved: '参加が承認されました',
   rejected: '参加申請が見送られました',
   removed: '募集の参加者から外されました',
   participant_cancelled: '参加者が参加を取り消しました',
   recruitment_cancelled: '参加予定の募集が取り消されました',
   new_message: 'チャットに新着メッセージがあります',
-  followed_posted: '通知を受け取っている人が募集を出しました',
+  followed_posted: '通知をオンにしている方が募集を出しました',
+  blocked_joined: 'ブロックしている方が参加しました',
 };
+
+/** 運営者のゲーム内の応援コード (フッターに表示) */
+export const SUPPORT_CODE = 'C-KtAo';

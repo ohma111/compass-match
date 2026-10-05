@@ -39,7 +39,7 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
   const linked = Boolean(email);
 
   async function issue() {
-    if (linked && !window.confirm('作り直す? 今のコードは使えなくなります')) return;
+    if (linked && !window.confirm('引き継ぎコードを作り直しますか？ 今のコードは使えなくなります。')) return;
     setPending(true);
     setError(null);
     try {
@@ -51,17 +51,17 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
       if (err) {
         setError(
           err.status === 429
-            ? '作りすぎです。少し待ってから'
+            ? '作成回数が上限に達しました。しばらく待ってからお試しください'
             : err.code === 'email_exists'
-              ? 'もう一度押してください'
-              : '作れませんでした。もう一度押してください',
+              ? '作成できませんでした。もう一度お試しください'
+              : '作成できませんでした。もう一度お試しください',
         );
         return;
       }
       await persistSessionAction();
       setCode(next);
     } catch {
-      setError('作れませんでした。もう一度押してください');
+      setError('作成できませんでした。もう一度お試しください');
     } finally {
       setPending(false);
     }
@@ -79,7 +79,7 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
             <CopyButton text={transferCodeGroups(code).join('-')} onInk />
           </div>
         </div>
-        <p className="text-sm font-bold">スクショしといて。閉じたらもう出ません</p>
+        <p className="text-sm font-bold">スクリーンショットなどで保存してください。閉じると二度と表示されません。</p>
         <button type="button" className="btn-outline w-full" onClick={() => setCode(null)}>
           閉じる
         </button>
@@ -109,10 +109,10 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) {
-      setError('コードは20文字です');
+      setError('引き継ぎコードは20文字です');
       return;
     }
-    if (hasProfileHere && !window.confirm('今のプロフィールから切り替える? コードがないと戻れません')) return;
+    if (hasProfileHere && !window.confirm('今のプロフィールから切り替えますか？ 引き継ぎコードがないと、今のプロフィールには戻れなくなります。')) return;
     setPending(true);
     setError(null);
     try {
@@ -121,8 +121,8 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
       if (err) {
         setError(
           err.status === 429
-            ? '試しすぎです。少し待ってから'
-            : 'コードが違います',
+            ? '試行回数が上限に達しました。しばらく待ってからお試しください'
+            : '引き継ぎコードが正しくありません',
         );
         setPending(false);
         return;
@@ -130,7 +130,7 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
       await persistSessionAction();
       window.location.assign('/me');
     } catch {
-      setError('引き継げませんでした。もう一度押してください');
+      setError('引き継げませんでした。もう一度お試しください');
       setPending(false);
     }
   }

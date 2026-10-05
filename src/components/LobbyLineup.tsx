@@ -30,6 +30,7 @@ export function LobbyLineup(props: {
   src?: string | null;
   stamp?: string | null;
   live: boolean;
+  warnBlocked?: boolean;
 }) {
   const router = useRouter();
   const control = useJoin(props.recruitmentId, props.auth, props.src);
@@ -82,7 +83,7 @@ export function LobbyLineup(props: {
 
   const seats = props.seats.map((s, i) => (entering.includes(i) ? { ...s, enter: true } : s));
   const seatJoin =
-    !props.isOwner && !props.joined && props.canJoin && props.auth !== 'restricted' && !control.done
+    !props.isOwner && !props.joined && props.canJoin && props.auth !== 'restricted' && !control.done && !props.warnBlocked
       ? { onJoin: control.join, label: '入る', pending: control.pending }
       : null;
 
@@ -122,6 +123,7 @@ export function LobbyLineup(props: {
             size="lg"
             hideWhenJoined
             control={control}
+            warnBlocked={props.warnBlocked}
           />
         </div>
       )}

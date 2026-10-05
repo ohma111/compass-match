@@ -1,4 +1,4 @@
-import { listRecruitments, myJoinStates } from '@/lib/queries';
+import { blockedRecruitmentIds, listRecruitments, myJoinStates } from '@/lib/queries';
 import { isSupabaseConfigured, features } from '@/lib/env';
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { authStateOf } from '@/lib/auth';
@@ -14,6 +14,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const now = new Date();
   let items: Recruitment[] = [];
   let states: Record<string, JoinState> = {};
+  let blocked = new Set<string>();
   let loadError = false;
   // 一覧とログイン情報は互いに依存しないので同時に取る
   const listing = isSupabaseConfigured()
@@ -27,7 +28,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   else items = listed;
   if (viewer && items.length > 0) {
     try {
-      states = await myJoinStates(viewer.userId, items.map((r) => r.id));
+      const ids = items.map((r) => r.id);
+      [states, blocked] = await Promise.all([myJoinStates(viewer.userId, ids), blockedRecruitmentIds(ids)]);
     } catch {
       loadError = true;
     }
@@ -36,6 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     <HomeView
       items={items}
       states={states}
+      blocked={[...blocked]}
       auth={authStateOf(viewer)}
       viewerId={viewer?.userId}
       filter={{ purpose: filter.purpose, soon: filter.soon }}

@@ -503,13 +503,15 @@ end $t$;
 -- 募集の参加が確定したので、募集者 (AN) といっしょに遊んだ人になっている
 select pg_temp.assert((select count(*) from public.play_mates where mate_id = :AN) = 1, 'play mate recorded for joiner');
 select pg_temp.assert((select count(*) from public.play_mates where user_id <> :U2) = 0, 'only own play mates visible');
--- 通知を受け取る → 相手が募集を出すと通知が来る
+-- いっしょに遊んだ人は自動で通知の対象。止めて戻すこともできる
+select pg_temp.assert((select active from public.follows where follower_id = :U2 and followee_id = :AN), 'play mate auto followed');
+select public.set_follow(:AN, false);
+select pg_temp.assert(not (select active from public.follows where follower_id = :U2 and followee_id = :AN), 'follow turned off');
 select public.set_follow(:AN, true);
-select pg_temp.assert((select count(*) from public.follows where follower_id = :U2) = 1, 'follow saved');
 reset role;
 select pg_temp.as_user(:AN);
 select pg_temp.assert((select count(*) from public.play_mates where mate_id = :U2) = 1, 'play mate recorded for owner');
-select pg_temp.assert((select count(*) from public.follows) = 0, 'cannot see others follows');
+select pg_temp.assert((select count(*) from public.follows where follower_id <> :AN) = 0, 'cannot see others follows');
 select public.create_recruitment('次の募集', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'win');
 select pg_temp.expect_error($$select public.create_recruitment('姿勢なし', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'x')$$, 'bad stance rejected');
 select pg_temp.expect_error($$select public.create_recruitment('ライン教えて', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'banned title rejected');
@@ -528,6 +530,29 @@ reset role;
 -- v7: チャレンジバトル
 select pg_temp.as_user(:AN);
 select pg_temp.expect_error($$select public.create_recruitment('チャレ4人', 'challenge', now() + interval '20 minutes', now() + interval '80 minutes', 4, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'challenge max 3');
+reset role;
+
+-- v8: ランクがない人は募集・参加できない / ブロックしている人が参加したら通知
+\set NR '''00000000-0000-4000-8000-000000000041'''
+\set BL '''00000000-0000-4000-8000-000000000042'''
+insert into auth.users (id) values (:NR), (:BL);
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values (:NR, 'ランクなし', null, now(), 't'), (:BL, 'ブロック者', 's3', now(), 't');
+select pg_temp.as_user(:NR);
+select pg_temp.expect_error($$select public.create_recruitment('ランクなし募集', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun')$$, 'no rank cannot recruit');
+select pg_temp.expect_error($$select public.request_join((select id from public.recruitments where title = '次の募集'), null)$$, 'no rank cannot join');
+select public.confirm_my_rank('s2');
+reset role;
+-- ブロック者 (BL) が、匿名さん (AN) をブロック済みのときに AN の募集へ NR が入っても通知は来ない。BL がブロックした NR が、BL の参加中の募集に入ると通知
+insert into public.blocks (blocker_id, blocked_id) values (:BL, :NR);
+select pg_temp.as_user(:BL);
+select public.request_join((select id from public.recruitments where title = '次の募集'), null);
+reset role;
+select pg_temp.as_user(:NR);
+select public.request_join((select id from public.recruitments where title = '次の募集'), null);
+reset role;
+select pg_temp.assert((select count(*) from public.notifications where user_id = :BL and kind = 'blocked_joined') = 1, 'blocker notified when blocked user joins');
+select pg_temp.as_user(:BL);
+select pg_temp.assert((select count(*) from public.recruitments_with_blocked(array[(select id from public.recruitments where title = '次の募集')])) = 1, 'recruitment flagged for blocker');
 reset role;
 
 select 'ALL RLS TESTS PASSED' as result;

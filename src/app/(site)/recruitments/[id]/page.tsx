@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getRecruitment } from '@/lib/queries';
+import { blockedRecruitmentIds, getRecruitment } from '@/lib/queries';
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
@@ -35,7 +35,7 @@ export default async function RecruitmentDetailPage({
   const supabase = await createClient();
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
-  const [r, viewer, partsRes, rc, ct, ms] = await Promise.all([
+  const [r, viewer, partsRes, rc, ct, ms, blocked] = await Promise.all([
     getRecruitment(id).catch(() => null),
     getViewerSafe(),
     signedIn
@@ -55,6 +55,7 @@ export default async function RecruitmentDetailPage({
           .order('created_at', { ascending: true })
           .limit(200)
       : null,
+    signedIn ? blockedRecruitmentIds([id]) : Promise.resolve(new Set<string>()),
   ]);
   if (!r) notFound();
   const isOwner = viewer?.userId === r.owner_id;
@@ -91,6 +92,7 @@ export default async function RecruitmentDetailPage({
       created={Boolean(sp.created)}
       justJoined={Boolean(sp.joined)}
       siteUrl={siteUrl()}
+      blockedHere={blocked.has(id)}
     />
   );
 }

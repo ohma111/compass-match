@@ -54,7 +54,7 @@ export function RankPicker({
       </div>
       {group !== 'none' && (
         <label className="relative block">
-          <span className="sr-only">{min ? 'どのランクから' : 'ランク'}</span>
+          <span className="sr-only">{min ? '最低ランク' : 'ランク'}</span>
           <select
             id={id}
             value={v}

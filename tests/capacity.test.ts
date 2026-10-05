@@ -52,7 +52,7 @@ describe('capacity', () => {
   });
   it('join button label follows join mode', () => {
     expect(joinButtonLabel('instant')).toBe('参加する');
-    expect(joinButtonLabel('approval')).toBe('参加を申請');
+    expect(joinButtonLabel('approval')).toBe('参加を申請する');
   });
   it('effective status turns to ended after end time', () => {
     expect(effectiveStatus('open', past, now)).toBe('ended');
@@ -87,6 +87,6 @@ describe('now list (feature flag)', () => {
     expect(nowListView(29, 30).showCount).toBe(false);
   });
   it('shows the count at or above threshold', () => {
-    expect(nowListView(30, 30)).toEqual({ showCount: true, countLabel: 'いま30人が遊べます' });
+    expect(nowListView(30, 30)).toEqual({ showCount: true, countLabel: '今遊べる人 30人' });
   });
 });

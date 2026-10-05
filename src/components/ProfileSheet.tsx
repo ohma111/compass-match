@@ -1,5 +1,4 @@
 'use client';
-import { RankPicker } from '@/components/RankPicker';
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -69,7 +68,6 @@ export function ProfileStartForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [rank, setRank] = useState<RankBand | ''>('');
   const [roles, setRoles] = useState<PlayRole[]>([]);
   const [agree, setAgree] = useState(false);
   const [pending, setPending] = useState(false);
@@ -78,7 +76,7 @@ export function ProfileStartForm({
 
 
   const nameError = containsUrl(name) ? 'URLは使えません' : null;
-  const missing = [name.trim().length > 0 && !nameError, rank !== '', agree].filter((ok) => !ok).length;
+  const missing = [name.trim().length > 0 && !nameError, agree].filter((ok) => !ok).length;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -94,16 +92,16 @@ export function ProfileStartForm({
         if (err) {
           setError(
             err.status === 429
-              ? '混んでます。1分くらい待ってもう一度'
+              ? '混み合っています。1分ほど待ってから、もう一度お試しください'
               : err.code === 'anonymous_provider_disabled'
-                ? '今は始められません (設定待ち)'
-                : '始められませんでした。もう一度押してください',
+                ? 'サーバーの設定が完了していないため、現在は始められません'
+                : 'エラーが発生しました。もう一度お試しください',
           );
           setPending(false);
           return;
         }
       }
-      const r = await createProfileAction({ displayName: name, rankBand: rank, playRoles: roles, agreeTerms: agree });
+      const r = await createProfileAction({ displayName: name, playRoles: roles, agreeTerms: agree });
       if (!r.ok) {
         setError(r.error);
         setPending(false);
@@ -112,12 +110,12 @@ export function ProfileStartForm({
       router.refresh();
       onDone();
     } catch {
-      setError('始められませんでした。もう一度押してください');
+      setError('エラーが発生しました。もう一度お試しください');
       setPending(false);
     }
   }
 
-  const seat = { kind: 'member' as const, id: name.trim() || undefined, name: name.trim() || 'あなた', rank: rank || null, roles, you: true };
+  const seat = { kind: 'member' as const, id: name.trim() || undefined, name: name.trim() || 'あなた', rank: null, roles, you: true };
 
   useEffect(() => {
     if (autoFocus) nameRef.current?.focus({ preventScroll: true });
@@ -145,10 +143,6 @@ export function ProfileStartForm({
             {nameError && <p id="sheet-name-error" className="hint font-bold text-signal-deep">{nameError}</p>}
           </div>
 
-          <fieldset>
-            <legend className="label">ランク</legend>
-            <RankPicker value={rank} onChange={setRank} />
-          </fieldset>
 
           <fieldset>
             <legend className="label">
@@ -192,9 +186,6 @@ export function ProfileStartForm({
           <p className="flex flex-wrap justify-between gap-x-4 text-[13px]">
               <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
                 引き継ぐ
-              </Link>
-              <Link href="/login" className="inline-flex min-h-11 items-center text-slate underline underline-offset-4">
-                以前の方法でログイン
               </Link>
             </p>
           )}

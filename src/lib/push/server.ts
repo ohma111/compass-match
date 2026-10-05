@@ -53,7 +53,7 @@ interface Row {
   user_id: string;
   kind: string;
   recruitment_id: string | null;
-  recruitment: { title: string } | null;
+  recruitment: { title: string; owner: { display_name: string } | null } | null;
 }
 
 /**
@@ -71,7 +71,7 @@ export async function dispatchPush(): Promise<void> {
       .update({ pushed_at: new Date().toISOString() })
       .is('pushed_at', null)
       .gt('created_at', since)
-      .select('id, user_id, kind, recruitment_id, recruitment:recruitments(title)')
+      .select('id, user_id, kind, recruitment_id, recruitment:recruitments(title, owner:profiles!recruitments_owner_id_fkey(display_name))')
       .limit(100);
     const rows = (claimed ?? []) as unknown as Row[];
     if (rows.length === 0) return;
@@ -86,7 +86,10 @@ export async function dispatchPush(): Promise<void> {
           .filter((s) => s.user_id === n.user_id)
           .map(async (s) => {
             const payload = JSON.stringify({
-              title: NOTIFICATION_LABELS[n.kind] ?? 'コンパスマッチ',
+              title:
+                n.kind === 'followed_posted' && n.recruitment?.owner
+                  ? `${n.recruitment.owner.display_name}さんが募集を出しました`
+                  : (NOTIFICATION_LABELS[n.kind] ?? 'コンパス・マッチング'),
               body: n.recruitment?.title ?? '',
               url: n.recruitment_id ? `/recruitments/${n.recruitment_id}` : '/notifications',
               tag: n.recruitment_id ? `r-${n.recruitment_id}-${n.kind}` : n.kind,

@@ -8,7 +8,7 @@ import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
-import { LoginView, TransferView } from '@/components/views/AuthViews';
+import { TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
 import { GuestMeView } from '@/components/views/GuestMeView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
@@ -101,7 +101,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'auth';
       signedIn = false;
       unread = 0;
-      body = <LoginView next="/" configured resuming={false} />;
+      body = <TransferView configured hasProfileHere={false} />;
       break;
     case 'me':
     case 'transfer-code':

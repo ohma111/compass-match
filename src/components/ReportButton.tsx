@@ -43,7 +43,7 @@ export function ReportButton({
             className="input"
             placeholder="理由を具体的に書いてください (必須)"
           />
-          <p className="hint">相手には伝わりません。ウソの通報は利用停止になります</p>
+          <p className="hint">通報したことは相手に伝わりません。虚偽の通報は利用停止の対象になります。</p>
           <FormMessage state={state} />
           <div className="flex gap-2">
             <button className="btn-danger btn-sm" disabled={pending}>{pending ? '送信中…' : '通報する'}</button>

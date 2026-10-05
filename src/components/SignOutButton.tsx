@@ -9,8 +9,8 @@ export function SignOutButton({ className, warnNoWayBack }: { className: string;
       action={signOutAction}
       onSubmit={(e) => {
         const msg = warnNoWayBack
-          ? '引き継ぎコードがないので、ログアウトするとこのプロフィールには戻れません。ログアウトする?'
-          : 'ログアウトする?';
+          ? '引き継ぎコードを作成していないため、ログアウトするとこのプロフィールには戻れなくなります。ログアウトしますか？'
+          : 'ログアウトしますか？';
         if (!window.confirm(msg)) e.preventDefault();
       }}
     >

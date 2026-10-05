@@ -5,7 +5,7 @@ import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
 import { PROFILE_SELECT } from '@/lib/profile-columns';
-import { MOOD_TAG_LABELS, PLAY_ROLE_LABELS, PROFILE_VC_LABELS, PURPOSE_LABELS, RANK_LABELS } from '@/lib/constants';
+import { MOOD_TAG_LABELS, PLAY_ROLE_LABELS, PROFILE_VC_LABELS, PURPOSE_LABELS, rankLabel } from '@/lib/constants';
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
 import { RoleIcon } from '@/components/RoleIcon';
@@ -39,7 +39,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
         <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} />
         <div className="min-w-0">
           <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{p.display_name}</h1>
-          <p className="mt-1 text-sm font-bold">{RANK_LABELS[p.rank_band]}</p>
+          <p className="mt-1 text-sm font-bold">{rankLabel(p.rank_band)}</p>
         </div>
       </section>
       <dl className="grid grid-cols-[6.5em_1fr] gap-y-3 border-y-2 border-ink py-4 text-sm">
@@ -54,7 +54,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
                 </span>
               ))}
         </dd>
-        <dt className="text-slate">よく使う</dt>
+        <dt className="text-slate">よく使うキャラ</dt>
         <dd>{p.characters.join('、') || '―'}</dd>
         <dt className="text-slate">目的</dt>
         <dd>{p.purposes.map((x) => PURPOSE_LABELS[x]).join('、') || '―'}</dd>
@@ -71,7 +71,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
       {p.bio && <p className="border-2 border-ink/20 bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{p.bio}</p>}
       {!isMe && !blocked && (
         <div className="space-y-1">
-          {mate && <p className="font-mono text-xs font-bold text-slate">いっしょに遊んだ回数 {(mate as { times: number }).times}</p>}
+          {mate && <p className="font-mono text-xs font-bold text-slate">一緒に遊んだ回数 {(mate as { times: number }).times}</p>}
           <FollowButton userId={id} initial={Boolean(follow)} />
         </div>
       )}
@@ -83,7 +83,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           <ActionButton
             action={blockUserAction.bind(null, id, !blocked)}
             className="btn-outline btn-sm"
-            confirm={blocked ? 'ブロックを解除しますか?' : 'このユーザーをブロックしますか? お互いの募集に参加できなくなり、相手の募集が見えなくなります。'}
+            confirm={blocked ? 'ブロックを解除しますか？' : 'このユーザーをブロックしますか？ お互いの募集に参加できなくなり、相手の募集も表示されなくなります。'}
           >
             {blocked ? 'ブロック解除' : 'ブロック'}
           </ActionButton>

@@ -68,7 +68,7 @@ export function RoomCodePanel({ recruitmentId, code, isOwner }: { recruitmentId:
           <CopyButton text={code} onInk />
         </div>
       ) : (
-        <p className="mt-2 text-sm text-white/85">まだなし</p>
+        <p className="mt-2 text-sm text-white/85">まだ入力されていません</p>
       )}
     </section>
   );

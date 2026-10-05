@@ -16,7 +16,7 @@ export function FeedbackForm({ page }: { page?: string }) {
         maxLength={LIMITS.feedback}
         rows={6}
         className="input"
-        placeholder="不具合・ほしい機能など (個人情報は書かないで)"
+        placeholder="不具合やほしい機能など (個人情報は書かないでください)"
       />
       <FormMessage state={state} />
       <button className="btn-primary w-full" disabled={pending}>{pending ? '送信中…' : '送信する'}</button>

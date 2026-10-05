@@ -93,20 +93,20 @@ export function PushToggle() {
       {state === 'on' ? (
         <button type="button" onClick={turnOff} disabled={busy} className="btn-outline w-full">
           <BellOff className="size-4" aria-hidden />
-          この端末の通知をオフ
+          この端末の通知をオフにする
         </button>
       ) : state === 'off' ? (
         <button type="button" onClick={turnOn} disabled={busy} className="btn-primary w-full">
           <BellRing className="size-4" aria-hidden />
-          {busy ? '設定中…' : 'この端末に通知を送る'}
+          {busy ? '設定中…' : 'この端末で通知を受け取る'}
         </button>
       ) : state === 'ios-home' ? (
         <div className="border-2 border-ink p-3 text-[13px] leading-relaxed">
           <p className="font-black">iPhone で通知を受け取るには</p>
           <ol className="mt-1 list-decimal pl-5">
             <li>Safari の共有ボタン → 「ホーム画面に追加」</li>
-            <li>ホーム画面のコンパスマッチを開く</li>
-            <li>マイページでこのボタンを押す</li>
+            <li>ホーム画面に追加した「コンパス・マッチング」から開く</li>
+            <li>このボタンを押す</li>
           </ol>
         </div>
       ) : state === 'denied' ? (

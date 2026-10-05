@@ -70,7 +70,7 @@ export function canRequestJoin(args: {
   if (args.isOwner) return { ok: false, reason: '自分の募集です' };
   const st = effectiveStatus(args.status, args.endsAt, args.now);
   if (st === 'ended') return { ok: false, reason: '終了しました' };
-  if (st === 'cancelled') return { ok: false, reason: '取り消されました' };
+  if (st === 'cancelled') return { ok: false, reason: '取り消された募集です' };
   if (args.myState === 'pending') return { ok: false, reason: '承認待ち' };
   if (args.myState === 'approved') return { ok: false, reason: '参加中' };
   if (args.myState === 'rejected') return { ok: false, reason: '参加できません' };
@@ -80,7 +80,7 @@ export function canRequestJoin(args: {
 
 /** 参加ボタンの文言 */
 export function joinButtonLabel(mode: JoinMode): string {
-  return mode === 'instant' ? '参加する' : '参加を申請';
+  return mode === 'instant' ? '参加する' : '参加を申請する';
 }
 
 /** 募集者が承認できるか */

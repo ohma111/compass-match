@@ -81,10 +81,15 @@ async function fillSheet(page, name) {
   await sheet.waitFor({ timeout: 15_000 });
   await snap(page, `sheet-${name}`);
   await sheet.locator('#sheet-name').fill(name);
-  await sheet.getByRole('radio', { name: 'S1以上' }).click();
   await sheet.locator('input[type="checkbox"]').last().check();
   await sheet.getByRole('button', { name: /^はじめる/ }).click();
   await sheet.waitFor({ state: 'detached', timeout: 30_000 });
+  // ランクは初めて募集・参加するときに聞かれる
+  const rank = page.getByRole('dialog', { name: '現在のランクを選んでください' });
+  await rank.waitFor({ timeout: 15_000 });
+  await rank.getByRole('radio', { name: 'S1以上' }).click();
+  await rank.getByRole('button', { name: '決定して続ける' }).click();
+  await rank.waitFor({ state: 'detached', timeout: 30_000 });
 }
 
 /** 期待するものが出るまで、ページを読み込み直しながら待つ (15秒ごとの自動更新・Realtime の代わり) */

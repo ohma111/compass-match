@@ -100,16 +100,16 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <span className="text-xs text-slate">終了の6時間後に消えます</span>
+        <span className="text-xs text-slate">募集終了の90分後に消えます</span>
       </div>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
-        {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだ会話なし</p>}
+        {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだメッセージはありません</p>}
         {messages.map((m) => {
           const mine = m.user_id === viewerId;
           return (
             <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
               <div className="mb-0.5 flex items-center text-xs text-slate">
-                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? 'メンバー')}</span>
+                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? '参加者')}</span>
                 <span className="ml-1.5 tabular-nums">{formatJstTime(m.created_at)}</span>
                 {!mine && (
                   <button
@@ -126,7 +126,7 @@ export function ChatRoom({
                   mine ? 'bg-ink text-white' : 'bg-tint text-ink'
                 }`}
               >
-                {containsBanned(m.body) ? <span className="text-slate italic">表示できない言葉が含まれています</span> : m.body}
+                {containsBanned(m.body) ? <span className="text-slate italic">このメッセージは表示できません</span> : m.body}
               </p>
               {reportingId === m.id && <ReportButtonOpen id={m.id} />}
             </div>
@@ -162,7 +162,7 @@ export function ChatRoom({
           </div>
         </form>
       ) : (
-        <p className="text-sm text-slate">終了した募集です</p>
+        <p className="text-sm text-slate">この募集は終了しました</p>
       )}
     </section>
   );

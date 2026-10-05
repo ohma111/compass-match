@@ -7,6 +7,7 @@ import { requestJoinAction } from '@/app/actions';
 import { joinButtonLabel } from '@/lib/capacity';
 import type { JoinMode } from '@/lib/constants';
 import { useEnsureProfile } from './ProfileSheet';
+import { useEnsureRank } from './RankSheet';
 
 export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted';
 
@@ -25,6 +26,7 @@ export interface JoinControl {
 export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null): JoinControl {
   const router = useRouter();
   const ensureProfile = useEnsureProfile();
+  const ensureRank = useEnsureRank();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -40,6 +42,8 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       if (!ok) return;
       setProfileOk(true);
     }
+    // ランクは初めて参加するときに聞く
+    if (!(await ensureRank())) return;
     doJoin();
   }
 
@@ -53,7 +57,7 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       if (r.data?.joined) {
         router.push(`${detail}?joined=1`);
       } else {
-        setDone('申請しました・承認待ち');
+        setDone('申請しました。承認をお待ちください');
         router.refresh();
       }
     });
@@ -78,9 +82,12 @@ export function JoinButton(props: {
   control?: JoinControl;
   /** 一覧のカード内で、席の横に置く短い表示 */
   compact?: boolean;
+  /** 自分がブロックしている人がいる募集: 押したらもう一度確かめる */
+  warnBlocked?: boolean;
 }) {
   const own = useJoin(props.recruitmentId, props.auth, props.src);
   const { join, pending, error, done } = props.control ?? own;
+  const [confirming, setConfirming] = useState(false);
   const { recruitmentId, joinMode, auth, canJoin, reason, isOwner, joined, size = 'md', hideWhenJoined = false } = props;
   const detail = `/recruitments/${recruitmentId}`;
   const sizing = size === 'lg' ? 'btn-lg w-full text-base' : props.compact ? 'w-full min-h-12 px-2 text-[14px]' : 'w-full min-h-12 text-[15px]';
@@ -89,7 +96,7 @@ export function JoinButton(props: {
   if (isOwner || joined) {
     return (
       <Link href={detail} className={`btn-outline ${sizing}`}>
-        {props.compact ? (isOwner ? '管理する' : '参加中') : isOwner ? '自分の募集をひらく' : '参加中・部屋番号を見る'}
+        {props.compact ? (isOwner ? '管理する' : '参加中') : isOwner ? '自分の募集を開く' : '参加中・部屋番号を見る'}
         <ChevronRight className="size-4" aria-hidden />
       </Link>
     );
@@ -106,9 +113,24 @@ export function JoinButton(props: {
   }
 
   const Icon = joinMode === 'instant' ? Zap : Hand;
+  if (confirming) {
+    return (
+      <div className="space-y-1.5" role="alertdialog" aria-label="ブロックしている方がいます">
+        <p className="text-[12px] leading-snug font-bold text-signal-deep">ブロックしている方がいます。参加しますか？</p>
+        <div className="flex gap-1.5">
+          <button type="button" onClick={() => { setConfirming(false); join(); }} disabled={pending} className={`btn-primary flex-1 ${props.compact ? 'min-h-11 px-1 text-[13px]' : ''}`}>
+            参加する
+          </button>
+          <button type="button" onClick={() => setConfirming(false)} className={`btn-outline flex-1 ${props.compact ? 'min-h-11 px-1 text-[13px]' : ''}`}>
+            やめる
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="space-y-1.5">
-      <button type="button" onClick={join} disabled={pending} className={`btn-primary group ${sizing}`}>
+      <button type="button" onClick={() => (props.warnBlocked ? setConfirming(true) : join())} disabled={pending} className={`btn-primary group ${sizing}`}>
         {!props.compact && <Icon className="size-5" aria-hidden />}
         {pending ? '処理中…' : joinButtonLabel(joinMode)}
         {props.compact && !pending && (

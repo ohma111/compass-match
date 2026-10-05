@@ -4,7 +4,7 @@ import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { formatJst } from '@/lib/time';
 import { ActionButton } from '@/components/ActionButton';
-import { adminDeleteRecruitmentAction, adminResolveAction, adminUserAction } from '@/app/actions';
+import { adminDeleteFeedbackAction, adminDeleteInactiveUsersAction, adminDeleteRecruitmentAction, adminDeleteReportsAction, adminResolveAction, adminRunCleanupAction, adminUserAction } from '@/app/actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '管理画面', robots: { index: false } };
@@ -70,11 +70,16 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
     supabase.rpc('admin_report_summary'),
     supabase.rpc('admin_reporter_stats'),
   ]);
-  if (error) return <p className="alert-error">取得できませんでした</p>;
+  if (error) return <p className="alert-error">データを取得できませんでした</p>;
   const rows = (data ?? []) as ReportRow[];
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted">未処理の通報を対象ごとに集計しています。異なる3人以上から通報された対象は自動で非表示になっています。</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted">未処理の通報を対象ごとにまとめています。3人以上から通報された対象は自動で非表示になります。</p>
+        <ActionButton action={adminDeleteReportsAction.bind(null, null, null, true)} className="btn-outline btn-sm" confirm="処理済みの通報をすべて削除しますか？">
+          処理済みの通報を削除
+        </ActionButton>
+      </div>
       {rows.length === 0 && <p className="text-sm">未処理の通報はありません。</p>}
       <ul className="space-y-3">
         {rows.map((r) => (
@@ -98,21 +103,24 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
               {r.target_owner && (
                 <Link href={`/admin?tab=users&q=${r.target_owner}`} className="btn-outline btn-sm">投稿者を確認</Link>
               )}
+              <ActionButton action={adminDeleteReportsAction.bind(null, r.target_type, r.target_id, false)} className="btn-ghost btn-sm" confirm="この対象への通報を削除しますか？ (対象そのものは残ります)">
+                通報を削除
+              </ActionButton>
               <ActionButton action={adminResolveAction.bind(null, r.target_type, r.target_id, true)} className="btn-outline btn-sm">
                 問題なし(表示に戻す)
               </ActionButton>
               {r.target_type === 'recruitment' && (
-                <ActionButton action={adminDeleteRecruitmentAction.bind(null, r.target_id)} className="btn-danger btn-sm" confirm="募集を削除しますか?">
+                <ActionButton action={adminDeleteRecruitmentAction.bind(null, r.target_id)} className="btn-danger btn-sm" confirm="募集を削除しますか？">
                   募集を削除
                 </ActionButton>
               )}
               {r.target_type === 'message' && (
-                <ActionButton action={adminResolveAction.bind(null, 'message', r.target_id, false)} className="btn-danger btn-sm" confirm="メッセージを削除しますか?">
+                <ActionButton action={adminResolveAction.bind(null, 'message', r.target_id, false)} className="btn-danger btn-sm" confirm="メッセージを削除しますか？">
                   メッセージを削除
                 </ActionButton>
               )}
               {r.target_owner && (
-                <ActionButton action={adminUserAction.bind(null, r.target_owner, 'ban')} className="btn-danger btn-sm" confirm="この投稿者をBANしますか?">
+                <ActionButton action={adminUserAction.bind(null, r.target_owner, 'ban')} className="btn-danger btn-sm" confirm="この投稿者をBANしますか？">
                   投稿者をBAN
                 </ActionButton>
               )}
@@ -121,7 +129,7 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
         ))}
       </ul>
       <section className="space-y-2">
-        <h2 className="font-bold">通報者ごとの件数 (悪用監視用・自動処理なし)</h2>
+        <h2 className="font-bold">通報者ごとの件数 (通報の悪用を確認するためのもので、自動では処理しません)</h2>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-muted"><th>通報者</th><th>累計</th><th>30日</th></tr>
@@ -171,9 +179,9 @@ async function UsersTab({ supabase, q }: { supabase: SB; q: string }) {
             </div>
             <p className="break-all text-xs text-muted">{u.id}</p>
             <div className="flex flex-wrap gap-2">
-              <ActionButton action={adminUserAction.bind(null, u.id, 'suspend')} className="btn-outline btn-sm" confirm="利用停止にしますか?">停止</ActionButton>
-              <ActionButton action={adminUserAction.bind(null, u.id, 'ban')} className="btn-danger btn-sm" confirm="BANしますか? 進行中の募集は取り消されます。">BAN</ActionButton>
-              <ActionButton action={adminUserAction.bind(null, u.id, 'restore')} className="btn-outline btn-sm" confirm="停止・BAN・非表示をすべて解除しますか?">復活</ActionButton>
+              <ActionButton action={adminUserAction.bind(null, u.id, 'suspend')} className="btn-outline btn-sm" confirm="利用停止にしますか？">停止</ActionButton>
+              <ActionButton action={adminUserAction.bind(null, u.id, 'ban')} className="btn-danger btn-sm" confirm="BANしますか？ 進行中の募集は取り消されます。">BAN</ActionButton>
+              <ActionButton action={adminUserAction.bind(null, u.id, 'restore')} className="btn-outline btn-sm" confirm="停止・BAN・非表示をすべて解除しますか？">復活</ActionButton>
             </div>
           </li>
         ))}
@@ -197,7 +205,7 @@ async function RecruitmentsTab({ supabase }: { supabase: SB }) {
           <span className="text-xs text-muted">{r.owner?.display_name}・{formatJst(r.starts_at)}・{r.status}{r.src ? `・src=${r.src}` : ''}</span>
           {r.hidden_at && <span className="chip">非表示</span>}
           <div className="ml-auto">
-            <ActionButton action={adminDeleteRecruitmentAction.bind(null, r.id)} className="btn-danger btn-sm" confirm="この募集を削除しますか?">削除</ActionButton>
+            <ActionButton action={adminDeleteRecruitmentAction.bind(null, r.id)} className="btn-danger btn-sm" confirm="この募集を削除しますか？">削除</ActionButton>
           </div>
         </li>
       ))}
@@ -215,12 +223,24 @@ async function FeedbackTab({ supabase }: { supabase: SB }) {
   return (
     <ul className="space-y-2">
       {rows.length === 0 && <li className="text-sm">フィードバックはまだありません。</li>}
+      {rows.length > 0 && (
+        <li className="flex justify-end">
+          <ActionButton action={adminDeleteFeedbackAction.bind(null, null)} className="btn-outline btn-sm" confirm="フィードバックをすべて削除しますか？">
+            すべて削除
+          </ActionButton>
+        </li>
+      )}
       {rows.map((f) => (
-        <li key={f.id} className="card space-y-1 py-3">
-          <p className="whitespace-pre-wrap break-words text-sm">{f.body}</p>
-          <p className="text-xs text-muted">
-            {formatJst(f.created_at)}{f.page ? `・${f.page}` : ''}{f.user_id ? '・ログイン中' : '・未ログイン'}
-          </p>
+        <li key={f.id} className="card flex items-start gap-3 py-3">
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="whitespace-pre-wrap break-words text-sm">{f.body}</p>
+            <p className="text-xs text-muted">
+              {formatJst(f.created_at)}{f.page ? `・${f.page}` : ''}{f.user_id ? '・ログインあり' : '・ログインなし'}
+            </p>
+          </div>
+          <ActionButton action={adminDeleteFeedbackAction.bind(null, f.id)} className="btn-ghost btn-sm" confirm="このフィードバックを削除しますか？" quiet>
+            削除
+          </ActionButton>
         </li>
       ))}
     </ul>
@@ -229,7 +249,7 @@ async function FeedbackTab({ supabase }: { supabase: SB }) {
 
 async function MetricsTab({ supabase }: { supabase: SB }) {
   const { data, error } = await supabase.rpc('admin_metrics');
-  if (error || !data) return <p className="alert-error">取得できませんでした</p>;
+  if (error || !data) return <p className="alert-error">データを取得できませんでした</p>;
   const m = data as Record<string, unknown>;
   const kv = (obj: unknown) =>
     Object.entries((obj ?? {}) as Record<string, number>).map(([k, v]) => (
@@ -237,14 +257,14 @@ async function MetricsTab({ supabase }: { supabase: SB }) {
     ));
   return (
     <div className="space-y-3 text-sm">
-      <p className="text-xs text-muted">直近30日。合格ライン: 登録30人以上 / ギルド外の人が参加した募集5件以上 / 実際に遊べた組3組以上</p>
+      <p className="text-xs text-muted">直近30日の数字です。目標は、登録30人以上、ギルド外の方が参加した募集5件以上、実際に遊べた組3組以上です。</p>
       <div className="card grid grid-cols-2 gap-2">
         <div>登録者(累計)<p className="text-xl font-bold">{String(m.users_total)}</p></div>
         <div>登録者(30日)<p className="text-xl font-bold">{String(m.users_since)}</p></div>
         <div>募集数<p className="text-xl font-bold">{String(m.recruitments_since)}</p></div>
         <div>満員になった募集<p className="text-xl font-bold">{String(m.recruitments_filled)}</p></div>
-        <div>埋まらず終了<p className="text-xl font-bold">{String(m.recruitments_ended_unfilled)}</p></div>
-        <div>埋まるまで(平均分)<p className="text-xl font-bold">{String(m.avg_minutes_to_fill ?? '―')}</p></div>
+        <div>満員にならずに終了<p className="text-xl font-bold">{String(m.recruitments_ended_unfilled)}</p></div>
+        <div>満員までの平均 (分)<p className="text-xl font-bold">{String(m.avg_minutes_to_fill ?? '―')}</p></div>
       </div>
       <div className="card space-y-1">
         <p className="font-bold">承認された参加の流入元 (src)</p>
@@ -263,6 +283,40 @@ async function MetricsTab({ supabase }: { supabase: SB }) {
   );
 }
 
+/** 容量の表の日本語名 */
+const TABLE_NAMES: Record<string, string> = {
+  'public.profiles': 'プロフィール',
+  'public.profile_contacts': '連絡先',
+  'public.recruitments': '募集',
+  'public.recruitment_secrets': '部屋番号',
+  'public.participations': '参加',
+  'public.messages': 'チャット',
+  'public.notifications': '通知',
+  'public.reports': '通報',
+  'public.feedback': 'フィードバック',
+  'public.blocks': 'ブロック',
+  'public.play_mates': '一緒に遊んだ記録',
+  'public.follows': '募集の通知設定',
+  'public.push_subscriptions': 'プッシュ通知の登録',
+  'public.presence_now': '今から遊べる',
+  'public.accounts': 'ユーザーID (旧方式)',
+  'public.app_settings': '設定',
+  'public.server_secrets': 'サーバーの鍵',
+  'public.user_roles': '管理者',
+  'auth.users': 'アカウント (認証)',
+  'auth.sessions': 'ログイン中の端末',
+  'auth.refresh_tokens': 'ログインの更新情報',
+  'auth.audit_log_entries': '認証の記録',
+  'auth.identities': 'ログイン方法',
+  'auth.mfa_factors': '二段階認証',
+  'auth.flow_state': 'ログインの途中経過',
+  'auth.one_time_tokens': 'ワンタイムトークン',
+  'cron.job_run_details': '定期処理の実行記録',
+  'cron.job': '定期処理',
+  'private.auth_attempts': '登録回数の記録',
+  'private.play_mates_counted': '一緒に遊んだ記録 (内部)',
+};
+
 /** 無料枠の上限 (2026-10 時点。変わったらここを直す) */
 const FREE_DB_BYTES = 500 * 1024 * 1024;
 const FREE_MAU = 50_000;
@@ -273,16 +327,21 @@ function mb(n: number): string {
 
 async function UsageTab({ supabase }: { supabase: SB }) {
   const { data, error } = await supabase.rpc('admin_usage');
-  if (error || !data) return <p className="alert-error">取得できませんでした (マイグレーション9が未適用かもしれません)</p>;
+  if (error || !data) return <p className="alert-error">データを取得できませんでした (マイグレーションが未適用の可能性があります)</p>;
   const u = data as {
     db_bytes: number;
     tables: { name: string; bytes: number; rows: number }[];
     auth_users: number;
     anonymous_users: number;
+    inactive_users?: number;
     recruitments: number;
     messages: number;
     notifications: number;
+    reports?: number;
+    feedback?: number;
   };
+  const { data: inactive } = await supabase.rpc('admin_inactive_users');
+  const inactiveRows = (inactive ?? []) as { id: string; display_name: string; last_seen_at: string }[];
   const dbRatio = u.db_bytes / FREE_DB_BYTES;
   const warn = dbRatio >= 0.6;
   return (
@@ -295,28 +354,61 @@ async function UsageTab({ supabase }: { supabase: SB }) {
         <div className="mt-2 h-3 border-2 border-ink">
           <div className={`h-full ${warn ? 'bg-signal' : 'bg-ink'}`} style={{ width: `${Math.min(100, dbRatio * 100).toFixed(1)}%` }} />
         </div>
-        {warn && <p className="mt-2 font-bold text-signal-deep">6割を超えました。下の大きい表を確認し、保存日数 (app_settings) を短くする</p>}
+        {warn && <p className="mt-2 font-bold text-signal-deep">容量の6割を超えました。下の「大きい表」を確認し、保存日数 (app_settings) を短くしてください。</p>}
       </div>
       <div className="card">
         <p className="font-bold">大きい表</p>
         <ul className="mt-2 space-y-1 font-mono text-[13px]">
           {u.tables.map((t) => (
             <li key={t.name} className="flex justify-between gap-3">
-              <span className="truncate">{t.name}</span>
+              <span className="truncate">{TABLE_NAMES[t.name] ?? t.name}</span>
               <span className="shrink-0">{mb(t.bytes)} / {Math.max(0, t.rows)}行</span>
             </li>
           ))}
         </ul>
       </div>
-      <div className="card grid grid-cols-2 gap-2">
+      <div className="card grid grid-cols-2 gap-2 sm:grid-cols-3">
         <div>アカウント<p className="text-xl font-bold">{u.auth_users}</p></div>
-        <div>うち匿名<p className="text-xl font-bold">{u.anonymous_users}</p></div>
+        <div>うち匿名アカウント<p className="text-xl font-bold">{u.anonymous_users}</p></div>
+        <div>60日以上未使用<p className="text-xl font-bold">{u.inactive_users ?? 0}</p></div>
         <div>募集<p className="text-xl font-bold">{u.recruitments}</p></div>
         <div>チャット<p className="text-xl font-bold">{u.messages}</p></div>
+        <div>通知<p className="text-xl font-bold">{u.notifications}</p></div>
+        <div>通報<p className="text-xl font-bold">{u.reports ?? 0}</p></div>
+        <div>フィードバック<p className="text-xl font-bold">{u.feedback ?? 0}</p></div>
+      </div>
+      <div className="card space-y-3">
+        <p className="font-bold">データを減らす</p>
+        <p className="text-xs leading-relaxed text-muted">
+          古いデータは5分ごとに自動で削除しています (チャットは募集終了の90分後、募集は15日後、通知は7日後、60日以上使われていないアカウントは削除)。今すぐ実行する場合は下のボタンを押してください。
+        </p>
+        <ActionButton action={adminRunCleanupAction} className="btn-outline btn-sm" confirm="古いデータを今すぐ削除しますか？">
+          古いデータを今すぐ削除
+        </ActionButton>
+      </div>
+      <div className="card space-y-3">
+        <p className="font-bold">60日以上使われていないアカウント ({inactiveRows.length}件)</p>
+        {inactiveRows.length === 0 ? (
+          <p className="text-sm text-muted">ありません</p>
+        ) : (
+          <>
+            <ul className="max-h-60 space-y-1 overflow-y-auto text-sm">
+              {inactiveRows.map((x) => (
+                <li key={x.id} className="flex justify-between gap-3">
+                  <span className="truncate">{x.display_name}</span>
+                  <span className="shrink-0 text-xs text-muted">最終利用 {formatJst(x.last_seen_at)}</span>
+                </li>
+              ))}
+            </ul>
+            <ActionButton action={adminDeleteInactiveUsersAction} className="btn-danger btn-sm" confirm="これらのアカウントを削除しますか？ 元に戻せません。">
+              まとめて削除
+            </ActionButton>
+          </>
+        )}
       </div>
       <p className="text-xs leading-relaxed text-muted">
-        無料枠: DB 500MB / 月間アクティブ {FREE_MAU.toLocaleString()}人 / 通信 5GB (Supabase)、関数の実行 100万回・CPU 4時間 (Vercel)。
-        超えても請求はされず、止まる・読み取り専用になる。通信量と実行回数は DB からは見えないので、Supabase と Vercel の Usage 画面で見る。
+        無料枠: データベース 500MB / 月間アクティブ {FREE_MAU.toLocaleString()}人 / 通信 5GB (Supabase)、関数の実行 100万回・CPU 4時間 (Vercel)。
+        無料枠を超えても請求はされませんが、サービスが止まるか読み取り専用になります。通信量と実行回数はデータベースからは確認できないため、Supabase と Vercel の Usage 画面で確認してください。
       </p>
     </div>
   );

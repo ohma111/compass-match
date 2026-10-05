@@ -8,7 +8,7 @@ export default async function FeedbackPage({ searchParams }: { searchParams: Pro
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">フィードバック</h1>
-      <p className="text-sm text-slate">返信はできません。人とのトラブルは各ページの「通報」から。</p>
+      <p className="text-sm text-slate">こちらから返信することはできません。ほかの利用者とのトラブルは、各ページの「通報」からお知らせください。</p>
       <FeedbackForm page={safeNext(sp.from, '')} />
     </div>
   );

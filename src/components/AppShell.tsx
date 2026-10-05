@@ -1,11 +1,14 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { NavProgress } from './NavProgress';
-import { RankConfirmSheet } from './RankConfirmSheet';
+import { CopyButton } from './CopyButton';
+import { SUPPORT_CODE } from '@/lib/constants';
+import { RankProvider } from './RankSheet';
 import type { RankBand } from '@/lib/constants';
 import { Bell, ChevronRight, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
+import { Wordmark } from './Wordmark';
 import { OnboardingProvider } from './ProfileSheet';
 
 /**
@@ -20,7 +23,8 @@ export function AppShell({
   configured,
   active,
   sheetOpen = false,
-  confirmRank = null,
+  rankReady = false,
+  currentRank = null,
 }: {
   children: React.ReactNode;
   unread: number;
@@ -31,12 +35,14 @@ export function AppShell({
   active?: TabKey;
   /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
   sheetOpen?: boolean;
-  /** v7: ランクを選び直してもらう人の、今 (仮) のランク */
-  confirmRank?: RankBand | null;
+  /** v8: ランクが決まっているか (決まっていなければ募集・参加のときに聞く) と、今のランク */
+  rankReady?: boolean;
+  currentRank?: RankBand | null;
 }) {
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-ink-2 underline-offset-[6px] decoration-2 decoration-signal hover:text-ink hover:underline';
   return (
     <OnboardingProvider initialOpen={sheetOpen}>
+      <RankProvider ready={rankReady} current={currentRank}>
       <Suspense fallback={null}>
         <NavProgress />
       </Suspense>
@@ -45,9 +51,9 @@ export function AppShell({
       </a>
       <header className="sticky top-0 z-30 border-b-2 border-ink bg-floor/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
         <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
-          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2 whitespace-nowrap" aria-label="コンパスマッチ ホーム">
+          <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2 whitespace-nowrap" aria-label="コンパス・マッチング ホーム">
             <LogoMark className="h-5 w-8 lg:h-6 lg:w-9" />
-            <span className="truncate text-[19px] font-black tracking-[-0.03em] lg:text-[23px]">コンパスマッチ</span>
+            <Wordmark className="truncate text-[18px] lg:text-[23px]" />
             <span className="type-tag border border-ink/60 px-1 text-[10px] text-ink-2">非公式</span>
           </Link>
           <nav aria-label="メニュー" className="ml-auto hidden items-center gap-1 lg:flex">
@@ -60,7 +66,7 @@ export function AppShell({
                   {unread > 0 && (
                     <span className="type-tag min-w-5 bg-signal px-1 text-center leading-5 text-ink">
                       {unread > 99 ? '99+' : unread}
-                      <span className="sr-only">件の未読</span>
+                      <span className="sr-only">件の未読通知</span>
                     </span>
                   )}
                 </Link>
@@ -89,7 +95,7 @@ export function AppShell({
         )}
         {restricted && (
           <p className="alert-error mb-6">
-            このアカウントは現在、募集・参加・チャットを利用できません。心当たりがない場合はフィードバックからお問い合わせください。
+            このアカウントは現在、募集・参加・チャットを利用できません。心当たりがない場合は、フィードバックからお知らせください。
           </p>
         )}
         {children}
@@ -114,6 +120,13 @@ export function AppShell({
               ))}
             </ul>
           </nav>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-2 border-ink p-3">
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-slate">運営者の応援コード</p>
+              <p className="font-mono text-[20px] font-bold tracking-[0.06em] text-ink">{SUPPORT_CODE}</p>
+            </div>
+            <CopyButton text={SUPPORT_CODE} label="コピー" />
+          </div>
           <p className="mt-3 leading-relaxed">
             非公式のファンサイトです。
             <br />
@@ -124,7 +137,7 @@ export function AppShell({
       </div>
 
       <TabBar unread={unread} active={active} />
-      {confirmRank && <RankConfirmSheet current={confirmRank} />}
+      </RankProvider>
     </OnboardingProvider>
   );
 }

@@ -31,11 +31,12 @@ import { takeIntent } from '@/lib/intent';
 import { Lineup, type Seat } from '@/components/Lineup';
 import { RankPicker } from '@/components/RankPicker';
 import { useEnsureProfile } from '@/components/ProfileSheet';
+import { useEnsureRank } from '@/components/RankSheet';
 
 const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2, challenge: Medal };
 const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', any: 'どちらでも', off: 'なし' };
 const STANCE_ICON: Record<Stance, LucideIcon> = { win: Flame, fun: Smile };
-/** 姿勢 (勝ちたい / 楽しみたい) と重なるタグは選ばせない */
+/** 遊び方 (本気 / 楽しく) と重なるタグは選ばせない */
 const PICK_TAGS = MOOD_TAGS.filter((t) => t !== 'serious' && t !== 'relaxed');
 
 const LAST_KEY = 'cm_last_recruit';
@@ -127,6 +128,8 @@ export function CreateRecruitmentForm({
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [resumed, setResumed] = useState(false);
   const ensureProfile = useEnsureProfile();
+  const ensureRank = useEnsureRank();
+  const rankOk = useRef(false);
   // v4: シートでプロフィールを作ったら、ページを移らずにそのまま送信する
   const profileOk = useRef(false);
 
@@ -157,7 +160,7 @@ export function CreateRecruitmentForm({
   const startAt = resolveStart(startKey, c.startDay, c.startTime, now);
   const capacity = clampCapacity(c.purpose, c.capacity);
   const placeholderTitle = autoTitle({ purpose: c.purpose, minRank: c.minRank || null, capacity });
-  const titleError = containsUrl(title) ? 'URLは入力できません' : null;
+  const titleError = containsUrl(title) ? 'URLは使えません' : null;
   const ready = Boolean(startAt) && !titleError;
   const [needStance, setNeedStance] = useState(false);
 
@@ -192,6 +195,16 @@ export function CreateRecruitmentForm({
       });
       return;
     }
+    if (!rankOk.current) {
+      e.preventDefault();
+      writeJson(LAST_KEY, choices);
+      void ensureRank().then((ok) => {
+        if (!ok) return;
+        rankOk.current = true;
+        formRef.current?.requestSubmit();
+      });
+      return;
+    }
     writeJson(LAST_KEY, choices);
     try {
       localStorage.removeItem(DRAFT_KEY);
@@ -216,7 +229,7 @@ export function CreateRecruitmentForm({
       {!pending && (
         <span className="max-w-full truncate text-xs font-medium opacity-85">
           {summaryParts.join(' / ')}
-          {!c.stance && <span className="ml-1 font-bold text-[#ffb39c]">/ 姿勢 未選択</span>}
+          {!c.stance && <span className="ml-1 font-bold text-[#ffb39c]">/ 遊び方を選んでください</span>}
         </span>
       )}
     </button>
@@ -236,7 +249,7 @@ export function CreateRecruitmentForm({
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={`tone-${c.purpose} lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-14`}>
       <input type="hidden" name="src" value={src} />
       <div className="space-y-8 pb-28 lg:pb-0">
-        {resumed && <p className="alert-ok">さっきの内容で募集を出しています…</p>}
+        {resumed && <p className="alert-ok">先ほどの内容で募集を出しています…</p>}
 
         {/* 目的 */}
         <fieldset>
@@ -265,10 +278,10 @@ export function CreateRecruitmentForm({
           </div>
         </fieldset>
 
-        {/* ゲームへの姿勢 */}
+        {/* 遊び方 */}
         <fieldset id="stance" className={needStance && !c.stance ? 'outline-2 outline-offset-4 outline-signal-deep' : ''}>
           <legend className={legend}>
-            <span>ゲームへの姿勢</span>
+            <span>遊び方</span>
             {needStance && !c.stance && <span className="text-[13px] font-bold text-signal-deep">選んでください</span>}
           </legend>
           <div className="grid grid-cols-2 gap-2">
@@ -333,8 +346,8 @@ export function CreateRecruitmentForm({
           <div className="grid grid-cols-2 gap-2">
             {(
               [
-                ['instant', Zap, '早い者勝ち', '押した人がすぐ参加'],
-                ['approval', Hand, '承認制', 'あなたが選んで承認'],
+                ['instant', Zap, '早い者勝ち', '押した人がそのまま参加'],
+                ['approval', Hand, '承認制', 'あなたが申請を承認'],
               ] as const
             ).map(([mode, Icon, label, sub]) => (
               <label key={mode} className="pick group h-auto flex-col items-start gap-0.5 px-3 py-3 text-left">
@@ -389,7 +402,7 @@ export function CreateRecruitmentForm({
             </fieldset>
             <div>
               <label className="label" htmlFor="title">
-                ひとこと <span className="text-xs font-medium text-slate">(なくてもOK)</span>
+                ひとこと <span className="text-xs font-medium text-slate">(任意)</span>
               </label>
               <input
                 id="title"
@@ -402,7 +415,7 @@ export function CreateRecruitmentForm({
                 aria-describedby="title-hint"
               />
               <p id="title-hint" className={`hint flex justify-between ${titleError ? 'font-bold text-signal-deep' : ''}`}>
-                <span>{titleError ?? 'URL不可'}</span>
+                <span>{titleError ?? 'URLは使えません'}</span>
                 <span className="tabular-nums">{Array.from(title).length}/{LIMITS.title}</span>
               </p>
             </div>

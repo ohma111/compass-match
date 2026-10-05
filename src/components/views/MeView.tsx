@@ -5,18 +5,17 @@ import Link from 'next/link';
 import { ChevronRight, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { RoleIcon } from '@/components/RoleIcon';
-import { ReissueRecoveryCode } from '@/components/ReissueRecoveryCode';
 import { SignOutButton } from '@/components/SignOutButton';
 import { TransferIssue } from '@/components/TransferForms';
 import type { AccountKind } from '@/lib/transfer';
-import { PLAY_ROLE_LABELS, RANK_LABELS } from '@/lib/constants';
+import { PLAY_ROLE_LABELS, rankLabel } from '@/lib/constants';
 import type { Profile, Recruitment } from '@/lib/types';
 import type { PlayRole, RankBand } from '@/lib/constants';
 
 export interface Mate {
   id: string;
   display_name: string;
-  rank_band: RankBand;
+  rank_band: RankBand | null;
   play_roles: PlayRole[];
   times: number;
   following: boolean;
@@ -52,7 +51,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           <div className="min-w-0">
             <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{profile.display_name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
-              <span className="font-bold">{RANK_LABELS[profile.rank_band]}</span>
+              <span className="font-bold">{rankLabel(profile.rank_band)}</span>
               {profile.play_roles.map((r) => (
                 <span key={r} className="inline-flex items-center gap-1">
                   <RoleIcon role={r} className="size-3.5" />
@@ -60,11 +59,6 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
                 </span>
               ))}
             </p>
-            {loginId && (
-              <p className="mt-1 text-xs text-slate">
-                ユーザーID <span className="font-bold text-ink-2">{loginId}</span>
-              </p>
-            )}
           </div>
         </section>
         <Link href="/profile/edit" className="btn-outline w-full">
@@ -103,7 +97,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           <h2 id="mine-title" className="section-title">自分の募集</h2>
           {mine.length === 0 ? (
             <p className="text-sm text-slate">
-              なし
+              ありません
             </p>
           ) : (
             <div className="grid gap-4">
@@ -117,7 +111,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         <section className="space-y-3" aria-labelledby="joined-title">
           <h2 id="joined-title" className="section-title">参加中・申請中</h2>
           {joined.length === 0 ? (
-            <p className="text-sm text-slate">なし</p>
+            <p className="text-sm text-slate">ありません</p>
           ) : (
             <div className="grid gap-4">
               {joined.map((p) => (
@@ -128,9 +122,9 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
         </section>
 
         <section className="space-y-3" aria-labelledby="mates-title">
-          <h2 id="mates-title" className="section-title">いっしょに遊んだ人</h2>
+          <h2 id="mates-title" className="section-title">一緒に遊んだ人</h2>
           {mates.length === 0 ? (
-            <p className="text-sm text-slate">まだなし</p>
+            <p className="text-sm text-slate">まだいません</p>
           ) : (
             <ul className="divide-y divide-ink/15 border-y-2 border-ink">
               {mates.map((m) => (
@@ -140,7 +134,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-black">{m.display_name}</span>
                       <span className="block font-mono text-[11px] text-slate">
-                        {RANK_LABELS[m.rank_band]} / {m.times}回
+                        {rankLabel(m.rank_band)} / {m.times}回
                       </span>
                     </span>
                   </Link>
@@ -180,7 +174,6 @@ function AccountMenu({
         <span className="flex-1">公開プロフィール</span>
         <ChevronRight className="size-4 text-slate" aria-hidden />
       </Link>
-      {loginId && <ReissueRecoveryCode loginId={loginId} />}
       <Link href="/me/blocks" className={menu}>
         <ShieldBan className={icon} aria-hidden />
         <span className="flex-1">ブロックしたユーザー</span>

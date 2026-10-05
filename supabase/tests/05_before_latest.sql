@@ -1,13 +1,19 @@
 -- 最新のマイグレーションを流す前の状態を作る (db-verify.sh から実行)。
--- v7: 帯のランクが1つずつのランクに移ることを確かめるため、帯の行を入れておく。
+-- v8: これまでに遊んだ人が通知の対象になること、保存期間が短くなることを確かめる。
 insert into auth.users (id) values
-  ('00000000-0000-4000-8000-0000000000c1'), ('00000000-0000-4000-8000-0000000000c2'),
-  ('00000000-0000-4000-8000-0000000000c3'), ('00000000-0000-4000-8000-0000000000c4');
+  ('00000000-0000-4000-8000-0000000000d1'), ('00000000-0000-4000-8000-0000000000d2');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
-  ('00000000-0000-4000-8000-0000000000c1', '帯fa', 'fa', now(), 't'),
-  ('00000000-0000-4000-8000-0000000000c2', '帯s1_4', 's1_4', now(), 't'),
-  ('00000000-0000-4000-8000-0000000000c3', '帯s5_7', 's5_7', now(), 't'),
-  ('00000000-0000-4000-8000-0000000000c4', '帯s8p', 's8p', now(), 't');
-insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity, min_rank) values
-  ('30000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000c1', '帯条件fa', 'rank', now(), now() + interval '1 hour', 3, 'fa'),
-  ('30000000-0000-4000-8000-0000000000c2', '00000000-0000-4000-8000-0000000000c2', '帯条件s5_7', 'rank', now(), now() + interval '1 hour', 3, 's5_7');
+  ('00000000-0000-4000-8000-0000000000d1', '遊び1', 's5', now(), 't'),
+  ('00000000-0000-4000-8000-0000000000d2', '遊び2', 's6', now(), 't');
+insert into public.play_mates (user_id, mate_id) values
+  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000d2'),
+  ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000d1');
+alter table public.recruitments disable trigger user;
+insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity, status) values
+  ('30000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000d1', '保存20日前', 'rank', now() - interval '20 days 1 hour', now() - interval '20 days', 3, 'ended'),
+  ('30000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000d1', '保存2時間前', 'rank', now() - interval '3 hours', now() - interval '2 hours', 3, 'ended');
+alter table public.recruitments enable trigger user;
+alter table public.messages disable trigger user;
+insert into public.messages (recruitment_id, user_id, body) values
+  ('30000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000d1', '古い発言');
+alter table public.messages enable trigger user;

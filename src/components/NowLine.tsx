@@ -12,7 +12,7 @@ export function NowLine({ serverNow }: { serverNow: string }) {
   }, []);
   return (
     <div className="relative flex h-6 items-center" aria-hidden>
-      <span className="type-tag relative z-10 bg-signal px-1.5 leading-5 text-ink">いま {formatJstTime(now)}</span>
+      <span className="type-tag relative z-10 bg-signal px-1.5 leading-5 text-ink">今 {formatJstTime(now)}</span>
       <span className="now-line h-[2px] flex-1 bg-signal" />
     </div>
   );

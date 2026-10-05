@@ -44,7 +44,7 @@ describe('profileSchema', () => {
   it('rejects URL in bio', () => {
     const r = profileSchema.safeParse({ ...baseProfile, bio: '詳しくは example.com へ' });
     expect(r.success).toBe(false);
-    if (!r.success) expect(firstError(r.error)).toBe('URLは入力できません');
+    if (!r.success) expect(firstError(r.error)).toBe('URLは使えません');
   });
   it('rejects bio over 100 chars and banned words', () => {
     expect(profileSchema.safeParse({ ...baseProfile, bio: 'あ'.repeat(101) }).success).toBe(false);
@@ -74,9 +74,11 @@ describe('onboardingSchema', () => {
     expect(r.playRoles).toEqual(['tank']);
     expect(r.src).toBe('guild');
   });
-  it('roles are optional, rank and consent are required', () => {
+  it('roles and rank are optional (rank is asked when joining), consent is required', () => {
     expect(onboardingSchema.safeParse({ ...base, playRoles: [] }).success).toBe(true);
-    expect(onboardingSchema.safeParse({ ...base, rankBand: '' }).success).toBe(false);
+    const noRank = onboardingSchema.safeParse({ ...base, rankBand: '' });
+    expect(noRank.success && noRank.data.rankBand).toBeNull();
+    expect(onboardingSchema.safeParse({ ...base, rankBand: 's10' }).success).toBe(false);
     const r = onboardingSchema.safeParse({ ...base, agreeTerms: false });
     expect(r.success).toBe(false);
     if (!r.success) expect(firstError(r.error)).toMatch(/同意/);
@@ -230,7 +232,7 @@ describe('helpers', () => {
   });
   it('toUserMessage hides internal errors', () => {
     expect(toUserMessage({ code: 'P0429', message: '連続投稿はできません' })).toBe('連続投稿はできません');
-    expect(toUserMessage({ code: '23514', message: 'new row violates check constraint "x"' })).toMatch(/URL/);
+    expect(toUserMessage({ code: '23514', message: 'new row violates check constraint "x"' })).toMatch(/使用できない/);
     expect(toUserMessage({ code: 'XX000', message: 'internal detail' })).not.toMatch(/internal/);
   });
 });

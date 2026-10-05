@@ -3,7 +3,7 @@ import type { Stance, JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand,
 export interface Profile {
   id: string;
   display_name: string;
-  rank_band: RankBand;
+  rank_band: RankBand | null;
   play_roles: PlayRole[];
   characters: string[];
   purposes: Purpose[];

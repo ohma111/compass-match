@@ -67,7 +67,7 @@ export async function onboardAction(_prev: ActionResult | null, fd: FormData): P
   if (!auth.user) return fail('ログインが必要です');
   // 登録済みなら上書きしない (マイページの編集を使う)。取得エラーは「未登録」と扱わない
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('うまくいきませんでした。もう一度');
+  if (lookupError) return fail('エラーが発生しました。もう一度お試しください');
   if (!existing) {
     const { error } = await supabase.rpc('save_my_profile', {
       p_display_name: v.displayName,
@@ -114,8 +114,8 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return fail('ログインが必要です');
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('うまくいきませんでした。もう一度');
-  if (!existing) return fail('先に初回登録を完了してください');
+  if (lookupError) return fail('エラーが発生しました。もう一度お試しください');
+  if (!existing) return fail('先にプロフィールを作成してください');
 
   const { error } = await supabase.rpc('save_my_profile', {
     p_display_name: v.displayName,
@@ -134,8 +134,8 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     p_src: null,
   });
   if (error) return fail(toUserMessage(error));
-  // マイページでランク帯を保存したら「選択済み」にする
-  await supabase.rpc('confirm_my_rank', { p_rank_band: v.rankBand });
+  // マイページでランクを保存したら「選択済み」にする
+  if (v.rankBand) await supabase.rpc('confirm_my_rank', { p_rank_band: v.rankBand });
   revalidatePath('/', 'layout');
   return { ok: true, message: 'プロフィールを保存しました' };
 }
@@ -185,7 +185,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
 
 export async function cancelRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('cancel_recruitment', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
@@ -198,8 +198,8 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
 export async function setRoomCodeAction(recruitmentId: string, roomCode: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
   const code = typeof roomCode === 'string' ? roomCode.trim() : '';
-  if (!id.success) return fail('不正なリクエストです');
-  if (code && !/^[0-9A-Za-z-]{1,16}$/.test(code)) return fail('部屋番号は半角英数字16文字以内です');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  if (code && !/^[0-9A-Za-z-]{1,16}$/.test(code)) return fail('部屋番号は半角英数字16文字以内で入力してください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_room_code', { p_recruitment_id: id.data, p_room_code: code });
   if (error) return fail(toUserMessage(error));
@@ -215,7 +215,7 @@ export async function requestJoinAction(
   src?: string | null,
 ): Promise<ActionResult<{ joined: boolean }>> {
   const id = uuidSchema.safeParse(recruitmentId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('request_join', {
     p_recruitment_id: id.data,
@@ -230,13 +230,13 @@ export async function requestJoinAction(
   return {
     ok: true,
     data: { joined },
-    message: joined ? '参加しました' : '申請しました',
+    message: joined ? '参加しました' : '参加を申請しました',
   };
 }
 
 export async function cancelParticipationAction(recruitmentId: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('cancel_participation', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
@@ -252,7 +252,7 @@ export async function decideParticipationAction(
   decision: 'approved' | 'rejected',
 ): Promise<ActionResult> {
   const parsed = decisionSchema.safeParse({ participationId, decision });
-  if (!parsed.success) return fail('不正なリクエストです');
+  if (!parsed.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('decide_participation', {
     p_participation_id: parsed.data.participationId,
@@ -261,7 +261,7 @@ export async function decideParticipationAction(
   if (error) return fail(toUserMessage(error));
   pushLater();
   if (uuidSchema.safeParse(recruitmentId).success) revalidatePath(`/recruitments/${recruitmentId}`);
-  return { ok: true, message: decision === 'approved' ? '承認しました' : '更新しました' };
+  return { ok: true, message: decision === 'approved' ? '承認しました' : '見送りました' };
 }
 
 // ---------------------------------------------------------------------
@@ -289,7 +289,7 @@ export async function sendMessageAction(
 // ---------------------------------------------------------------------
 export async function blockUserAction(userId: string, block: boolean): Promise<ActionResult> {
   const id = uuidSchema.safeParse(userId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc(block ? 'block_user' : 'unblock_user', { p_target: id.data });
   if (error) return fail(toUserMessage(error));
@@ -329,7 +329,7 @@ export async function feedbackAction(_prev: ActionResult | null, fd: FormData): 
     p_page: parsed.data.page,
   });
   if (error) return fail(toUserMessage(error));
-  return { ok: true, message: '送りました' };
+  return { ok: true, message: '送信しました。ありがとうございます' };
 }
 
 // ---------------------------------------------------------------------
@@ -359,7 +359,7 @@ export async function setAvailableNowAction(on: boolean): Promise<ActionResult> 
   const { error } = await supabase.rpc('set_available_now', { p_on: on });
   if (error) return fail(toUserMessage(error));
   revalidatePath('/now');
-  return { ok: true, message: on ? '「今から遊べる」を登録しました (3時間後に自動で消えます)' : '登録を解除しました' };
+  return { ok: true, message: on ? '「今から遊べる」に表示しました (3時間後に消えます)' : '表示をやめました' };
 }
 
 // ---------------------------------------------------------------------
@@ -367,7 +367,7 @@ export async function setAvailableNowAction(on: boolean): Promise<ActionResult> 
 // ---------------------------------------------------------------------
 export async function adminUserAction(userId: string, action: 'suspend' | 'ban' | 'restore'): Promise<ActionResult> {
   const parsed = adminUserActionSchema.safeParse({ userId, action });
-  if (!parsed.success) return fail('不正なリクエストです');
+  if (!parsed.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('admin_set_user_state', {
     p_user: parsed.data.userId,
@@ -380,7 +380,7 @@ export async function adminUserAction(userId: string, action: 'suspend' | 'ban' 
 
 export async function adminDeleteRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('admin_delete_recruitment', { p_recruitment_id: id.data });
   if (error) return fail(toUserMessage(error));
@@ -394,7 +394,7 @@ export async function adminResolveAction(
   unhide: boolean,
 ): Promise<ActionResult> {
   const parsed = adminResolveSchema.safeParse({ targetType, targetId, unhide });
-  if (!parsed.success) return fail('不正なリクエストです');
+  if (!parsed.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('admin_resolve_target', {
     p_target_type: parsed.data.targetType,
@@ -435,13 +435,13 @@ export async function persistSessionAction(): Promise<void> {
 /** シートの「はじめる」: プロフィールを作る (セッションはブラウザの signInAnonymously で作成済み) */
 export async function createProfileAction(input: {
   displayName: string;
-  rankBand: string;
+  rankBand?: string | null;
   playRoles: string[];
   agreeTerms: boolean;
 }): Promise<ActionResult> {
   const parsed = onboardingSchema.safeParse({
     displayName: input.displayName ?? '',
-    rankBand: input.rankBand ?? '',
+    rankBand: input.rankBand ?? null,
     playRoles: Array.isArray(input.playRoles) ? input.playRoles : [],
     agreeTerms: input.agreeTerms === true,
     src: await srcFromCookie(),
@@ -450,9 +450,9 @@ export async function createProfileAction(input: {
   const v = parsed.data;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return fail('始められませんでした。再読み込みしてもう一度');
+  if (!auth.user) return fail('始められませんでした。ページを再読み込みして、もう一度お試しください');
   const { data: existing, error: lookupError } = await supabase.from('profiles').select('id').eq('id', auth.user.id).maybeSingle();
-  if (lookupError) return fail('うまくいきませんでした。もう一度押してください');
+  if (lookupError) return fail('エラーが発生しました。もう一度お試しください');
   if (!existing) {
     const { error } = await supabase.rpc('save_my_profile', {
       p_display_name: v.displayName,
@@ -482,13 +482,13 @@ export async function createProfileAction(input: {
 // ---------------------------------------------------------------------
 export async function setFollowAction(userId: string, on: boolean): Promise<ActionResult> {
   const id = uuidSchema.safeParse(userId);
-  if (!id.success) return fail('不正なリクエストです');
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_follow', { p_target: id.data, p_on: Boolean(on) });
   if (error) return fail(toUserMessage(error));
   revalidatePath('/me');
   revalidatePath(`/users/${id.data}`);
-  return { ok: true, message: on ? '募集を出したら通知します' : '通知をやめました' };
+  return { ok: true, message: on ? 'この方が募集を出したらお知らせします' : '通知をオフにしました' };
 }
 
 export async function savePushSubscriptionAction(sub: { endpoint: string; p256dh: string; auth: string }): Promise<ActionResult> {
@@ -509,7 +509,7 @@ export async function savePushSubscriptionAction(sub: { endpoint: string; p256dh
 }
 
 export async function deletePushSubscriptionAction(endpoint: string): Promise<ActionResult> {
-  if (typeof endpoint !== 'string' || endpoint.length > 1000) return fail('不正なリクエストです');
+  if (typeof endpoint !== 'string' || endpoint.length > 1000) return fail('操作できませんでした。ページを再読み込みしてください');
   const supabase = await createClient();
   const { error } = await supabase.rpc('delete_push_subscription', { p_endpoint: endpoint });
   if (error) return fail(toUserMessage(error));
@@ -524,4 +524,62 @@ export async function confirmRankAction(rank: string): Promise<ActionResult> {
   if (error) return fail(toUserMessage(error));
   revalidatePath('/', 'layout');
   return { ok: true, message: 'ランクを保存しました' };
+}
+
+/** 通知を消す (id がなければ自分の通知をすべて) */
+export async function deleteNotificationsAction(id?: string | null): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return fail('ログインが必要です');
+  let q = supabase.from('notifications').delete().eq('user_id', data.user.id);
+  if (id) {
+    const v = uuidSchema.safeParse(id);
+    if (!v.success) return fail('操作できませんでした');
+    q = q.eq('id', v.data);
+  }
+  const { error } = await q;
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/', 'layout');
+  return { ok: true, message: id ? '通知を削除しました' : 'すべての通知を削除しました' };
+}
+
+// ---------------------------------------------------------------------
+// v8: 管理者のデータ削除 (権限は DB の private.require_admin で確かめる)
+// ---------------------------------------------------------------------
+export async function adminDeleteReportsAction(targetType: string | null, targetId: string | null, resolvedOnly: boolean): Promise<ActionResult> {
+  if (targetId && !uuidSchema.safeParse(targetId).success) return fail('操作できませんでした');
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_delete_reports', {
+    p_target_type: targetType,
+    p_target_id: targetId,
+    p_resolved_only: resolvedOnly,
+  });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: `通報を${data ?? 0}件削除しました` };
+}
+
+export async function adminDeleteFeedbackAction(id: string | null): Promise<ActionResult> {
+  if (id && !uuidSchema.safeParse(id).success) return fail('操作できませんでした');
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_delete_feedback', { p_ids: id ? [id] : null });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: `フィードバックを${data ?? 0}件削除しました` };
+}
+
+export async function adminDeleteInactiveUsersAction(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('admin_delete_inactive_users');
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: `${data ?? 0}件のアカウントを削除しました` };
+}
+
+export async function adminRunCleanupAction(): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_run_cleanup');
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: '古いデータを削除しました' };
 }

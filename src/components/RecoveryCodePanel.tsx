@@ -12,7 +12,7 @@ export function RecoveryCodePanel({
   code,
   next,
   loginId,
-  heading = '登録できました',
+  heading = '登録しました',
   onContinue,
 }: {
   code: string;
@@ -66,7 +66,7 @@ export function RecoveryCodePanel({
           else window.location.assign(next);
         }}
       >
-        つづける
+        続ける
         <ArrowRight className="size-5" aria-hidden />
       </button>
     </section>

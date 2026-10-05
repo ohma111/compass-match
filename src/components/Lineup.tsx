@@ -155,7 +155,7 @@ export function Lineup({
                 onClick={joinSeat!.onJoin}
                 disabled={joinSeat!.pending}
                 className="block w-full text-left focus-visible:outline-offset-4 disabled:cursor-wait"
-                aria-label={`空いている席に入る: ${joinSeat!.label}`}
+                aria-label={`空いている席から${joinSeat!.label}`}
               >
                 {body}
               </button>
@@ -174,12 +174,12 @@ export function Lineup({
 }
 
 /** マイページ・プロフィールの大きな1席 (名前の頭文字の代わりに、ロールか模様) */
-export function ProfileSeat({ id, roles, rank }: { id: string; roles: PlayRole[]; rank: RankBand }) {
+export function ProfileSeat({ id, roles, rank }: { id: string; roles: PlayRole[]; rank: RankBand | null }) {
   return (
     <div className="ml-3 flex h-28 w-22 shrink-0 flex-col justify-end bg-ink px-3 pb-3 text-white [transform:skewX(var(--seat-skew))]" aria-hidden>
       <div className="[transform:skewX(calc(var(--seat-skew)*-1))]">
         <Face s={{ kind: 'member', id, roles }} className="size-10" />
-        <p className="mt-1.5 font-mono text-[12px] font-bold">{RANK_SHORT[rank]}</p>
+        {rank && <p className="mt-1.5 font-mono text-[12px] font-bold">{RANK_SHORT[rank]}</p>}
       </div>
     </div>
   );

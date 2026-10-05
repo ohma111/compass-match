@@ -1,19 +1,17 @@
 'use client';
-import { RankPicker } from '@/components/RankPicker';
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { onboardAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
 import { RoleIcon } from '@/components/RoleIcon';
-import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_BANDS_DESC, RANK_LABELS, type RankBand } from '@/lib/constants';
+import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS } from '@/lib/constants';
 
 export function OnboardingForm({ next, suggestedName }: { next: string; suggestedName: string }) {
   const [state, formAction, pending] = useActionState(onboardAction, null);
   const [name, setName] = useState(suggestedName);
-  const [rank, setRank] = useState<RankBand | ''>('');
   const [agree, setAgree] = useState(false);
-  const ready = name.trim().length > 0 && rank !== '' && agree;
+  const ready = name.trim().length > 0 && agree;
 
   return (
     <form action={formAction} className="space-y-8">
@@ -29,14 +27,9 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
           maxLength={LIMITS.displayName}
           autoComplete="nickname"
           className="input text-lg font-bold"
-          placeholder="みんなに表示される名前"
+          placeholder="ほかの人に表示される名前"
         />
       </div>
-
-      <fieldset>
-        <legend className="label">ランク</legend>
-        <RankPicker name="rankBand" value={rank} onChange={setRank} />
-      </fieldset>
 
       <fieldset>
         <legend className="label">

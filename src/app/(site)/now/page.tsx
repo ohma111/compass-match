@@ -5,7 +5,7 @@ import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { nowListView } from '@/lib/now-list';
 import { formatJstTime } from '@/lib/time';
-import { RANK_LABELS } from '@/lib/constants';
+import { rankLabel } from '@/lib/constants';
 import { ActionButton } from '@/components/ActionButton';
 import { setAvailableNowAction } from '@/app/actions';
 import type { RankBand } from '@/lib/constants';
@@ -32,25 +32,25 @@ export default async function NowPage() {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">今から遊べる</h1>
-      <p className="text-sm text-muted">「今から遊べる」を押すと3時間だけ表示されます。気になる人がいたら、募集を出して声をかけてみましょう。</p>
+      <p className="text-sm text-muted">「今から遊べる」を押すと、この一覧に3時間表示されます。</p>
       {mine ? (
         <div className="card space-y-2">
-          <p className="text-sm">あなたは {formatJstTime(mine.expires_at)} まで表示されています。</p>
+          <p className="text-sm">{formatJstTime(mine.expires_at)} まで表示されます。</p>
           <ActionButton action={setAvailableNowAction.bind(null, false)} className="btn-outline btn-sm">表示をやめる</ActionButton>
         </div>
       ) : (
         <ActionButton action={setAvailableNowAction.bind(null, true)} className="btn-primary w-full">今から遊べる</ActionButton>
       )}
       <section className="space-y-2">
-        <h2 className="font-bold">{view.showCount ? view.countLabel : 'いま動いている人'}</h2>
+        <h2 className="font-bold">{view.showCount ? view.countLabel : '今遊べる人'}</h2>
         {others.length === 0 ? (
-          <p className="text-sm text-muted">ほかの人が来るまで、募集を出して待ってみませんか? <Link href="/recruitments/new" className="link">募集する</Link></p>
+          <p className="text-sm text-muted">まだ誰もいません。<Link href="/recruitments/new" className="link">募集する</Link></p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {others.map((r) => (
               <li key={r.user_id}>
                 <Link href={`/users/${r.user_id}`} className="chip py-1 text-sm text-fg">
-                  {r.profile!.display_name}<span className="ml-1 text-muted">{RANK_LABELS[r.profile!.rank_band]}</span>
+                  {r.profile!.display_name}<span className="ml-1 text-muted">{rankLabel(r.profile!.rank_band)}</span>
                 </Link>
               </li>
             ))}

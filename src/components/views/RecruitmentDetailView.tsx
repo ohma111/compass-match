@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ChevronLeft, Lock } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { formatJst, formatJstRange } from '@/lib/time';
-import { STANCE_LABELS, PURPOSE_LABELS, RANK_LABELS, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
+import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
 import { TimeRail } from '@/components/TimeRail';
@@ -32,6 +32,8 @@ export interface RecruitmentDetailViewProps {
   created?: boolean;
   justJoined?: boolean;
   siteUrl: string;
+  /** 自分がブロックしている人が募集者か参加者にいる */
+  blockedHere?: boolean;
 }
 
 /** X の投稿画面を開くだけのリンク (APIは使わない)。流入計測のため ?src=x を付ける */
@@ -82,7 +84,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
     <section className="border-2 border-dashed border-ink/50 p-5 text-ink-2" aria-label="メンバー限定">
       <p className="flex items-center gap-2 font-bold">
         <Lock className="size-4" aria-hidden />
-        部屋番号・チャットは{myState === 'pending' ? 'OKが出たら' : '参加後'}
+        {myState === 'pending' ? '承認されると、部屋番号とチャットが表示されます' : '参加すると、部屋番号とチャットが表示されます'}
       </p>
     </section>
   );
@@ -159,6 +161,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               src={src}
               size="lg"
               hideWhenJoined
+              warnBlocked={Boolean(props.blockedHere)}
             />
           )}
           {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
@@ -173,6 +176,11 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
         </aside>
 
         <section className="lg:col-span-7 lg:col-start-1 lg:row-start-2" aria-label="パーティの席">
+          {props.blockedHere && (
+            <p className="alert-error mb-4" role="status">
+              ブロックしている方がこの募集にいます。{myState === 'approved' ? '参加を取り消す場合は、下の「参加を取り消す」を押してください。' : ''}
+            </p>
+          )}
           <LobbyLineup
             recruitmentId={id}
             seats={seats}
@@ -189,13 +197,14 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             src={src}
             stamp={stamp}
             live={active && !r.hidden_at}
+            warnBlocked={Boolean(props.blockedHere)}
           />
           {!isOwner && (
             <div className="mt-2 space-y-2 lg:mx-auto lg:max-w-md">
-              {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者のOK待ち</p>}
+              {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者の承認待ちです</p>}
               {(myState === 'pending' || myState === 'approved') && active && (
-                <ActionButton action={cancelParticipationAction.bind(null, id)} className="btn-ghost btn-sm w-full" confirm="参加をやめる?">
-                  {myState === 'pending' ? '申請を取り消す' : '参加をやめる'}
+                <ActionButton action={cancelParticipationAction.bind(null, id)} className="btn-ghost btn-sm w-full" confirm={myState === 'pending' ? '申請を取り消しますか？' : '参加を取り消しますか？'}>
+                  {myState === 'pending' ? '申請を取り消す' : '参加を取り消す'}
                 </ActionButton>
               )}
             </div>
@@ -209,7 +218,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                     <ActionButton
                       action={decideParticipationAction.bind(null, id, p.id, 'rejected')}
                       className="btn-outline btn-sm"
-                      confirm={`${p.profile?.display_name ?? 'この参加者'}さんを外す?`}
+                      confirm={`${p.profile?.display_name ?? 'この参加者'}さんを外しますか？`}
                     >
                       {p.profile?.display_name ?? '参加者'}さんを外す
                     </ActionButton>
@@ -228,7 +237,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               <h2 id="requests-title" className="section-title">
                 参加申請 <span className="ml-1 font-sans text-sm font-bold text-slate">{pending.length}件</span>
               </h2>
-              {pending.length === 0 && <p className="text-sm text-slate">まだなし</p>}
+              {pending.length === 0 && <p className="text-sm text-slate">まだありません</p>}
               <ul className="space-y-2">
                 {pending.map((p) => (
                   <li key={p.id} className="sheet space-y-3 p-4">
@@ -236,7 +245,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                       <Link href={`/users/${p.user_id}`} className="truncate font-bold underline-offset-4 hover:underline">
                         {p.profile?.display_name ?? '(非表示のユーザー)'}
                       </Link>
-                      {p.profile && <span className="shrink-0 text-xs text-slate">{RANK_LABELS[p.profile.rank_band]}</span>}
+                      {p.profile && <span className="shrink-0 text-xs text-slate">{rankLabel(p.profile.rank_band)}</span>}
                     </div>
                     {p.profile && p.profile.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5"><MoodTags tags={p.profile.tags} /></div>
@@ -257,7 +266,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           {isMember && (
             <section className="space-y-2" aria-labelledby="contacts-title">
               <h2 id="contacts-title" className="section-title">{isOwner ? '参加者の連絡先' : '募集者の連絡先'}</h2>
-              {contacts.length === 0 && <p className="text-sm text-slate">なし</p>}
+              {contacts.length === 0 && <p className="text-sm text-slate">ありません</p>}
               <ul className="space-y-1 text-sm">
                 {contacts.map((c) => (
                   <li key={c.user_id} className="flex flex-wrap gap-x-3">
@@ -265,7 +274,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                     {c.contact_discord && <span className="break-all text-ink-2">Discord {c.contact_discord}</span>}
                     {c.contact_x && <span className="break-all text-ink-2">X @{c.contact_x}</span>}
                     {c.contact_ingame && <span className="break-all text-ink-2">ゲーム内 {c.contact_ingame}</span>}
-                    {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先なし</span>}
+                    {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先は登録されていません</span>}
                   </li>
                 ))}
               </ul>
@@ -276,7 +285,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full lg:hidden" />
             )}
             {isOwner && active && (
-              <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消す?">
+              <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消しますか？">
                 募集を取り消す
               </ActionButton>
             )}

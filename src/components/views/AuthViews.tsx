@@ -1,7 +1,4 @@
-import Link from 'next/link';
 import { signInWithProvider } from '@/app/auth/actions';
-import { LoginForm } from '@/components/LoginForm';
-import { RecoverForm } from '@/components/RecoverForm';
 import { TransferRedeem } from '@/components/TransferForms';
 import { Lineup } from '@/components/Lineup';
 
@@ -15,7 +12,7 @@ function DiscordOption({ next, configured }: { next: string; configured: boolean
         className="inline-flex min-h-11 items-center font-bold text-ink underline underline-offset-4 disabled:opacity-50"
         disabled={!configured}
       >
-        Discordでログイン
+        Discord でログイン
       </button>
     </form>
   );
@@ -42,41 +39,13 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
         <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
-        {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
+        {!configured && <p className="alert-error mt-4">サーバーの設定が完了していないため、現在は利用できません</p>}
         <div className="mt-6">
           <TransferRedeem configured={configured} hasProfileHere={hasProfileHere} />
         </div>
-        <p className="mt-6 border-t border-line pt-4 text-sm">
-          <Link href="/login" className="inline-flex min-h-11 items-center underline underline-offset-4">以前の方法でログイン</Link>
-        </p>
-      </div>
-      <LobbyAside />
-    </div>
-  );
-}
-
-/** 以前の方法でログイン: v3 のユーザーID + パスワードと、Discord (管理者用) */
-export function LoginView({ next, configured, resuming }: { next: string; configured: boolean; resuming: boolean }) {
-  const q = `next=${encodeURIComponent(next)}`;
-  void resuming;
-  return (
-    <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
-      <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
-        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">以前の方法でログイン</h1>
-        {!configured && <p className="alert-error mt-4">設定待ちのため使えません</p>}
-        <div className="mt-6">
-          <LoginForm next={next} configured={configured} />
-        </div>
-        <div className="mt-4 flex flex-wrap justify-between gap-x-4 text-sm">
-          <Link href={`/login/recover?${q}`} className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
-            パスワードを忘れた
-          </Link>
-          <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold text-ally underline underline-offset-4">
-            引き継ぎコードで入る
-          </Link>
-        </div>
-        <div className="mt-6 border-t border-line pt-4">
-          <DiscordOption next={next} configured={configured} />
+        <div className="mt-10 border-t-2 border-ink pt-4">
+          <p className="text-[13px] font-bold text-slate">運営者用</p>
+          <DiscordOption next="/me" configured={configured} />
         </div>
       </div>
       <LobbyAside />
@@ -84,13 +53,3 @@ export function LoginView({ next, configured, resuming }: { next: string; config
   );
 }
 
-export function RecoverView({ next, configured }: { next: string; configured: boolean }) {
-  return (
-    <div className="mx-auto max-w-md">
-      <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[34px]">パスワードを忘れたとき</h1>
-      <div className="mt-6">
-        <RecoverForm next={next} configured={configured} />
-      </div>
-    </div>
-  );
-}

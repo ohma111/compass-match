@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { LogoMark } from '@/components/LogoMark';
+import { Wordmark } from '@/components/Wordmark';
 
 // どのページにも当てはまらない URL 用 (共通の枠の外で表示される)
 export default function NotFound() {
@@ -9,7 +10,7 @@ export default function NotFound() {
         <div className="mx-auto flex h-13 max-w-[1240px] items-center px-4 lg:px-8">
           <Link href="/" className="flex min-h-11 items-center gap-2.5">
             <LogoMark />
-            <span className="text-[19px] font-black tracking-[-0.03em]">コンパスマッチ</span>
+            <Wordmark className="text-[18px]" />
           </Link>
         </div>
       </header>

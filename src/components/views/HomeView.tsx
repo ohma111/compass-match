@@ -13,6 +13,8 @@ import { formatJstTime, isSameJstDay, jstParts } from '@/lib/time';
 export interface HomeViewProps {
   items: Recruitment[];
   states: Record<string, JoinState>;
+  /** 自分がブロックしている人がいる募集 */
+  blocked?: string[];
   auth: AuthState;
   viewerId?: string | null;
   filter: { purpose: Purpose | 'all'; soon: boolean };
@@ -44,7 +46,7 @@ function href(purpose: Purpose | 'all', soon: boolean) {
 }
 
 /** ホーム = 今夜の時間割。募集を開始時刻の順に、時刻を左に置いて並べる */
-export function HomeView({ items, states, auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
+export function HomeView({ items, states, blocked = [], auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
   const filtered = filter.purpose !== 'all' || filter.soon;
   const d = jstParts(now);
   const dateLine = `${String(d.month).padStart(2, '0')}.${String(d.day).padStart(2, '0')} ${WEEKDAYS[d.weekday]}`;
@@ -124,23 +126,23 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
       </aside>
 
       <section aria-label="募集一覧" className="mt-5 lg:mt-0">
-        {loadError && <p className="alert-error">募集を読み込めませんでした。再読み込みしてください</p>}
+        {loadError && <p className="alert-error">募集を読み込めませんでした。ページを再読み込みしてください</p>}
 
         {!loadError && items.length === 0 && (
           <div className="grid grid-cols-[64px_minmax(0,1fr)] border-y-2 border-ink lg:grid-cols-[132px_minmax(0,1fr)]">
             <p className="type-time pt-4 text-[30px] text-ink/30 lg:pt-6 lg:text-[44px]">--:--</p>
             <div className="border-l border-ink/80 py-6 pl-4 lg:py-10 lg:pl-6">
               <h2 className="text-[20px] leading-snug font-black text-balance lg:text-[26px]">
-                {filtered ? 'この条件の募集はなし' : 'まだ募集なし'}
+                {filtered ? 'この条件の募集はありません' : 'まだ募集はありません'}
               </h2>
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
                 <Link href="/recruitments/new" className="btn-signal btn-lg">
                   <Plus className="size-5" strokeWidth={3} aria-hidden />
-                  募集を出す
+                  募集する
                 </Link>
                 {filtered && (
                   <Link href="/" className="inline-flex min-h-11 items-center text-sm font-bold underline underline-offset-4">
-                    絞り込みをやめる
+                    絞り込みを解除
                   </Link>
                 )}
               </div>
@@ -162,6 +164,7 @@ export function HomeView({ items, states, auth, viewerId, filter, now, loadError
                 auth={auth}
                 viewerId={viewerId}
                 myState={states[r.id]}
+                blockedHere={blocked.includes(r.id)}
                 index={i}
                 repeatTime={i > 0 && items[i - 1].starts_at === r.starts_at && new Date(r.starts_at) > now}
                 />

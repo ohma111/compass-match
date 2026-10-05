@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { isSupabaseConfigured } from '@/lib/env';
 import { createClient } from '@/lib/supabase/server';
@@ -22,6 +23,17 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   // ヘッダーの表示用。取得に失敗してもページ本体 (各ページが自分で取得してエラーを出す) は表示する
   // 未読数はユーザーIDだけで取れるので、プロフィールの取得と並行して始める
   const claims = isSupabaseConfigured() ? await getSessionClaims().catch(() => null) : null;
+  // 最終利用日 (長く使われていないアカウントの自動削除に使う)。応答を返したあとに書く
+  if (claims) {
+    const supabase = await createClient();
+    after(async () => {
+      try {
+        await supabase.rpc('touch_last_seen');
+      } catch {
+        // 記録できなくても表示は続ける
+      }
+    });
+  }
   const [viewer, unread] = await Promise.all([
     getViewerSafe().catch((): Viewer | null => null),
     claims ? unreadCount(claims.userId) : Promise.resolve(0),
@@ -32,7 +44,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       signedIn={Boolean(viewer)}
       restricted={isRestricted(viewer?.profile ?? null)}
       configured={isSupabaseConfigured()}
-      confirmRank={viewer?.profile && viewer.profile.rank_confirmed === false ? viewer.profile.rank_band : null}
+      rankReady={Boolean(viewer?.profile?.rank_band && viewer.profile.rank_confirmed !== false)}
+      currentRank={viewer?.profile?.rank_band ?? null}
     >
       {children}
     </AppShell>
