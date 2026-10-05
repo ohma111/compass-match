@@ -14,7 +14,7 @@ Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel
 - Supabase Free は1週間アクセスがないと一時停止する (請求ではない)。
 - 有料プランに上げる操作は運営者が判断する。
 
-## 今の仕様(v8)
+## 今の仕様(v9)
 - 各版の変更は CLAUDE.md を参照。
 - 見た目: 「タイムテーブル」。ホームは募集を開始時刻の時間割として並べ、「いま」の線と日付の帯を入れる。席は「ロール + ランク」、ロール未登録は模様。
 
@@ -23,12 +23,13 @@ Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel
 - 募集: 目的・開始・人数・参加方式(早い者勝ち/承認制)をタップで選ぶ。参加が決まった人だけに部屋番号とチャット。
 - 通報・ブロック・管理画面あり。作成24時間未満のアカウントの通報は自動非表示の人数に数えない。始めて10分以内の匿名アカウントはチャット10件まで。
 - ログイン画面はない。別の端末へは引き継ぎコードだけ。引き継ぎ画面の下に運営者用の「Discord でログイン」(管理者アカウント)。旧方式のユーザーID+パスワードの入口は v8 で削除。
-- 保存期間 (app_settings): チャットは募集終了から90分、募集は15日、通知は7日、60日使われていないアカウントは削除 (管理者・進行中の募集がある人は除く)。
+- 保存期間 (app_settings): チャットは募集終了から90分、募集は15日、通知は7日、60日操作のないアカウントは削除 (管理者・運営者の Discord アカウント・進行中の募集がある人は除く)。
+- 管理画面: 通報 / ユーザー (BAN・削除) / 募集 (期間の集計・ログ削除) / フィードバック (異議申し立てを含む) / 指標 / 容量 / メンテナンス・お知らせ。
 
 ## 本番の設定(済み)
 | 場所 | 設定 |
 | --- | --- |
-| Supabase (リージョン: ソウル) | migrations 1〜12 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
+| Supabase (リージョン: ソウル) | migrations 1〜13 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
 | Vercel (Hobby・無料) | 環境変数 `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_SITE_URL` `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW=false` `NOW_LIST_MIN_USERS=30` `SUPABASE_SERVICE_ROLE_KEY`(サーバー専用) / 関数リージョン `icn1`(ソウル、`vercel.json`) |
 | GitHub | `ohma111/compass-match`(非公開)。main に push すると Vercel が自動で公開 |
 
