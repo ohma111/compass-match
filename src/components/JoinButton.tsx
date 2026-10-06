@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronRight, Hand, Zap } from 'lucide-react';
 import { requestJoinAction } from '@/app/actions';
 import { joinButtonLabel } from '@/lib/capacity';
-import type { JoinMode } from '@/lib/constants';
+import { meetsMinRank, RANK_MIN_LABELS, type JoinMode, type RankBand } from '@/lib/constants';
 import { useEnsureProfile } from './ProfileSheet';
-import { useEnsureRank } from './RankSheet';
+import { useCurrentRank, useEnsureRank, useRankNow } from './RankSheet';
+import { useEnsureDiscord } from './DiscordSheet';
 
 export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted';
 
@@ -23,10 +24,12 @@ export interface JoinControl {
  * そのあと詳細ページで自動的に参加を再開する (IntentRunner)。
  * 文字のボタンと、ロビーの空き席の両方から同じものを使う。
  */
-export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null): JoinControl {
+export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null, minRank?: RankBand | null, vcOn = false): JoinControl {
   const router = useRouter();
   const ensureProfile = useEnsureProfile();
   const ensureRank = useEnsureRank();
+  const rankNow = useRankNow();
+  const ensureDiscord = useEnsureDiscord();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -44,6 +47,13 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
     }
     // ランクは初めて参加するときに聞く
     if (!(await ensureRank())) return;
+    // ランク条件より下の方は参加できない (DB でも止めている)
+    if (!meetsMinRank(rankNow(), minRank)) {
+      setError(`ランク条件 (${RANK_MIN_LABELS[minRank!]}) を満たしていないため、参加できません`);
+      return;
+    }
+    // VC ありの募集は Discord のユーザー名を先に聞く
+    if (vcOn && !(await ensureDiscord())) return;
     doJoin();
   }
 
@@ -57,7 +67,7 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       if (r.data?.joined) {
         router.push(`${detail}?joined=1`);
       } else {
-        setDone('申請しました。承認をお待ちください');
+        setDone('申請しました');
         router.refresh();
       }
     });
@@ -84,8 +94,13 @@ export function JoinButton(props: {
   compact?: boolean;
   /** 自分がブロックしている人がいる募集: 押したらもう一度確かめる */
   warnBlocked?: boolean;
+  /** 募集のランク条件 */
+  minRank?: RankBand | null;
+  /** VC ありの募集 (参加のとき Discord のユーザー名を聞く) */
+  vcOn?: boolean;
 }) {
-  const own = useJoin(props.recruitmentId, props.auth, props.src);
+  const own = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn);
+  const myRank = useCurrentRank();
   const { join, pending, error, done } = props.control ?? own;
   const [confirming, setConfirming] = useState(false);
   const { recruitmentId, joinMode, auth, canJoin, reason, isOwner, joined, size = 'md', hideWhenJoined = false } = props;
@@ -102,12 +117,14 @@ export function JoinButton(props: {
     );
   }
   if (done) {
-    return <p className={`btn border-2 border-ok bg-sheet text-ok ${sizing}`} role="status">{done}</p>;
+    return <p className={`btn border-2 border-ok bg-sheet text-ok ${sizing}`} role="status">{props.compact ? '承認待ち' : '申請しました。承認をお待ちください'}</p>;
   }
-  if (!canJoin || auth === 'restricted') {
+  // ランクが分かっていて条件に届かないときは、最初から押せなくする
+  const rankShort = canJoin && props.minRank && myRank && !meetsMinRank(myRank, props.minRank);
+  if (!canJoin || auth === 'restricted' || rankShort) {
     return (
       <p className={`btn hatch text-ink-2 ${sizing}`} aria-disabled="true">
-        {auth === 'restricted' ? '現在ご利用いただけません' : reason}
+        {auth === 'restricted' ? '現在ご利用いただけません' : rankShort ? `${RANK_MIN_LABELS[props.minRank!]}の募集です` : reason}
       </p>
     );
   }

@@ -17,6 +17,7 @@ export interface Mate {
   display_name: string;
   rank_band: RankBand | null;
   play_roles: PlayRole[];
+  avatar?: import("@/lib/constants").Avatar | null;
   times: number;
   following: boolean;
 }
@@ -47,7 +48,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
     <div className="lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start lg:gap-14">
       <aside className="space-y-6 lg:sticky lg:top-28">
         <section className="flex items-center gap-6" aria-label="プロフィール">
-          <ProfileSeat id={userId} roles={profile.play_roles} rank={profile.rank_band} />
+          <ProfileSeat id={userId} roles={profile.play_roles} rank={profile.rank_band} avatar={profile.avatar ?? null} />
           <div className="min-w-0">
             <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{profile.display_name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
@@ -77,6 +78,9 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
 
         <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="push-title">
           <h2 id="push-title" className="section-title">通知</h2>
+          <p className="text-[13px] leading-relaxed text-slate">
+            参加の申請や承認、チャット、メンバーがそろったとき、一緒に遊んだ人の募集を、この端末にすぐお知らせします。アプリを開いていなくても届きます。
+          </p>
           <PushToggle />
         </section>
 
@@ -134,7 +138,7 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
               {mates.map((m) => (
                 <li key={m.id} className="flex items-center gap-3 py-2">
                   <Link href={`/users/${m.id}`} className="flex min-h-12 min-w-0 flex-1 items-center gap-3">
-                    <MiniSeat id={m.id} roles={m.play_roles} />
+                    <MiniSeat id={m.id} roles={m.play_roles} avatar={m.avatar ?? null} />
                     <span className="min-w-0">
                       <span className="block truncate text-[15px] font-black">{m.display_name}</span>
                       <span className="block font-mono text-[11px] text-slate">

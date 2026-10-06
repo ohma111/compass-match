@@ -14,7 +14,7 @@ Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel
 - Supabase Free は1週間アクセスがないと一時停止する (請求ではない)。
 - 有料プランに上げる操作は運営者が判断する。
 
-## 今の仕様(v10)
+## 今の仕様(v11)
 - 各版の変更は CLAUDE.md を参照。
 - 見た目: 「タイムテーブル」。ホームは募集を開始時刻の時間割として並べ、「いま」の線と日付の帯を入れる。席は「ロール + ランク」、ロール未登録は模様。
 
@@ -29,7 +29,7 @@ Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel
 ## 本番の設定(済み)
 | 場所 | 設定 |
 | --- | --- |
-| Supabase (リージョン: ソウル) | migrations 1〜14 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
+| Supabase (リージョン: ソウル) | migrations 1〜15 適用済み / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
 | Vercel (Hobby・無料) | 環境変数 `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_SITE_URL` `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW=false` `NOW_LIST_MIN_USERS=30` `SUPABASE_SERVICE_ROLE_KEY`(サーバー専用) / 関数リージョン `icn1`(ソウル、`vercel.json`) |
 | GitHub | `ohma111/compass-match`(非公開)。main に push すると Vercel が自動で公開 |
 

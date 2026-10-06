@@ -1,5 +1,6 @@
 'use client';
 import { RankPicker } from '@/components/RankPicker';
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { useEffect } from 'react';
 import { useActionState } from 'react';
 import { saveProfileAction } from '@/app/actions';
@@ -43,8 +44,11 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
 
   return (
     <form action={formAction} className="space-y-8">
+      <AvatarPicker initial={profile.avatar ?? null} />
       <div>
-        <label className="label" htmlFor="displayName">表示名</label>
+        <label className="label" htmlFor="displayName">
+          ユーザー名 <span className="text-xs font-normal text-muted">(他のユーザーに表示される名前です)</span>
+        </label>
         <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile.display_name} className="input" />
       </div>
       <fieldset>

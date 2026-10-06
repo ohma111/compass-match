@@ -20,6 +20,8 @@ export const PROFILE_COLUMNS = [
   'created_at',
   // v3 (20261001000006_v3.sql): ランク帯を本人がもう選んだか
   'rank_confirmed',
+  // v11 (20261006000015_v11.sql): 選んだアイコン
+  'avatar',
 ] as const;
 
 export const PROFILE_SELECT = PROFILE_COLUMNS.join(', ');

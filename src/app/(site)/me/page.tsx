@@ -11,7 +11,7 @@ import type { JoinState } from '@/lib/capacity';
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'マイページ' };
 
-const OWNER_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles)`;
+const OWNER_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles, avatar)`;
 
 export default async function MePage() {
   const viewer = await getViewerSafe();
@@ -39,7 +39,7 @@ export default async function MePage() {
     supabase.from('accounts').select('login_id').eq('user_id', viewer.userId).maybeSingle(),
     supabase
       .from('play_mates')
-      .select('mate_id, times, last_played_at, mate:profiles!play_mates_mate_id_fkey(id, display_name, rank_band, play_roles, banned_at, hidden_at)')
+      .select('mate_id, times, last_played_at, mate:profiles!play_mates_mate_id_fkey(id, display_name, rank_band, play_roles, avatar, banned_at, hidden_at)')
       .eq('user_id', viewer.userId)
       .order('last_played_at', { ascending: false })
       .limit(30),

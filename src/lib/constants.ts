@@ -18,6 +18,18 @@ export function rankGroupOf(r: RankBand): RankGroup {
   return r.startsWith('s') ? 'high' : 'low';
 }
 
+/** ランクの高さ (A以下 = 0、S1〜S9 = 1〜9) */
+export function rankValue(r: RankBand): number {
+  return r === 'a' ? 0 : Number(r.slice(1));
+}
+
+/** ランク条件を満たすか (条件なしなら常に満たす。ランクが分からなければ満たさない) */
+export function meetsMinRank(rank: RankBand | null | undefined, min: RankBand | null | undefined): boolean {
+  if (!min) return true;
+  if (!rank) return false;
+  return rankValue(rank) >= rankValue(min);
+}
+
 /** ランクの表示 (まだ選んでいない人は空) */
 export function rankLabel(r: RankBand | null | undefined): string {
   return r ? RANK_LABELS[r] : '';
@@ -25,6 +37,11 @@ export function rankLabel(r: RankBand | null | undefined): string {
 
 /** 席の中など狭い所に出す短い表記 */
 export const RANK_SHORT: Record<RankBand, string> = { ...RANK_LABELS, a: 'A↓' };
+
+/** 選べるアイコン (未設定ならロールか模様) */
+export const AVATARS = ['cat', 'rabbit', 'bear', 'ghost', 'star'] as const;
+export type Avatar = (typeof AVATARS)[number];
+export const AVATAR_LABELS: Record<Avatar, string> = { cat: 'ねこ', rabbit: 'うさぎ', bear: 'くま', ghost: 'おばけ', star: 'ほし' };
 
 export const PLAY_ROLES = ['attacker', 'gunner', 'tank', 'sprinter'] as const;
 export type PlayRole = (typeof PLAY_ROLES)[number];

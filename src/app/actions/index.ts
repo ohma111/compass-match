@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { TERMS_VERSION } from '@/lib/constants';
+import { AVATARS, TERMS_VERSION } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
@@ -162,6 +162,11 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
   const v = built.data;
 
   const supabase = await createClient();
+  // VC ありの募集は、Discord のユーザー名を連絡先に保存してから出す
+  if (v.vc === 'on') {
+    const saved = await saveDiscordAction(String(fd.get('discord') ?? ''));
+    if (!saved.ok) return saved;
+  }
   const { data, error } = await supabase.rpc('create_recruitment', {
     p_title: v.title,
     p_purpose: v.purpose,
@@ -649,4 +654,24 @@ export async function adminAnnounceAction(_prev: ActionResult | null, form: Form
   });
   revalidatePath('/', 'layout');
   return { ok: true, message: `${data ?? 0}人に配信しました` };
+}
+
+/** プロフィールのアイコンを変える (null ならロールか模様に戻す) */
+export async function setAvatarAction(avatar: string | null): Promise<ActionResult> {
+  if (avatar !== null && !(AVATARS as readonly string[]).includes(avatar)) return fail('アイコンを選び直してください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_my_avatar', { p_avatar: avatar });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/', 'layout');
+  return { ok: true, message: 'アイコンを変えました' };
+}
+
+/** VC ありの募集のために、Discord のユーザー名だけを保存する */
+export async function saveDiscordAction(name: string): Promise<ActionResult> {
+  const v = typeof name === 'string' ? name.normalize('NFKC').trim().replace(/^@/, '').toLowerCase() : '';
+  if (!/^[a-z0-9_.]{2,32}$/.test(v)) return fail('Discordのユーザー名は、半角英小文字・数字・_ . の2〜32文字で入力してください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_my_discord', { p_discord: v });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true };
 }

@@ -224,7 +224,7 @@ select pg_temp.expect_error($$select public.create_recruitment('x', 'enjoy', now
 select pg_temp.expect_error($$select public.create_recruitment('x', 'rank', now(), now() + interval '1 hour', 3, null, 'any', '{}', '', null, null, 'auto')$$, 'bad join mode');
 select public.create_recruitment('カスタム 6人', 'custom', now(), now() + interval '1 hour', 6, null, 'any', '{}', '', null, null, 'approval');
 -- 引数を省略すると早い者勝ち
-select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, 's5', 'on', '{serious}', '', '7777', 'x');
+select public.create_recruitment('ランク S4〜 あと2人', 'rank', now() + interval '10 minutes', now() + interval '70 minutes', 3, null, 'on', '{serious}', '', '7777', 'x');
 reset role;
 \set RI '(select id from public.recruitments where title = ''ランク S4〜 あと2人'')'
 \set RA '(select id from public.recruitments where title = ''カスタム 6人'')'
@@ -615,6 +615,28 @@ update public.messages set created_at = created_at - interval '5 seconds' where 
 select pg_temp.as_user(:U2);
 select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = '匿名の募集'), '678')$$, 'split phone number blocked');
 select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = '匿名の募集'), 'id abc123')$$, 'id in chat blocked');
+reset role;
+
+-- v11: ランク条件より下の方は参加できない / アイコン / Discord
+\set LR '''00000000-0000-4000-8000-000000000051'''
+insert into auth.users (id) values (:LR);
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values (:LR, 'A以下さん', 'a', now(), 't');
+update public.profiles set rank_band = 's6' where id = :U4;
+select pg_temp.as_user(:U4);
+select public.create_recruitment('S5以上', 'rank', now() + interval '20 minutes', now() + interval '80 minutes', 3, 's5', 'any', '{}', '', null, null, 'instant', 'win');
+reset role;
+select pg_temp.as_user(:LR);
+select pg_temp.expect_error($$select public.request_join((select id from public.recruitments where title = 'S5以上'), null)$$, 'rank a cannot join s5 recruitment');
+select public.set_my_avatar('cat');
+select pg_temp.expect_error($$select public.set_my_avatar('dog')$$, 'unknown avatar rejected');
+select public.set_my_discord('@Compass_Taro');
+select pg_temp.expect_error($$select public.set_my_discord('ab cd')$$, 'bad discord rejected');
+reset role;
+select pg_temp.assert((select avatar from public.profiles where id = :LR) = 'cat', 'avatar saved');
+select pg_temp.assert((select contact_discord from public.profile_contacts where user_id = :LR) = 'compass_taro', 'discord saved');
+update public.profiles set rank_band = 's5' where id = :LR;
+select pg_temp.as_user(:LR);
+select public.request_join((select id from public.recruitments where title = 'S5以上'), null);
 reset role;
 
 select 'ALL RLS TESTS PASSED' as result;

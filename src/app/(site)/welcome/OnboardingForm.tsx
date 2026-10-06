@@ -17,7 +17,9 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
     <form action={formAction} className="space-y-8">
       <input type="hidden" name="next" value={next} />
       <div>
-        <label className="label" htmlFor="displayName">表示名</label>
+        <label className="label" htmlFor="displayName">
+          ユーザー名 <span className="text-xs font-medium text-slate">(他のユーザーに表示される名前です)</span>
+        </label>
         <input
           id="displayName"
           name="displayName"

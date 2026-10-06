@@ -1,4 +1,4 @@
-import type { Stance, JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
+import type { Avatar, Stance, JoinMode, MoodTag, PlayRole, ProfileVc, Purpose, RankBand, RecruitStatus, RecruitVc } from './constants';
 
 export interface Profile {
   id: string;
@@ -16,6 +16,8 @@ export interface Profile {
   created_at: string;
   /** false = ユーザーIDで登録して、まだランク帯を選んでいない */
   rank_confirmed?: boolean;
+  /** v11: 選んだアイコン (null ならロールか模様) */
+  avatar?: Avatar | null;
 }
 
 export interface Recruitment {
@@ -36,7 +38,7 @@ export interface Recruitment {
   approved_count: number;
   hidden_at: string | null;
   created_at: string;
-  owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles'] }) | null;
+  owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null }) | null;
 }
 
 export interface Participation {
@@ -45,7 +47,7 @@ export interface Participation {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   created_at: string;
-  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags'> | null;
+  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar'> | null;
 }
 
 export interface Message {

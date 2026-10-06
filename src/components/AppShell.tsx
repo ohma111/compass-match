@@ -4,6 +4,7 @@ import { NavProgress } from './NavProgress';
 import { CopyButton } from './CopyButton';
 import { SUPPORT_CODE } from '@/lib/constants';
 import { RankProvider } from './RankSheet';
+import { DiscordProvider } from './DiscordSheet';
 import type { RankBand } from '@/lib/constants';
 import { Bell, ChevronRight, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
@@ -26,6 +27,7 @@ export function AppShell({
   rankReady = false,
   currentRank = null,
   notice = null,
+  discordReady = false,
 }: {
   children: React.ReactNode;
   unread: number;
@@ -36,6 +38,8 @@ export function AppShell({
   active?: TabKey;
   /** メンテナンスの予定・管理者向けの表示など、ページの上に出す帯 */
   notice?: React.ReactNode;
+  /** Discord のユーザー名が連絡先に入っているか (VC ありの募集に参加するときに使う) */
+  discordReady?: boolean;
   /** 開発用プレビュー: プロフィールのシートを開いた状態で表示する */
   sheetOpen?: boolean;
   /** v8: ランクが決まっているか (決まっていなければ募集・参加のときに聞く) と、今のランク */
@@ -45,6 +49,7 @@ export function AppShell({
   const nav = 'inline-flex min-h-11 items-center px-3 text-sm font-bold text-ink-2 underline-offset-[6px] decoration-2 decoration-signal hover:text-ink hover:underline';
   return (
     <RankProvider ready={rankReady} current={currentRank}>
+      <DiscordProvider ready={discordReady}>
       <OnboardingProvider initialOpen={sheetOpen}>
       <Suspense fallback={null}>
         <NavProgress />
@@ -76,7 +81,7 @@ export function AppShell({
                 <Link href="/me" className={nav}>マイページ</Link>
               </>
             ) : (
-              <Link href="/transfer" className={nav}>引き継ぐ</Link>
+              <Link href="/transfer" className={nav}>ログイン</Link>
             )}
             <Link href="/recruitments/new" className="btn-signal ml-3">
               <Plus className="size-4" strokeWidth={3} aria-hidden />
@@ -85,7 +90,7 @@ export function AppShell({
           </nav>
           {!signedIn && (
             <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4 lg:hidden">
-              引き継ぐ
+              ログイン
             </Link>
           )}
         </div>
@@ -124,12 +129,12 @@ export function AppShell({
               ))}
             </ul>
           </nav>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-2 border-ink p-3">
+          <div className="mt-4 flex max-w-[22rem] flex-wrap items-center justify-between gap-2 border-2 border-ink px-2.5 py-2">
             <div className="min-w-0">
-              <p className="text-[12px] font-bold text-slate">運営者の応援コード</p>
-              <p className="font-mono text-[20px] font-bold tracking-[0.06em] text-ink">{SUPPORT_CODE}</p>
+              <p className="text-[10px] font-bold text-slate">運営者の応援コード</p>
+              <p className="font-mono text-[14px] font-bold tracking-[0.06em] text-ink">{SUPPORT_CODE}</p>
             </div>
-            <CopyButton text={SUPPORT_CODE} label="コピー" />
+            <CopyButton text={SUPPORT_CODE} label="コピー" small />
           </div>
           <p className="mt-3 leading-relaxed">
             非公式のファンサイトです。
@@ -142,6 +147,7 @@ export function AppShell({
 
       <TabBar unread={unread} active={active} />
       </OnboardingProvider>
+      </DiscordProvider>
     </RankProvider>
   );
 }

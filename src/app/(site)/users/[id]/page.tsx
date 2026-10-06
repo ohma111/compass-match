@@ -36,7 +36,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <section className="flex items-center gap-6">
-        <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} />
+        <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} avatar={p.avatar ?? null} />
         <div className="min-w-0">
           <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{p.display_name}</h1>
           <p className="mt-1 text-sm font-bold">{rankLabel(p.rank_band)}</p>
@@ -88,6 +88,11 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             {blocked ? 'ブロック解除' : 'ブロック'}
           </ActionButton>
           <ReportButton targetType="user" targetId={id} small={false} />
+          {!blocked && (
+            <p className="w-full text-[13px] leading-relaxed text-slate">
+              ブロックすると、お互いの募集に参加できなくなり、相手の募集とチャットの発言も表示されなくなります。相手には知らされません。
+            </p>
+          )}
         </div>
       )}
     </div>

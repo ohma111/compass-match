@@ -255,13 +255,13 @@ try {
     await snap(p, 'A-transfer-code');
   });
 
-  await step('C: 引き継ぐ → テストAとしてログイン', async () => {
+  await step('C: ログイン (引き継ぎコード) → テストAとしてログイン', async () => {
     const C = await newContext(browser, 'C');
     const p = C.page;
     await p.goto(`${BASE}/transfer`, { waitUntil: 'networkidle' });
     await p.getByLabel('引き継ぎコード').fill(transferCode);
     await snap(p, 'C-transfer');
-    await p.getByRole('button', { name: /^引き継ぐ/ }).click();
+    await p.getByRole('button', { name: /^ログイン/ }).click();
     await p.waitForURL('**/me', { timeout: 30_000 });
     await p.getByRole('heading', { name: 'テストA' }).waitFor({ timeout: 15_000 });
     await snap(p, 'C-me');

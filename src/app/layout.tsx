@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { Archivo, JetBrains_Mono, Zen_Kaku_Gothic_New } from 'next/font/google';
 import './globals.css';
+import { Suspense } from 'react';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
+import { BootSplash } from '@/components/BootSplash';
 
 // v5「タイムテーブル」: 時刻・数字は Archivo (幅を詰めた太字)、日本語は Zen Kaku Gothic New、札は JetBrains Mono
 const display = Archivo({
@@ -43,9 +45,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={`${display.variable} ${text.variable} ${mono.variable}`}>
-      <body className="min-h-dvh font-sans antialiased">
-        {children}
+    <html lang="ja" className={`${display.variable} ${text.variable} ${mono.variable}`} style={{ backgroundColor: '#efede6' }}>
+      <body className="min-h-dvh font-sans antialiased" style={{ backgroundColor: '#efede6' }}>
+        {/* 最初の表示でサーバーの応答を待つ間 (ログイン確認など) は、真っ白/真っ黒ではなく待機画面を出す */}
+        <Suspense fallback={<BootSplash />}>{children}</Suspense>
         <ServiceWorkerRegister />
       </body>
     </html>

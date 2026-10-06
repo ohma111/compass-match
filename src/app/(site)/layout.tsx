@@ -27,14 +27,25 @@ async function unreadCount(userId: string): Promise<number> {
   }
 }
 
+async function hasDiscord(userId: string): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase.from('profile_contacts').select('contact_discord').eq('user_id', userId).maybeSingle();
+    return Boolean((data as { contact_discord: string | null } | null)?.contact_discord);
+  } catch {
+    return false;
+  }
+}
+
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   // ヘッダーの表示用。取得に失敗してもページ本体 (各ページが自分で取得してエラーを出す) は表示する
   // 未読数はユーザーIDだけで取れるので、プロフィールの取得と並行して始める
   const claims = isSupabaseConfigured() ? await getSessionClaims().catch(() => null) : null;
-  const [viewer, unread, status, h] = await Promise.all([
+  const [viewer, unread, status, discordReady, h] = await Promise.all([
     getViewerSafe().catch((): Viewer | null => null),
     claims ? unreadCount(claims.userId) : Promise.resolve(0),
     getSiteStatus(),
+    claims ? hasDiscord(claims.userId) : Promise.resolve(false),
     headers(),
   ]);
   const path = h.get('x-pathname') ?? '';
@@ -61,6 +72,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       configured={isSupabaseConfigured()}
       rankReady={Boolean(viewer?.profile?.rank_band && viewer.profile.rank_confirmed !== false)}
       currentRank={viewer?.profile?.rank_band ?? null}
+      discordReady={discordReady}
     >
       {content}
     </AppShell>

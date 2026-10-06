@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 
-export function CopyButton({ text, label = 'コピー', onInk = false }: { text: string; label?: string; onInk?: boolean }) {
+export function CopyButton({ text, label = 'コピー', onInk = false, small = false }: { text: string; label?: string; onInk?: boolean; small?: boolean }) {
   const [done, setDone] = useState(false);
   async function copy() {
     try {
@@ -27,7 +27,7 @@ export function CopyButton({ text, label = 'コピー', onInk = false }: { text:
     <button
       type="button"
       onClick={copy}
-      className={`btn min-w-28 ${onInk ? 'text-ink' : 'text-white'}`}
+      className={`btn ${small ? 'min-h-9 min-w-20 px-2.5 text-[12px]' : 'min-w-28'} ${onInk ? 'text-ink' : 'text-white'}`}
       style={{ background: fill }}
     >
       {done ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}

@@ -164,6 +164,8 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               size="lg"
               hideWhenJoined
               warnBlocked={Boolean(props.blockedHere)}
+              minRank={r.min_rank}
+              vcOn={r.vc === 'on'}
             />
           )}
           {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
@@ -200,6 +202,8 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             stamp={stamp}
             live={active && !r.hidden_at}
             warnBlocked={Boolean(props.blockedHere)}
+            minRank={r.min_rank}
+              vcOn={r.vc === 'on'}
           />
           {!isOwner && (
             <div className="mt-2 space-y-2 lg:mx-auto lg:max-w-md">

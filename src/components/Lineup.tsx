@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Crown } from 'lucide-react';
-import { RANK_LABELS, RANK_SHORT, type PlayRole, type RankBand } from '@/lib/constants';
+import { Crown, User } from 'lucide-react';
+import { RANK_LABELS, RANK_SHORT, type Avatar, type PlayRole, type RankBand } from '@/lib/constants';
+import { AvatarIcon } from './Avatar';
 import { RoleIcon } from './RoleIcon';
 import { Emblem } from './Emblem';
 
@@ -16,6 +17,8 @@ export interface Seat {
   name?: string;
   rank?: RankBand | null;
   roles?: PlayRole[];
+  /** 選んだアイコン (あればロールより優先) */
+  avatar?: Avatar | null;
   you?: boolean;
   href?: string;
   /** 参加が確定した直後: 滑り込む動き (prefers-reduced-motion では動かない) */
@@ -24,7 +27,7 @@ export interface Seat {
 
 function fill(s: Seat): string {
   if (s.kind === 'empty') return 'hatch text-ink/70';
-  if (s.kind === 'anon') return 'filled-anon text-white';
+  if (s.kind === 'anon') return 'bg-ink-2 text-white';
   if (s.you) return 'bg-signal text-ink';
   if (s.kind === 'owner') return 'bg-ink text-white';
   return 'bg-ink-2 text-white';
@@ -32,6 +35,7 @@ function fill(s: Seat): string {
 
 /** 席の顔: 1つ目のロールのアイコン。ロールがなければ模様。どちらも出せなければ何も出さない */
 function Face({ s, className }: { s: Seat; className: string }) {
+  if (s.avatar) return <AvatarIcon avatar={s.avatar} className={className} />;
   const role = s.roles?.[0];
   if (role) return <RoleIcon role={role} className={className} />;
   if (s.id) return <Emblem seed={s.id} className={className} />;
@@ -70,12 +74,12 @@ export function Lineup({
           >
             <span className="flex items-center gap-0.5 [transform:skewX(calc(var(--seat-skew)*-1))]">
               {narrow ? (
-                s.kind === 'owner' || s.kind === 'member' ? <Face s={s} className="size-3" /> : null
+                s.kind === 'owner' || s.kind === 'member' ? <Face s={s} className="size-3" /> : s.kind === 'anon' ? <User className="size-3" aria-hidden /> : null
               ) : s.kind === 'empty' ? (
                 <span className="font-mono text-[15px] leading-none font-bold">+</span>
               ) : (
                 <>
-                  {s.kind === 'anon' ? null : <Face s={s} className="size-3.5 shrink-0 sm:size-4" />}
+                  {s.kind === 'anon' ? <User className="size-3.5 shrink-0 sm:size-4" aria-hidden /> : <Face s={s} className="size-3.5 shrink-0 sm:size-4" />}
                   {s.rank && !narrow && <span className="font-mono text-[10px] leading-none font-bold tracking-[-0.04em] whitespace-nowrap sm:text-[11px]">{RANK_SHORT[s.rank]}</span>}
                 </>
               )}
@@ -122,7 +126,10 @@ export function Lineup({
                   </div>
                 )
               ) : s.kind === 'anon' ? (
-                <p className="text-[13px] font-bold">参加者</p>
+                <div>
+                  <User className={`size-10 sm:size-12 ${tall ? 'lg:size-16' : ''}`} aria-hidden />
+                  <p className="mt-2.5 text-[14px] font-black">参加者</p>
+                </div>
               ) : (
                 <div className="min-w-0">
                   <div className="flex items-end gap-1.5">
@@ -174,11 +181,11 @@ export function Lineup({
 }
 
 /** マイページ・プロフィールの大きな1席 (名前の頭文字の代わりに、ロールか模様) */
-export function ProfileSeat({ id, roles, rank }: { id: string; roles: PlayRole[]; rank: RankBand | null }) {
+export function ProfileSeat({ id, roles, rank, avatar = null }: { id: string; roles: PlayRole[]; rank: RankBand | null; avatar?: Avatar | null }) {
   return (
     <div className="ml-3 flex h-28 w-22 shrink-0 flex-col justify-end bg-ink px-3 pb-3 text-white [transform:skewX(var(--seat-skew))]" aria-hidden>
       <div className="[transform:skewX(calc(var(--seat-skew)*-1))]">
-        <Face s={{ kind: 'member', id, roles }} className="size-10" />
+        <Face s={{ kind: 'member', id, roles, avatar }} className="size-10" />
         {rank && <p className="mt-1.5 font-mono text-[12px] font-bold">{RANK_SHORT[rank]}</p>}
       </div>
     </div>
@@ -186,11 +193,11 @@ export function ProfileSeat({ id, roles, rank }: { id: string; roles: PlayRole[]
 }
 
 /** 一覧の行に置く小さな1席 (いっしょに遊んだ人など) */
-export function MiniSeat({ id, roles }: { id: string; roles: PlayRole[] }) {
+export function MiniSeat({ id, roles, avatar = null }: { id: string; roles: PlayRole[]; avatar?: Avatar | null }) {
   return (
     <span className="ml-1 flex h-10 w-8 shrink-0 items-center justify-center bg-ink text-white [transform:skewX(var(--seat-skew))]" aria-hidden>
       <span className="[transform:skewX(calc(var(--seat-skew)*-1))]">
-        <Face s={{ kind: 'member', id, roles }} className="size-4" />
+        <Face s={{ kind: 'member', id, roles, avatar }} className="size-4" />
       </span>
     </span>
   );

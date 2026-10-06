@@ -1,7 +1,7 @@
 'use client';
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Flame, Gamepad2, Medal, Hand, Smile, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
+import { ChevronDown, Flame, Gamepad2, Medal, Hand, Smile, Sparkles, Swords, Trophy, Zap, type LucideIcon } from 'lucide-react';
 import { createRecruitmentAction } from '@/app/actions';
 import {
   JOIN_MODES,
@@ -112,10 +112,13 @@ export function CreateRecruitmentForm({
   serverNow,
   src,
   ownerName,
+  discord: initialDiscord = '',
 }: {
   auth: 'guest' | 'no-profile' | 'ready';
   serverNow: string;
   src: string;
+  /** VC ありのときに入れてもらう Discord のユーザー名 (登録済みなら初期値) */
+  discord?: string;
   /** プレビューの席に出す自分の名前 (未ログインなら「あなた」) */
   ownerName?: string | null;
 }) {
@@ -125,6 +128,8 @@ export function CreateRecruitmentForm({
   const [now, setNow] = useState(() => new Date(serverNow));
   const [c, setC] = useState<Choices>(DEFAULTS);
   const [title, setTitle] = useState('');
+  const [discord, setDiscord] = useState(initialDiscord);
+  const discordOk = /^@?[a-z0-9_.]{2,32}$/i.test(discord.trim());
   const [autoSubmit, setAutoSubmit] = useState(false);
   const [resumed, setResumed] = useState(false);
   const ensureProfile = useEnsureProfile();
@@ -183,6 +188,11 @@ export function CreateRecruitmentForm({
       e.preventDefault();
       setNeedStance(true);
       document.getElementById('stance')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+    if (c.vc === 'on' && !discordOk) {
+      e.preventDefault();
+      document.getElementById('vc-discord')?.focus();
       return;
     }
     if ((auth === 'guest' || auth === 'no-profile') && !profileOk.current) {
@@ -385,6 +395,29 @@ export function CreateRecruitmentForm({
                   </label>
                 ))}
               </div>
+              {c.vc === 'on' ? (
+                <div className="mt-3">
+                  <label className="label" htmlFor="vc-discord">
+                    あなたの Discord のユーザー名
+                  </label>
+                  <input
+                    id="vc-discord"
+                    name="discord"
+                    value={discord}
+                    onChange={(e) => setDiscord(e.target.value)}
+                    maxLength={33}
+                    autoCapitalize="off"
+                    autoComplete="off"
+                    spellCheck={false}
+                    className="input"
+                    placeholder="例: compass_taro"
+                    aria-invalid={discord.length > 0 && !discordOk}
+                  />
+                  <p className="hint">参加が決まったメンバーにだけ表示されます。プロフィールの連絡先にも保存します。</p>
+                </div>
+              ) : (
+                <p className="mt-2 text-[13px] text-slate">参加が決まったメンバーとは、募集のページのチャットでやり取りできます。</p>
+              )}
             </fieldset>
             <fieldset>
               <legend className={legend}>雰囲気</legend>
@@ -471,16 +504,10 @@ function StartPicker({
   hm: string;
   onChange: (k: StartKey, d: StartDay, hm: string) => void;
 }) {
-  const hourRef = useRef<HTMLDivElement>(null);
   const hours = selectableHours(day, now);
   const [h, m] = hm ? hm.split(':').map(Number) : [NaN, NaN];
   const pad = (n: number) => String(n).padStart(2, '0');
 
-  // 選んだ時がスクロールの中で見えるように
-  useEffect(() => {
-    const el = hourRef.current?.querySelector<HTMLElement>('[data-on="true"]');
-    el?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }, [day, h]);
 
   function pickDay(d: StartDay) {
     if (d === 'today') {
@@ -517,31 +544,24 @@ function StartPicker({
         </button>
       </div>
       {startKey === 'slot' && (
-        <div className="space-y-2 border-2 border-ink/15 p-2">
-          <div
-            ref={hourRef}
-            className="no-scrollbar -mx-2 flex snap-x gap-1 overflow-x-auto px-2 [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)]"
-            role="radiogroup"
-            aria-label="時"
-          >
-            {hours.map((hour) => {
-              const on = hour === h;
-              return (
-                <button
-                  key={hour}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  data-on={on}
-                  onClick={() => pickHour(hour)}
-                  className={`type-time min-h-11 min-w-12 shrink-0 snap-center px-1 text-[22px] ${on ? 'bg-ink text-white' : 'text-ink hover:bg-tint'}`}
-                >
-                  {pad(hour)}
-                </button>
-              );
-            })}
-          </div>
-          <div className="grid grid-cols-4 gap-1" role="radiogroup" aria-label="分">
+        <div className="border-2 border-ink/15 p-2">
+          <div className="flex items-stretch gap-2">
+            <label className="relative block w-[7.5rem] shrink-0">
+              <span className="sr-only">時</span>
+              <select
+                value={Number.isFinite(h) ? h : ''}
+                onChange={(e) => pickHour(Number(e.target.value))}
+                className="type-time h-full min-h-12 w-full appearance-none border-2 border-ink bg-sheet pr-8 pl-3 text-[26px] text-ink"
+              >
+                {hours.map((hour) => (
+                  <option key={hour} value={hour}>
+                    {pad(hour)}時
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-5 -translate-y-1/2" aria-hidden />
+            </label>
+          <div className="grid min-w-0 flex-1 grid-cols-4 gap-1" role="radiogroup" aria-label="分">
             {SLOT_MINUTES.map((mi) => {
               const ok = Number.isFinite(h) && Boolean(slotAt(day, `${pad(h)}:${pad(mi)}`, now));
               const on = ok && mi === m;
@@ -553,12 +573,13 @@ function StartPicker({
                   aria-checked={on}
                   disabled={!ok}
                   onClick={() => onChange('slot', day, `${pad(h)}:${pad(mi)}`)}
-                  className={`type-time min-h-11 text-[20px] disabled:opacity-25 ${on ? 'bg-ink text-white' : 'border border-ink/20 text-ink hover:border-ink'}`}
+                  className={`type-time min-h-12 text-[18px] disabled:opacity-25 ${on ? 'bg-ink text-white' : 'border border-ink/20 text-ink hover:border-ink'}`}
                 >
                   :{pad(mi)}
                 </button>
               );
             })}
+          </div>
           </div>
         </div>
       )}

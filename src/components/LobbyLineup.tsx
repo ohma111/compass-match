@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lineup, type Seat } from './Lineup';
 import { JoinButton, useJoin, type AuthState } from './JoinButton';
-import type { JoinMode } from '@/lib/constants';
+import { meetsMinRank, type JoinMode, type RankBand } from '@/lib/constants';
+import { useCurrentRank } from './RankSheet';
 
 /** 席の状態を見に行く間隔 (画面が見えているときだけ) */
 const LIVE_REFRESH_MS = 15_000;
@@ -31,9 +32,12 @@ export function LobbyLineup(props: {
   stamp?: string | null;
   live: boolean;
   warnBlocked?: boolean;
+  minRank?: RankBand | null;
+  vcOn?: boolean;
 }) {
   const router = useRouter();
-  const control = useJoin(props.recruitmentId, props.auth, props.src);
+  const myRank = useCurrentRank();
+  const control = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn);
   const prevOccupied = useRef(props.occupied);
   const [entering, setEntering] = useState<number[]>([]);
 
@@ -83,7 +87,7 @@ export function LobbyLineup(props: {
 
   const seats = props.seats.map((s, i) => (entering.includes(i) ? { ...s, enter: true } : s));
   const seatJoin =
-    !props.isOwner && !props.joined && props.canJoin && props.auth !== 'restricted' && !control.done && !props.warnBlocked
+    !props.isOwner && !props.joined && props.canJoin && props.auth !== 'restricted' && !control.done && !props.warnBlocked && !(props.minRank && myRank && !meetsMinRank(myRank, props.minRank))
       ? { onJoin: control.join, label: '入る', pending: control.pending }
       : null;
 
@@ -100,9 +104,12 @@ export function LobbyLineup(props: {
             {props.stamp}
           </p>
         ) : (
-          <p className="text-sm font-bold text-slate" aria-live="polite">
-            {props.capacity}人中 {props.occupied}人
-            <span className={`type-heavy ml-2 text-base ${props.left > 0 ? 'text-ink' : 'text-slate'}`}>
+          <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`${props.capacity}人中${props.occupied}人${props.left > 0 ? `、あと${props.left}人` : '、満員'}`}>
+            <span className="type-time text-[30px] leading-none text-ink">
+              {props.occupied}
+              <span className="text-[20px] text-slate">/{props.capacity}</span>
+            </span>
+            <span className={`px-2 text-[15px] leading-7 font-black ${props.left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>
               {props.left > 0 ? `あと${props.left}人` : '満員'}
             </span>
           </p>
@@ -123,6 +130,7 @@ export function LobbyLineup(props: {
             size="lg"
             hideWhenJoined
             control={control}
+            minRank={props.minRank}
             warnBlocked={props.warnBlocked}
           />
         </div>

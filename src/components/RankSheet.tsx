@@ -11,21 +11,34 @@ import { RankPicker } from './RankPicker';
  * useEnsureRank() は、ランクが決まっていれば何もせず true、なければシートを開いて決まったら true。
  */
 type Ensure = () => Promise<boolean>;
-const Ctx = createContext<{ ensure: Ensure; markReady: () => void } | null>(null);
+const Ctx = createContext<{ ensure: Ensure; markReady: (rank?: RankBand) => void; rankNow: () => RankBand | null; current: RankBand | null } | null>(null);
 
 export function useEnsureRank(): Ensure {
   return useContext(Ctx)?.ensure ?? (async () => true);
 }
 
 /** プロフィールのシートでランクも決めたとき、続けてランクのシートを出さないようにする */
-export function useMarkRankReady(): () => void {
+export function useMarkRankReady(): (rank?: RankBand) => void {
   return useContext(Ctx)?.markReady ?? (() => {});
+}
+
+/** 今のランク (シートで選んだ直後の値も含む)。関数で返すのは、古い描画の関数からも最新を読めるようにするため */
+export function useRankNow(): () => RankBand | null {
+  return useContext(Ctx)?.rankNow ?? (() => null);
+}
+
+/** 描画用の今のランク (ランク条件を満たさない募集のボタンを最初から押せなくする) */
+export function useCurrentRank(): RankBand | null {
+  return useContext(Ctx)?.current ?? null;
 }
 
 export function RankProvider({ ready, current, children }: { ready: boolean; current: RankBand | null; children: React.ReactNode }) {
   // 決まったかどうかは ref で持つ。プロフィールのシートの直後に呼ばれる ensure は古い描画の関数なので、state だと間に合わない
   const ok = useRef(ready);
   if (ready) ok.current = true;
+  const rank = useRef<RankBand | null>(current);
+  if (current) rank.current = current;
+  const [shown, setShown] = useState<RankBand | null>(current);
   const [open, setOpen] = useState(false);
   const resolver = useRef<((v: boolean) => void) | null>(null);
 
@@ -45,19 +58,33 @@ export function RankProvider({ ready, current, children }: { ready: boolean; cur
     setOpen(false);
   };
 
-  const markReady = useCallback(() => {
+  const markReady = useCallback((r?: RankBand) => {
     ok.current = true;
+    if (r) {
+      rank.current = r;
+      setShown(r);
+    }
   }, []);
-  const value = useMemo(() => ({ ensure, markReady }), [ensure, markReady]);
+  const rankNow = useCallback(() => rank.current, []);
+  const value = useMemo(() => ({ ensure, markReady, rankNow, current: shown ?? current }), [ensure, markReady, rankNow, shown, current]);
   return (
     <Ctx.Provider value={value}>
       {children}
-      {open && <RankSheet current={current} onDone={() => close(true)} onCancel={() => close(false)} />}
+      {open && (
+        <RankSheet
+          current={current}
+          onDone={(r) => {
+            markReady(r);
+            close(true);
+          }}
+          onCancel={() => close(false)}
+        />
+      )}
     </Ctx.Provider>
   );
 }
 
-function RankSheet({ current, onDone, onCancel }: { current: RankBand | null; onDone: () => void; onCancel: () => void }) {
+function RankSheet({ current, onDone, onCancel }: { current: RankBand | null; onDone: (rank: RankBand) => void; onCancel: () => void }) {
   const router = useRouter();
   const [rank, setRank] = useState<RankBand | ''>(current ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +96,7 @@ function RankSheet({ current, onDone, onCancel }: { current: RankBand | null; on
       const r = await confirmRankAction(rank);
       if (!r.ok) return setError(r.error);
       router.refresh();
-      onDone();
+      onDone(rank);
     });
   }
   return (

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ArrowRight, X } from 'lucide-react';
 import { createProfileAction } from '@/app/actions';
 import { getBrowserClient } from '@/lib/supabase/client';
@@ -51,6 +51,17 @@ export function OnboardingProvider({ children, initialOpen = false }: { children
     resolver.current = null;
     setVerb(null);
   };
+
+  // シートの中の「ログイン」などで別のページへ移ったら、シートを閉じる
+  const pathname = usePathname();
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    resolver.current?.(false);
+    resolver.current = null;
+    setVerb(null);
+  }, [pathname]);
 
   return (
     <Ctx.Provider value={ensure}>
@@ -122,7 +133,7 @@ export function ProfileStartForm({
         setPending(false);
         return;
       }
-      if (needRank) markRankReady();
+      if (needRank && rank) markRankReady(rank);
       router.refresh();
       onDone();
     } catch {
@@ -144,7 +155,9 @@ export function ProfileStartForm({
           </div>
 
           <div>
-            <label className="label" htmlFor="sheet-name">あなたの表示名</label>
+            <label className="label" htmlFor="sheet-name">
+              ユーザー名 <span className="text-xs font-medium text-slate">(他のユーザーに表示される名前です)</span>
+            </label>
             <input
               ref={nameRef}
               id="sheet-name"
@@ -208,7 +221,7 @@ export function ProfileStartForm({
           {!page && (
           <p className="flex flex-wrap justify-between gap-x-4 text-[13px]">
               <Link href="/transfer" className="inline-flex min-h-11 items-center font-bold underline underline-offset-4">
-                引き継ぐ
+                ログイン
               </Link>
             </p>
           )}

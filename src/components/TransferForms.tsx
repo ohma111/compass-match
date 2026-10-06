@@ -157,7 +157,7 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
       </div>
       {error && <p className="alert-error" role="alert">{error}</p>}
       <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured || code.length === 0}>
-        {pending ? '確認中…' : '引き継ぐ'}
+        {pending ? '確認中…' : 'ログイン'}
         {!pending && <ArrowRight className="size-5" aria-hidden />}
       </button>
     </form>

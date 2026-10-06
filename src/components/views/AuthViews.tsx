@@ -38,7 +38,7 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
   return (
     <div className="mx-auto max-w-5xl lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-stretch lg:gap-16">
       <div className="mx-auto w-full max-w-md lg:mx-0 lg:py-6">
-        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[40px]">引き継ぐ</h1>
+        <h1 className="font-black tracking-[-0.01em] text-[26px] leading-tight lg:text-[40px]">ログイン</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-2">
           機種変更や別の端末で、今までのプロフィールを続けて使うための画面です。前の端末のマイページで作った「引き継ぎコード」を入力してください。
         </p>
@@ -47,7 +47,6 @@ export function TransferView({ configured, hasProfileHere }: { configured: boole
           <TransferRedeem configured={configured} hasProfileHere={hasProfileHere} />
         </div>
         <div className="mt-10 border-t-2 border-ink pt-4">
-          <p className="text-[13px] font-bold text-slate">運営者用</p>
           <DiscordOption next="/me" configured={configured} />
         </div>
       </div>

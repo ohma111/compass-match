@@ -83,7 +83,10 @@ export function RecruitmentCard({
             {r.title}
           </h3>
           <p className="mt-1.5 flex min-w-0 items-center gap-x-2.5 overflow-hidden text-[12px] font-bold whitespace-nowrap text-slate [mask-image:linear-gradient(to_right,#000_calc(100%-1.5rem),transparent)]">
-            <span className={`shrink-0 font-black ${left > 0 ? 'text-ink' : 'text-slate'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
+            <span className="shrink-0 font-mono text-[13px] font-black text-ink">
+              {Math.min(r.capacity, r.approved_count + 1)}/{r.capacity}
+            </span>
+            <span className={`shrink-0 px-1 font-black ${left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
             {r.stance && <span className="shrink-0 text-ink">{STANCE_LABELS[r.stance]}</span>}
             <span className="shrink-0">{JOIN_MODE_LABELS[r.join_mode]}</span>
             <span className="shrink-0">{RECRUIT_VC_LABELS[r.vc]}</span>
@@ -107,6 +110,8 @@ export function RecruitmentCard({
                 isOwner={isOwner}
                 joined={myState === 'approved'}
                 warnBlocked={blockedHere}
+                minRank={r.min_rank}
+                vcOn={r.vc === 'on'}
                 compact
               />
             </div>

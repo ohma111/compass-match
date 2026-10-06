@@ -3,7 +3,7 @@ import { getViewerSafe } from '@/lib/viewer-safe';
 import { TransferView } from '@/components/views/AuthViews';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: '引き継ぐ' };
+export const metadata = { title: 'ログイン' };
 
 export default async function TransferPage() {
   const viewer = await getViewerSafe();
