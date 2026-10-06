@@ -19,13 +19,17 @@ async function ctx(browser) {
   page.on('console', (m) => m.type() === 'error' && !m.text().includes('WebSocket') && console.log('   console:', m.text().slice(0, 200)));
   return { c, page };
 }
-async function createRecruitment(p, name) {
+async function createRecruitment(p, name, minRank) {
   await p.goto(`${BASE}/recruitments/new`, { waitUntil: 'networkidle' });
   await p.locator('label', { hasText: 'フリーバトル' }).first().click();
   await p.locator('label', { hasText: '楽しく遊びたい' }).click();
   await p.getByRole('radio', { name: '今すぐ' }).click();
   await p.locator('label', { hasText: 'あと1人' }).click();
   await p.locator('label', { hasText: '早い者勝ち' }).click();
+  if (minRank) {
+    await p.getByRole('radiogroup', { name: 'ランク条件' }).getByRole('radio', { name: 'S1以上' }).click();
+    await p.getByRole('combobox', { name: '最低ランク' }).selectOption(minRank);
+  }
   const btns = p.getByRole('button', { name: /^募集する/ });
   await btns.first().click();
   if (name) await fillSheet(p, name, 'S1以上');
@@ -99,8 +103,18 @@ try {
     const reloaded = await p.locator('select').first().inputValue();
     if (reloaded !== 's3') throw new Error(`after reload the picker shows ${reloaded}`);
   });
+  await step('ランク条件 S5↑ の募集は、S3 の Y には押せない', async () => {
+    const url = await createRecruitment(X.page, null, 's5');
+    urls.push([X, url]);
+    await Y.page.goto(url, { waitUntil: 'networkidle' });
+    await Y.page.getByText('S5↑の募集です').locator('visible=true').first().waitFor({ timeout: 15_000 }).catch(async (e) => {
+      await Y.page.screenshot({ path: '/tmp/claude-0/rank-gate.png', fullPage: true });
+      throw e;
+    });
+  });
   await step('X が通知をすべて削除できる', async () => {
     const p = X.page;
+    await p.goto(`${BASE}/notifications`, { waitUntil: 'networkidle' });
     await p.getByRole('button', { name: 'すべて削除' }).click();
     await p.getByText('通知はありません').waitFor({ timeout: 15_000 });
   });
