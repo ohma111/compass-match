@@ -43,14 +43,31 @@ export default async function MePage() {
       .eq('user_id', viewer.userId)
       .order('last_played_at', { ascending: false })
       .limit(30),
-    supabase.from('follows').select('followee_id').eq('follower_id', viewer.userId),
+    supabase
+      .from('follows')
+      .select('followee_id, created_at, profile:profiles!follows_followee_id_fkey(id, display_name, rank_band, play_roles, avatar, banned_at, hidden_at)')
+      .eq('follower_id', viewer.userId)
+      .eq('active', true)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
-  const followSet = new Set(((follows ?? []) as { followee_id: string }[]).map((f) => f.followee_id));
+  type FollowRow = { followee_id: string; profile: (Omit<Mate, 'times' | 'following'> & { banned_at: string | null; hidden_at: string | null }) | null };
+  const followRows = (follows ?? []) as unknown as FollowRow[];
+  const followSet = new Set(followRows.map((f) => f.followee_id));
+  // ベルをオンにしている方 (お気に入り)。削除・BAN・非表示の方は出さない
+  const timesOf = new Map(((mateRows ?? []) as unknown as { mate_id: string; times: number }[]).map((m) => [m.mate_id, m.times]));
+  const favorites: Mate[] = followRows
+    .filter((f) => f.profile && !f.profile.banned_at && !f.profile.hidden_at)
+    .map(({ profile }) => {
+      const { banned_at: _b, hidden_at: _h, ...p } = profile!;
+      return { ...p, times: timesOf.get(p.id) ?? 0, following: true };
+    });
   // 削除された方 (行ごと消える)・BAN された方・通報で非表示の方は出さない。管理者は RLS で全員見えるので、ここでも除く
   type MateRow = { times: number; mate: (Omit<Mate, 'times' | 'following'> & { banned_at: string | null; hidden_at: string | null }) | null };
   const mates = ((mateRows ?? []) as unknown as MateRow[])
     .filter((m): m is MateRow & { mate: NonNullable<MateRow['mate']> } => Boolean(m.mate && !m.mate.banned_at && !m.mate.hidden_at))
-    .map(({ times, mate: { banned_at: _b, hidden_at: _h, ...mate } }) => ({ ...mate, times, following: followSet.has(mate.id) }));
+    .map(({ times, mate: { banned_at: _b, hidden_at: _h, ...mate } }) => ({ ...mate, times, following: followSet.has(mate.id) }))
+    .slice(0, 10);
   const joined = ((parts ?? []) as unknown as { status: JoinState; recruitment: Recruitment | null }[]).filter(
     (p): p is { status: JoinState; recruitment: Recruitment } =>
       Boolean(p.recruitment) && new Date(p.recruitment!.ends_at).getTime() > now.getTime(),
@@ -70,6 +87,7 @@ export default async function MePage() {
       mine={(mine ?? []) as unknown as Recruitment[]}
       joined={joined}
       mates={mates}
+      favorites={favorites}
       now={now}
     />
   );

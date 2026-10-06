@@ -38,10 +38,12 @@ export interface MeViewProps {
   mine: Recruitment[];
   joined: { status: JoinState; recruitment: Recruitment }[];
   mates: Mate[];
+  /** ベルをオンにしている方 */
+  favorites?: Mate[];
   now: Date;
 }
 
-export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, mates, now }: MeViewProps) {
+export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, mates, favorites = [], now }: MeViewProps) {
   const warnNoWayBack = accountKind === 'anonymous';
   const menu = 'flex min-h-12 w-full items-center gap-3 text-sm font-bold';
   return (
@@ -128,29 +130,16 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           )}
         </section>
 
+        <section className="space-y-3" aria-labelledby="fav-title">
+          <h2 id="fav-title" className="section-title">お気に入り</h2>
+          <p className="text-[13px] text-slate">ベルをオンにした方です。この方が募集を出すと、通知が届きます。</p>
+          <PeopleList people={favorites} empty="ベルをオンにした方はいません" showTimes={false} />
+        </section>
+
         <section className="space-y-3" aria-labelledby="mates-title">
           <h2 id="mates-title" className="section-title">一緒に遊んだ人</h2>
-          <p className="text-[13px] text-slate">ベルがオンの方が募集を出すと、通知が届きます。</p>
-          {mates.length === 0 ? (
-            <p className="text-sm text-slate">まだいません</p>
-          ) : (
-            <ul className="divide-y divide-ink/15 border-y-2 border-ink">
-              {mates.map((m) => (
-                <li key={m.id} className="flex items-center gap-3 py-2">
-                  <Link href={`/users/${m.id}`} className="flex min-h-12 min-w-0 flex-1 items-center gap-3">
-                    <MiniSeat id={m.id} roles={m.play_roles} avatar={m.avatar ?? null} />
-                    <span className="min-w-0">
-                      <span className="block truncate text-[15px] font-black">{m.display_name}</span>
-                      <span className="block font-mono text-[11px] text-slate">
-                        {rankLabel(m.rank_band)} / {m.times}回
-                      </span>
-                    </span>
-                  </Link>
-                  <FollowButton userId={m.id} initial={m.following} compact />
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className="text-[13px] text-slate">最近の10人です。ベルを押すと、お気に入りに入ります。</p>
+          <PeopleList people={mates} empty="まだいません" showTimes />
         </section>
 
         <nav className="divide-y divide-line border-y-2 border-ink lg:hidden" aria-label="アカウント">
@@ -196,5 +185,28 @@ function AccountMenu({
       )}
       <SignOutButton className={menu} warnNoWayBack={warnNoWayBack} />
     </>
+  );
+}
+
+function PeopleList({ people, empty, showTimes }: { people: Mate[]; empty: string; showTimes: boolean }) {
+  if (people.length === 0) return <p className="text-sm text-slate">{empty}</p>;
+  return (
+    <ul className="divide-y divide-ink/15 border-y-2 border-ink">
+      {people.map((m) => (
+        <li key={m.id} className="flex items-center gap-3 py-2">
+          <Link href={`/users/${m.id}`} className="flex min-h-12 min-w-0 flex-1 items-center gap-3">
+            <MiniSeat id={m.id} roles={m.play_roles} avatar={m.avatar ?? null} />
+            <span className="min-w-0">
+              <span className="block truncate text-[15px] font-black">{m.display_name}</span>
+              <span className="block font-mono text-[11px] text-slate">
+                {rankLabel(m.rank_band)}
+                {showTimes && m.times > 0 ? ` / ${m.times}回` : ''}
+              </span>
+            </span>
+          </Link>
+          <FollowButton userId={m.id} initial={m.following} compact />
+        </li>
+      ))}
+    </ul>
   );
 }

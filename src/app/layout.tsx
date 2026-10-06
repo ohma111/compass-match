@@ -26,7 +26,7 @@ const text = Zen_Kaku_Gothic_New({
 });
 
 export const metadata: Metadata = {
-  title: { default: 'コンパス・マッチング | #コンパスの募集掲示板 (非公式)', template: '%s | コンパス・マッチング' },
+  title: { default: 'JOIN◆COMPASS | #コンパスの募集掲示板 (非公式)', template: '%s | JOIN◆COMPASS' },
   description: '#コンパスで一緒に遊ぶ人を探せる募集掲示板です。バトルアリーナ・フリーバトル・大会練習・カスタム。非公式のファンサイトです。',
   manifest: '/manifest.webmanifest',
   icons: { icon: '/icon.svg' },

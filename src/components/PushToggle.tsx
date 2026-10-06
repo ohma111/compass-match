@@ -105,7 +105,7 @@ export function PushToggle() {
           <p className="font-black">iPhone で通知を受け取るには</p>
           <ol className="mt-1 list-decimal pl-5">
             <li>Safari の共有ボタン → 「ホーム画面に追加」</li>
-            <li>ホーム画面に追加した「コンパス・マッチング」から開く</li>
+            <li>ホーム画面に追加した「JOIN COMPASS」から開く</li>
             <li>このボタンを押す</li>
           </ol>
         </div>

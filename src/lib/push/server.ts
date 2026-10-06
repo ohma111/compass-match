@@ -91,7 +91,7 @@ export async function dispatchPush(): Promise<number> {
               title:
                 n.kind === 'followed_posted' && n.recruitment?.owner
                   ? `${n.recruitment.owner.display_name}さんが募集を出しました`
-                  : (NOTIFICATION_LABELS[n.kind] ?? 'コンパス・マッチング'),
+                  : (NOTIFICATION_LABELS[n.kind] ?? 'JOIN COMPASS'),
               body: n.body ?? n.recruitment?.title ?? '',
               url: n.recruitment_id ? `/recruitments/${n.recruitment_id}` : '/notifications',
               tag: n.recruitment_id ? `r-${n.recruitment_id}-${n.kind}` : n.kind,

@@ -18,6 +18,7 @@ import {
 import { PURPOSE_LABELS } from '@/lib/constants';
 import { APPEAL_PAGE, maintenanceNotice, type SiteStatus } from '@/lib/site-status';
 import { AnnounceForm, MaintenanceForm } from './AdminForms';
+import { LiveDbSize } from './LiveDbSize';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '管理画面', robots: { index: false } };
@@ -71,8 +72,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         ))}
       </nav>
       {tab === 'reports' && <ReportsTab supabase={supabase} />}
-      {tab === 'users' && <UsersTab supabase={supabase} q={sp.q ?? ''} />}
-      {tab === 'recruitments' && <RecruitmentsTab supabase={supabase} from={sp.from} to={sp.to} />}
+      {tab === 'users' && <UsersTab supabase={supabase} q={sp.q ?? ''} page={pageOf(sp.page)} />}
+      {tab === 'recruitments' && <RecruitmentsTab supabase={supabase} from={sp.from} to={sp.to} page={pageOf(sp.page)} />}
       {tab === 'feedback' && <FeedbackTab supabase={supabase} />}
       {tab === 'metrics' && <MetricsTab supabase={supabase} />}
       {tab === 'usage' && <UsageTab supabase={supabase} />}
@@ -82,6 +83,36 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 }
 
 type SB = Awaited<ReturnType<typeof createClient>>;
+
+/** 一覧は10件ずつ */
+const PAGE_SIZE = 10;
+function pageOf(v: string | undefined): number {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 ? n : 1;
+}
+
+function Pager({ tab, page, total, extra }: { tab: string; page: number; total: number; extra?: Record<string, string> }) {
+  const last = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (last <= 1) return null;
+  const href = (p: number) => `/admin?${new URLSearchParams({ tab, ...(extra ?? {}), page: String(p) }).toString()}`;
+  const around = [...new Set([1, page - 1, page, page + 1, last])].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
+  const cell = 'inline-flex min-h-11 min-w-11 items-center justify-center border-2 px-2 font-mono text-sm font-bold';
+  return (
+    <nav className="flex flex-wrap items-center gap-1.5 pt-2" aria-label="ページ">
+      {page > 1 && <Link href={href(page - 1)} className={`${cell} border-ink/25`}>前へ</Link>}
+      {around.map((p, i) => (
+        <span key={p} className="contents">
+          {i > 0 && p - around[i - 1] > 1 && <span className="px-1 text-slate">…</span>}
+          <Link href={href(p)} aria-current={p === page ? 'page' : undefined} className={`${cell} ${p === page ? 'border-ink bg-ink text-white' : 'border-ink/25'}`}>
+            {p}
+          </Link>
+        </span>
+      ))}
+      {page < last && <Link href={href(page + 1)} className={`${cell} border-ink/25`}>次へ</Link>}
+      <span className="ml-auto text-xs text-slate">{page} / {last} ページ</span>
+    </nav>
+  );
+}
 
 async function ReportsTab({ supabase }: { supabase: SB }) {
   const [{ data, error }, { data: stats }] = await Promise.all([
@@ -187,19 +218,19 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
   );
 }
 
-async function UsersTab({ supabase, q }: { supabase: SB; q: string }) {
-  let query = supabase
-    .from('profiles')
-    .select('id, display_name, rank_band, hidden_at, banned_at, created_at, last_seen_at')
-    .order('created_at', { ascending: false })
-    .limit(100);
-  const isUuid = /^[0-9a-f-]{36}$/i.test(q);
-  if (isUuid) query = query.eq('id', q);
-  else if (q) query = query.ilike('display_name', `%${q.replace(/[%_\\]/g, '')}%`);
-  const { data } = await query;
-  const rows = (data ?? []) as { id: string; display_name: string; hidden_at: string | null; banned_at: string | null; created_at: string; last_seen_at: string | null }[];
+async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: number }) {
+  const { data, error } = await supabase.rpc('admin_list_users', { p_q: q, p_page: page });
+  if (error || !data) return <p className="alert-error">データを取得できませんでした</p>;
+  const res = data as {
+    total: number;
+    rows: { id: string; display_name: string; rank_band: string | null; hidden_at: string | null; banned_at: string | null; created_at: string; last_seen_at: string | null; is_anonymous: boolean; is_admin: boolean }[];
+  };
+  const rows = res.rows;
   return (
     <div className="space-y-3">
+      <p className="text-sm">
+        登録している人 <span className="font-mono text-xl font-bold">{res.total}</span> 人{q ? ` (「${q}」で検索)` : ''}
+      </p>
       <form className="flex gap-2">
         <input type="hidden" name="tab" value="users" />
         <input name="q" defaultValue={q} className="input" placeholder="表示名 または ユーザーID" />
@@ -214,6 +245,8 @@ async function UsersTab({ supabase, q }: { supabase: SB; q: string }) {
           <li key={u.id} className="card space-y-2 py-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <Link href={`/users/${u.id}`} className="font-bold link">{u.display_name}</Link>
+              {u.is_admin && <span className="chip">管理者</span>}
+              <span className="chip">{u.is_anonymous ? '匿名' : '引き継ぎ・Discord'}</span>
               {u.banned_at && <span className="chip text-danger">BAN中</span>}
               {u.hidden_at && <span className="chip">通報で非表示</span>}
               <span className="ml-auto text-xs text-muted">
@@ -242,6 +275,7 @@ async function UsersTab({ supabase, q }: { supabase: SB; q: string }) {
           </li>
         ))}
       </ul>
+      <Pager tab="users" page={page} total={res.total} extra={q ? { q } : undefined} />
     </div>
   );
 }
@@ -281,16 +315,16 @@ function Breakdown({ title, data, labels }: { title: string; data: Record<string
   );
 }
 
-async function RecruitmentsTab({ supabase, from, to }: { supabase: SB; from?: string; to?: string }) {
+async function RecruitmentsTab({ supabase, from, to, page }: { supabase: SB; from?: string; to?: string; page: number }) {
   const day = /^\d{4}-\d{2}-\d{2}$/;
   const f = from && day.test(from) ? from : jstDay(-30);
   const t = to && day.test(to) ? to : jstDay(0);
-  const [{ data }, statsRes] = await Promise.all([
+  const [{ data, count }, statsRes] = await Promise.all([
     supabase
       .from('recruitments')
-      .select('id, title, status, starts_at, hidden_at, src, owner:profiles!recruitments_owner_id_fkey(display_name)')
+      .select('id, title, status, starts_at, hidden_at, src, owner:profiles!recruitments_owner_id_fkey(display_name)', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(100),
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
     supabase.rpc('admin_recruitment_stats', { p_from: f, p_to: t }),
   ]);
   const rows = (data ?? []) as unknown as { id: string; title: string; status: string; starts_at: string; hidden_at: string | null; src: string | null; owner: { display_name: string } | null }[];
@@ -367,7 +401,7 @@ async function RecruitmentsTab({ supabase, from, to }: { supabase: SB; from?: st
       </section>
 
       <section className="space-y-2" aria-labelledby="recent-title">
-        <h2 id="recent-title" className="font-bold">新しい募集 (100件まで)</h2>
+        <h2 id="recent-title" className="font-bold">募集の一覧 (新しい順・{count ?? 0}件)</h2>
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.id} className="card flex flex-wrap items-center gap-2 py-3 text-sm">
@@ -380,6 +414,7 @@ async function RecruitmentsTab({ supabase, from, to }: { supabase: SB; from?: st
             </li>
           ))}
         </ul>
+        <Pager tab="recruitments" page={page} total={count ?? 0} extra={{ from: f, to: t }} />
       </section>
     </div>
   );
@@ -547,20 +582,9 @@ async function UsageTab({ supabase }: { supabase: SB }) {
   };
   const { data: inactive } = await supabase.rpc('admin_inactive_users');
   const inactiveRows = (inactive ?? []) as { id: string; display_name: string; last_seen_at: string }[];
-  const dbRatio = u.db_bytes / FREE_DB_BYTES;
-  const warn = dbRatio >= 0.6;
   return (
     <div className="space-y-4 text-sm">
-      <div className={`card ${warn ? 'border-signal-deep' : ''}`}>
-        <p className="font-bold">データベース</p>
-        <p className="type-time mt-1 text-[40px]">
-          {mb(u.db_bytes)} <span className="text-[20px] text-slate">/ 500 MB</span>
-        </p>
-        <div className="mt-2 h-3 border-2 border-ink">
-          <div className={`h-full ${warn ? 'bg-signal' : 'bg-ink'}`} style={{ width: `${Math.min(100, dbRatio * 100).toFixed(1)}%` }} />
-        </div>
-        {warn && <p className="mt-2 font-bold text-signal-deep">容量の6割を超えました。下の「大きい表」を確認し、保存日数 (app_settings) を短くしてください。</p>}
-      </div>
+      <LiveDbSize initialBytes={u.db_bytes} initialScheduled={false} />
       <div className="card">
         <p className="font-bold">大きい表</p>
         <ul className="mt-2 space-y-1 font-mono text-[13px]">

@@ -639,5 +639,14 @@ select pg_temp.as_user(:LR);
 select public.request_join((select id from public.recruitments where title = 'S5以上'), null);
 reset role;
 
+-- v12: 管理者のユーザー一覧
+select pg_temp.as_user(:U4);
+select pg_temp.expect_error($$select public.admin_list_users('', 1)$$, 'non-admin cannot list users');
+reset role;
+select pg_temp.as_user(:ADM);
+select pg_temp.assert((public.admin_list_users('', 1) ->> 'total')::int > 10, 'admin lists users');
+select pg_temp.assert(jsonb_array_length(public.admin_list_users('', 1) -> 'rows') = 10, 'page size 10');
+reset role;
+
 select 'ALL RLS TESTS PASSED' as result;
 

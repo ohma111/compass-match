@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
   } catch {
     data = {};
   }
-  const title = data.title || 'コンパス・マッチング';
+  const title = data.title || 'JOIN COMPASS';
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',
