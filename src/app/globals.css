@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 横向きのスマホなど、高さが低い画面。固定のヘッダー・タブバー・送信ボタンが本文を潰すので、固定をやめる */
+@custom-variant short (@media (orientation: landscape) and (max-height: 500px));
+
 /*
  * v5「タイムテーブル」: 生成りの紙に、インクの罫と文字。差し色は朱 1 色。
  * - 募集は開始時刻の時間割として縦に並べる。時刻が一番大きい。

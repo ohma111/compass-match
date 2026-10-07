@@ -1,7 +1,8 @@
 import { ProfileSeat } from '@/components/Lineup';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { requireViewer } from '@/lib/auth';
+import { getRegisteredViewer } from '@/lib/auth';
+import { SignInGate } from '@/components/GateScreens';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
 import { PROFILE_SELECT } from '@/lib/profile-columns';
@@ -18,7 +19,8 @@ export const dynamic = 'force-dynamic';
 export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!uuidSchema.safeParse(id).success) notFound();
-  const viewer = await requireViewer(`/users/${id}`);
+  const viewer = await getRegisteredViewer();
+  if (!viewer) return <SignInGate title="プロフィール" lead="プロフィールを作成すると表示されます。" />;
   const supabase = await createClient();
   const [profileRes, { data: block }, { data: follow }, { data: mate }] = await Promise.all([
     // 列を明示する (select('*') は非公開列の権限エラーになる)

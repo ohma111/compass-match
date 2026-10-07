@@ -25,7 +25,7 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
   return (
     <nav
       aria-label="メインメニュー"
-      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-floor pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 short:static border-t-2 border-ink bg-floor pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto grid h-16 max-w-xl grid-cols-4 items-stretch">
         <Link href="/" className={item(current === 'home')} aria-current={current === 'home' ? 'page' : undefined}>

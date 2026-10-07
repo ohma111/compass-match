@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Ban, Wrench } from 'lucide-react';
+import { Ban, UserRound, Wrench } from 'lucide-react';
 import { formatJst, formatJstRange } from '@/lib/time';
 import { APPEAL_PAGE, type SiteStatus } from '@/lib/site-status-shared';
 import { FeedbackForm } from './FeedbackForm';
@@ -50,6 +50,27 @@ export function BanScreen({ bannedAt }: { bannedAt: string }) {
         <h2 className="text-lg font-black">異議申し立て</h2>
         <p className="text-sm text-slate">心当たりがない場合は、理由を書いて送信してください。返信はできませんが、運営者が内容を確認します。</p>
         <FeedbackForm page={APPEAL_PAGE} placeholder="異議の内容 (個人情報は書かないでください)" submitLabel="異議申し立てを送信する" />
+      </div>
+    </section>
+  );
+}
+
+/** 未登録の人が登録した人向けのページを開いたときに出す画面 (マイページへ転送せず、ここで理由と入口を出す) */
+export function SignInGate({ title, lead }: { title: string; lead: string }) {
+  return (
+    <section className="mx-auto max-w-lg space-y-6 py-6 lg:py-10" aria-labelledby="gate-title">
+      <h1 id="gate-title" className="font-black tracking-[-0.01em] text-balance text-[26px] leading-tight lg:text-[34px]">
+        {title}
+      </h1>
+      <p className="border-y-2 border-ink py-3 font-bold leading-relaxed">{lead}</p>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <Link href="/me" className="btn-primary btn-lg">
+          <UserRound className="size-5" aria-hidden />
+          プロフィールを作成
+        </Link>
+        <Link href="/transfer" className="inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4">
+          以前から使っていた方はログイン
+        </Link>
       </div>
     </section>
   );
