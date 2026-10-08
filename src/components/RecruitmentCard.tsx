@@ -82,7 +82,8 @@ export function RecruitmentCard({
           >
             {r.title}
           </h3>
-          <p className="mt-1.5 flex min-w-0 items-center gap-x-2.5 overflow-hidden text-[12px] font-bold whitespace-nowrap text-slate [mask-image:linear-gradient(to_right,#000_calc(100%-1.5rem),transparent)]">
+          {/* 1行に収まらない札は次の行に回して隠す (途中で切れた札を見せない) */}
+          <p className="mt-1.5 flex h-5 min-w-0 flex-wrap items-center gap-x-2.5 overflow-hidden text-[12px] leading-5 font-bold whitespace-nowrap text-slate">
             <span className="shrink-0 font-mono text-[13px] font-black text-ink">
               {Math.min(r.capacity, r.approved_count + 1)}/{r.capacity}
             </span>
