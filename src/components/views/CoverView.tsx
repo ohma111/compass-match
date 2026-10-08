@@ -13,11 +13,13 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
   const open = items.filter((r) => new Date(r.ends_at) > now);
   const next = open.slice(0, 3);
   return (
-    <section className="mx-auto flex max-w-xl flex-col gap-7 pt-2 lg:max-w-3xl lg:pt-8" aria-labelledby="cover-title">
-      <h1 id="cover-title" className="type-poster text-[clamp(76px,24vw,168px)] uppercase">
-        Squad
-        <br />
-        up<span className="text-signal">.</span>
+    <section className="mx-auto flex max-w-xl flex-col gap-6 pt-0 lg:max-w-3xl lg:pt-8" aria-labelledby="cover-title">
+      {/* JOIN を左、UP を右に寄せた段違い。幅いっぱいを使う */}
+      <h1 id="cover-title" className="type-poster flex flex-col text-[clamp(72px,min(30vw,14svh),220px)] uppercase">
+        <span className="self-start">Join</span>
+        <span className="self-end">
+          up<span className="text-signal">.</span>
+        </span>
       </h1>
 
       <p className="flex items-baseline gap-2 border-y-2 border-ink py-2" aria-live="polite">
@@ -28,7 +30,7 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
       {next.length > 0 && (
         <ul className="-mt-4">
           {next.map((r, i) => (
-            <li key={r.id} className={`grid grid-cols-[64px_minmax(0,1fr)] items-baseline border-b border-ink/20 py-2.5 ${i === 2 ? 'opacity-40' : ''}`}>
+            <li key={r.id} className={`grid grid-cols-[64px_minmax(0,1fr)] items-baseline border-b border-ink/20 py-2.5 ${i === 2 ? 'opacity-40 [@media(max-height:700px)]:hidden' : ''}`}>
               <span className="type-time text-[22px]">{new Date(r.starts_at) <= now ? 'NOW' : formatJstTime(r.starts_at)}</span>
               <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
                 <PurposeMark purpose={r.purpose} />

@@ -271,7 +271,7 @@ export function CreateRecruitmentForm({
               return (
                 <label
                   key={p}
-                  className={`pick h-14 gap-2 px-2 text-[14px] sm:h-20 sm:flex-col sm:gap-1.5 sm:text-[13px]`}
+                  className={`pick h-14 gap-1.5 px-1.5 text-[13px] tracking-normal whitespace-nowrap min-[400px]:text-[14px] min-[400px]:tracking-[inherit] sm:h-20 sm:flex-col sm:gap-1.5 sm:text-[13px]`}
                 >
                   <input
                     type="radio"

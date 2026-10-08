@@ -58,10 +58,10 @@ export function AppShell({
         本文へ移動
       </a>
       <header className="sticky top-0 z-30 short:static border-b-2 border-ink bg-floor/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
-        <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
+        <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-3 px-4 min-[400px]:gap-4 lg:h-16 lg:px-8">
           <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2 whitespace-nowrap" aria-label="JOIN COMPASS ホーム">
             <LogoMark className="h-5 w-8 lg:h-6 lg:w-9" />
-            <Wordmark className="truncate text-[22px] lg:text-[28px]" />
+            <Wordmark className="truncate text-[16px] min-[400px]:text-[22px] lg:text-[28px]" />
             <span className="type-tag border border-ink/60 px-1 text-[10px] text-ink-2">非公式</span>
           </Link>
           <nav aria-label="メニュー" className="ml-auto hidden items-center gap-1 lg:flex">
@@ -93,7 +93,7 @@ export function AppShell({
             </Link>
           </nav>
           {!signedIn && (
-            <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4 lg:hidden">
+            <Link href="/transfer" className="ml-auto inline-flex min-h-11 shrink-0 items-center text-sm font-bold whitespace-nowrap underline decoration-2 underline-offset-4 lg:hidden">
               ログイン
             </Link>
           )}

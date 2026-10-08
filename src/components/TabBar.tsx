@@ -33,20 +33,24 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
           <House className="size-6" strokeWidth={current === 'home' ? 2.5 : 2} aria-hidden />
           ホーム
         </Link>
-        {/* タブと取り違えないよう、朱の丸をバーから浮かせる (選択中のタブには見せない) */}
-        <Link
-          href="/recruitments/new"
-          className="group relative flex flex-col items-center justify-end pb-2 text-xs font-black text-ink"
-          aria-current={current === 'new' ? 'page' : undefined}
-        >
-          <span
-            aria-hidden
-            className="absolute -top-5 left-1/2 flex size-14 -translate-x-1/2 items-center justify-center rounded-full border-2 border-ink bg-signal shadow-[0_3px_0_var(--color-ink)] transition-transform group-active:translate-y-[3px] group-active:shadow-none"
-          >
-            <Plus className="size-7" strokeWidth={3} />
-          </span>
-          募集する
-        </Link>
+        {/* タブと取り違えないよう、朱の丸をバーから浮かせる。募集画面にいるときは送信ボタンに重ならないよう、ほかのタブと同じ形で選択中にする */}
+        {current === 'new' ? (
+          <Link href="/recruitments/new" className={item(true)} aria-current="page">
+            {bar}
+            <Plus className="size-6 text-signal-deep" strokeWidth={3} aria-hidden />
+            募集する
+          </Link>
+        ) : (
+          <Link href="/recruitments/new" className="group relative flex flex-col items-center justify-end pb-2 text-xs font-black text-ink">
+            <span
+              aria-hidden
+              className="absolute -top-5 left-1/2 flex size-14 -translate-x-1/2 items-center justify-center rounded-full border-2 border-ink bg-signal shadow-[0_3px_0_var(--color-ink)] transition-transform group-active:translate-y-[3px] group-active:shadow-none"
+            >
+              <Plus className="size-7" strokeWidth={3} />
+            </span>
+            募集する
+          </Link>
+        )}
         <Link href="/notifications" className={item(current === 'notif')} aria-current={current === 'notif' ? 'page' : undefined}>
           {current === 'notif' && bar}
           <span className="relative">
