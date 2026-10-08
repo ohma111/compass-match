@@ -14,11 +14,11 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
   const next = open.slice(0, 3);
   return (
     <section className="mx-auto flex max-w-xl flex-col gap-6 pt-0 lg:max-w-3xl lg:pt-8" aria-labelledby="cover-title">
-      {/* JOIN を左、UP を右に寄せた段違い。幅いっぱいを使う */}
-      <h1 id="cover-title" className="type-poster flex flex-col text-[clamp(72px,min(30vw,14svh),220px)] uppercase">
-        <span className="self-start">Join</span>
-        <span className="self-end">
-          up<span className="text-signal">.</span>
+      {/* JOIN と、少し右にずらした UP の段違い。JOIN は左から、UP は右から入って止まり、朱の点が押される */}
+      <h1 id="cover-title" className="type-poster flex flex-col overflow-x-clip text-[clamp(72px,min(30vw,14svh),220px)] uppercase lg:text-[clamp(120px,20svh,220px)]">
+        <span className="cover-in-l self-start">Join</span>
+        <span className="cover-in-r -mt-[0.04em] ml-[1.1em] self-start">
+          up<span className="cover-dot text-signal">.</span>
         </span>
       </h1>
 
