@@ -179,7 +179,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           )}
         </aside>
 
-        <section className="lg:col-span-7 lg:col-start-1 lg:row-start-2" aria-label="パーティの席">
+        <section className="lg:col-span-7 lg:col-start-1 lg:row-start-2" aria-label="パーティの枠">
           {props.blockedHere && (
             <p className="alert-error mb-4" role="status">
               ブロックしている方がこの募集にいます。{myState === 'approved' ? '参加を取り消す場合は、下の「参加を取り消す」を押してください。' : ''}

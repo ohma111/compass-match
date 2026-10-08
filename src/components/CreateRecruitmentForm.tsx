@@ -466,7 +466,7 @@ export function CreateRecruitmentForm({
           <div className="-mx-3 mt-4">
             <Lineup seats={previewSeats.slice(0, 3)} size="lg" label={`あなたと、あと${capacity - 1}人`} />
           </div>
-          {capacity > 3 && <p className="mt-2 text-right text-xs font-bold text-slate">ほか{capacity - 3}席</p>}
+          {capacity > 3 && <p className="mt-2 text-right text-xs font-bold text-slate">ほか{capacity - 3}枠</p>}
           <p className="font-black mt-6 text-[22px] leading-snug">{title.trim() || placeholderTitle}</p>
         </div>
         <div className="space-y-2">{submit}</div>
