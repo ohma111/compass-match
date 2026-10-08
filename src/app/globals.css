@@ -387,7 +387,7 @@ button:hover > .seat-open {
 }
 
 /* 起動直後の待機画面のくるくる (動きを減らす設定では点滅だけ) */
-/* 表紙の JOIN UP.: 左右から入って一瞬止まり (ヒットストップ)、最後に朱の点を押す。点はその後ゆっくり明滅する */
+/* 表紙の JOIN◆COMPASS: 左右から入って一瞬止まり (ヒットストップ)、最後に朱のひし形を押す。ひし形はその後ゆっくり明滅する */
 @keyframes cover-in-l {
   0% { transform: translateX(-60%); opacity: 0; }
   60% { transform: translateX(3%); opacity: 1; }
@@ -412,10 +412,10 @@ button:hover > .seat-open {
 .cover-in-r { display: inline-block; animation: cover-in-r 620ms var(--ease-snap) 140ms both; }
 .cover-dot {
   display: inline-block;
-  transform-origin: 50% 85%;
+  transform-origin: 50% 50%;
   animation: cover-dot 320ms var(--ease-snap) 760ms both, cover-blink 2.4s ease-in-out 1.6s infinite;
 }
-/* 入りのあと: JOIN と UP が交互に「ポン」と跳ねる (縮んで、伸びて、戻る) */
+/* 入りのあと: JOIN と COMPASS が交互に「ポン」と跳ねる (縮んで、伸びて、戻る) */
 @keyframes cover-bob {
   0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
   68% { transform: translateY(2%) scale(1.04, 0.92); }

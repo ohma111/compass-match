@@ -14,8 +14,8 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
   const next = open.slice(0, 3);
   return (
     <section className="mx-auto flex max-w-xl flex-col gap-6 pt-0 lg:max-w-3xl lg:pt-8" aria-labelledby="cover-title">
-      {/* JOIN と、少し右にずらした UP の段違い。JOIN は左から、UP は右から入って止まり、朱の点が押される。
-          そのあとは JOIN と UP が交互に跳ね続け、後ろで目的の刻印が横に流れる */}
+      {/* JOIN と COMPASS の段違い。JOIN は左から、COMPASS は右から入って止まり、朱のひし形が押される。
+          そのあとは JOIN と COMPASS が交互に跳ね続け、後ろで目的の刻印が横に流れる */}
       <div className="relative">
         <div aria-hidden className="cover-flow pointer-events-none absolute inset-x-[-1rem] top-1/2 lg:[mask-image:linear-gradient(to_right,transparent,#000_15%,#000_85%,transparent)] -translate-y-1/2 select-none">
           {[0, 1].map((row) => (
@@ -26,14 +26,17 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
             </div>
           ))}
         </div>
-        <h1 id="cover-title" className="type-poster relative flex flex-col overflow-x-clip text-[clamp(72px,min(30vw,14svh),220px)] uppercase lg:text-[clamp(120px,20svh,220px)]">
+        {/* サイト名と同じ JOIN◆COMPASS。ひし形は JOIN の後ろに押され、COMPASS は右に寄せる */}
+        <h1 id="cover-title" className="type-poster relative flex flex-col overflow-x-clip text-[clamp(56px,min(25vw,12svh),190px)] uppercase lg:text-[clamp(110px,18svh,190px)]">
           <span className="cover-in-l self-start">
-            <span className="cover-bob inline-block">Join</span>
-          </span>
-          <span className="cover-in-r -mt-[0.04em] ml-[1.1em] self-start">
-            <span className="cover-bob cover-bob-2 inline-block">
-              up<span className="cover-dot text-signal">.</span>
+            <span className="cover-bob inline-flex items-center">
+              Join
+              <span aria-hidden className="cover-dot ml-[0.14em] inline-block size-[0.42em] rotate-45 bg-signal" />
             </span>
+          </span>
+          <span className="sr-only"> </span>
+          <span className="cover-in-r -mt-[0.02em] self-end">
+            <span className="cover-bob cover-bob-2 inline-block">Compass</span>
           </span>
         </h1>
       </div>
