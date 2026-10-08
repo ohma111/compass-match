@@ -141,9 +141,11 @@ try {
     await snap(p, 'A-home-listed');
   });
 
-  await step('B: ホーム → 空き席をタップ → シート → リロードなしで参加 → 満員', async () => {
+  await step('B: 表紙 → 募集を見る → 空き席をタップ → シート → リロードなしで参加 → 満員', async () => {
     const p = B.page;
     await p.goto(BASE, { waitUntil: 'networkidle' });
+    // v13: 未登録で初めて開くと表紙が出る。「募集を見る」で一覧へ
+    await p.getByRole('link', { name: '募集を見る' }).first().click();
     const id = recruitmentUrl.split('/').pop();
     await p.locator(`a[href="/recruitments/${id}"]`).first().click();
     await p.waitForURL(`**/recruitments/${id}`);
