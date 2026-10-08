@@ -33,7 +33,7 @@ const ITEMS = [
   {
     h: '保存期間',
     list: [
-      'チャット: 募集の終了から約90分',
+      'チャット: 募集の終了から約90分 (通報された発言は、確認のため通報の記録とともに保存し、確認が済んだら削除します)',
       '募集と参加の記録: 募集の終了から約15日',
       '通知: 7日',
       'プロフィールを作成していない一時的なアカウント: 3日',
@@ -53,5 +53,5 @@ const ITEMS = [
 ];
 
 export default function PrivacyPage() {
-  return <LegalPage title="プライバシーポリシー" updated="2026年10月5日" items={ITEMS} />;
+  return <LegalPage title="プライバシーポリシー" updated="2026年10月8日" items={ITEMS} />;
 }

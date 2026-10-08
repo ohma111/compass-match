@@ -5,6 +5,25 @@ import { Lineup, type Seat } from './Lineup';
 import { JoinButton, useJoin, type AuthState } from './JoinButton';
 import { meetsMinRank, type JoinMode, type RankBand } from '@/lib/constants';
 import { useCurrentRank } from './RankSheet';
+import { getBrowserClient } from '@/lib/supabase/client';
+
+/**
+ * 募集の「今の状態」を短い文字列にする。変わっていればページを描き直す。
+ * 読めるものは RLS のとおり (未ログインは人数と状態だけ、募集者は申請中の行も、参加者は部屋番号と発言も)。
+ */
+async function liveSignature(recruitmentId: string, member: boolean): Promise<string> {
+  const db = getBrowserClient();
+  const none = Promise.resolve({ data: null, error: null });
+  const [rec, parts, room, msg] = await Promise.all([
+    db.from('recruitments').select('approved_count, status, hidden_at').eq('id', recruitmentId).maybeSingle(),
+    db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id'),
+    member ? db.rpc('get_room_code', { p_recruitment_id: recruitmentId }) : none,
+    // チャットは Realtime で届くが、つながらない環境のために最新の発言も見る
+    member ? db.from('messages').select('id').eq('recruitment_id', recruitmentId).order('created_at', { ascending: false }).limit(1) : none,
+  ]);
+  if (rec.error) throw rec.error;
+  return JSON.stringify([rec.data, parts.error ? null : parts.data, room.error ? null : room.data, msg.error ? null : msg.data]);
+}
 
 /** 席の状態を見に行く間隔 (画面が見えているときだけ) */
 const LIVE_REFRESH_MS = 15_000;
@@ -12,7 +31,7 @@ const LIVE_REFRESH_MS = 15_000;
 /**
  * 募集詳細の「ロビー」。
  * - 最初の空き席そのものが参加ボタン (文字の「参加する」ボタンも下に残す)
- * - 開いている間は15秒ごとに更新し、誰かが入ると、その席が滑り込んで一瞬光る
+ * - 開いている間は15秒ごとに変化を確かめ、誰かが入ると、その席が滑り込んで一瞬光る
  * - 自分の参加が確定した直後は「参加確定」/「満員」の判を見出しの横に押す
  */
 export function LobbyLineup(props: {
@@ -51,12 +70,18 @@ export function LobbyLineup(props: {
     return () => clearTimeout(t);
   }, [props.occupied]);
 
-  // 席の自動更新。開いた直後は15秒ごと、触らずに置いてあるほど間隔を空ける (無料枠の通信量を抑える)。
-  // 画面が見えていないときは更新せず、戻ってきたら1回だけすぐ更新する。
+  // 席の自動更新。ページをサーバーで描き直す (Vercel の関数1回) のは、変化があったときだけにする。
+  // 間隔ごとには Supabase に小さな問い合わせ (人数・状態・見えている参加の行・部屋番号) だけを送り、
+  // 前回と違えば描き直す。開いた直後は15秒ごと、触らずに置いてあるほど間隔を空ける。
+  // 画面が見えていないときは何もせず、戻ってきたら1回だけすぐ確かめる。問い合わせに失敗したら描き直す。
+  const memberRef = useRef(props.joined || props.isOwner);
+  memberRef.current = props.joined || props.isOwner;
   useEffect(() => {
     if (!props.live) return;
     let last = Date.now();
     let timer: number;
+    let prev: string | null = null;
+    let stopped = false;
     const touch = () => {
       last = Date.now();
     };
@@ -64,26 +89,38 @@ export function LobbyLineup(props: {
       const idle = Date.now() - last;
       return idle < 5 * 60_000 ? LIVE_REFRESH_MS : idle < 20 * 60_000 ? 45_000 : 120_000;
     };
-    const tick = () => {
-      if (document.visibilityState === 'visible') router.refresh();
-      timer = window.setTimeout(tick, interval());
+    const check = async () => {
+      const sig = await liveSignature(props.recruitmentId, memberRef.current).catch(() => null);
+      if (stopped) return;
+      if (sig === null) {
+        router.refresh();
+        return;
+      }
+      if (prev !== null && sig !== prev) router.refresh();
+      prev = sig;
     };
+    const tick = async () => {
+      if (document.visibilityState === 'visible') await check();
+      if (!stopped) timer = window.setTimeout(tick, interval());
+    };
+    void check();
     timer = window.setTimeout(tick, interval());
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
       touch();
-      router.refresh();
+      void check();
     };
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('pointerdown', touch, { passive: true });
     window.addEventListener('keydown', touch);
     return () => {
+      stopped = true;
       window.clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('pointerdown', touch);
       window.removeEventListener('keydown', touch);
     };
-  }, [props.live, router]);
+  }, [props.live, props.recruitmentId, router]);
 
   const seats = props.seats.map((s, i) => (entering.includes(i) ? { ...s, enter: true } : s));
   const seatJoin =

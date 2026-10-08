@@ -1,0 +1,58 @@
+# 本番 DB の毎日のバックアップ (Supabase Free はバックアップを取り出せないため)。
+# 使うには、運営者が GitHub の Settings → Secrets and variables → Actions に SUPABASE_DB_URL を入れる
+# (Supabase の Connect → Session pooler の接続文字列。パスワード入り)。入っていなければ何もしない。
+# 書き出したファイルは、この実行の Artifacts に7日間残る (非公開リポジトリなので本人だけが取り出せる)。
+name: db-backup
+
+on:
+  schedule:
+    - cron: '30 18 * * *' # 毎日 3:30 (日本時間)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secret
+        id: check
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL が未設定なのでスキップします"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install pg_dump 17
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump
+        if: steps.check.outputs.skip != 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p backup
+          stamp=$(date -u +%Y%m%d)
+          # スキーマ (public・private) とデータ。auth は Supabase の管理なので、ユーザーの行だけデータで残す
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --no-owner --no-privileges \
+            --schema=public --schema=private -Fc -f "backup/app-$stamp.dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --data-only --table=auth.users --table=auth.identities \
+            -Fc -f "backup/auth-$stamp.dump"
+          ls -la backup
+
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          name: db-backup
+          path: backup/
+          retention-days: 7
