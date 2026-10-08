@@ -415,8 +415,23 @@ button:hover > .seat-open {
   transform-origin: 50% 85%;
   animation: cover-dot 320ms var(--ease-snap) 760ms both, cover-blink 2.4s ease-in-out 1.6s infinite;
 }
+/* 入りのあと: JOIN と UP が交互に「ポン」と跳ねる (縮んで、伸びて、戻る) */
+@keyframes cover-bob {
+  0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
+  68% { transform: translateY(2%) scale(1.04, 0.92); }
+  76% { transform: translateY(-12%) scale(0.97, 1.05); }
+  86% { transform: translateY(0) scale(1.03, 0.95); }
+  92% { transform: translateY(0) scale(1, 1); }
+}
+.cover-bob { transform-origin: 50% 100%; animation: cover-bob 2.4s var(--ease-snap) 1.4s infinite; }
+.cover-bob-2 { animation-delay: 2.6s; }
+/* 背景: 目的の刻印が2段、逆向きにゆっくり流れる */
+@keyframes cover-flow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.cover-flow { color: color-mix(in srgb, var(--color-ink) 7%, transparent); font-size: clamp(40px, 9vw, 96px); line-height: 1.15; overflow: hidden; }
+.cover-flow-row { display: flex; width: max-content; white-space: pre; animation: cover-flow 40s linear infinite; }
+.cover-flow-rev { animation-direction: reverse; animation-duration: 52s; }
 @media (prefers-reduced-motion: reduce) {
-  .cover-in-l, .cover-in-r, .cover-dot { animation: none; }
+  .cover-in-l, .cover-in-r, .cover-dot, .cover-bob, .cover-flow-row { animation: none; }
 }
 
 @keyframes boot-spin {
