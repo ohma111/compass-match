@@ -5,7 +5,7 @@ export const alt = 'JOIN◆COMPASS #コンパスの募集掲示板 (非公式)';
 export const size = OG_SIZE;
 export const contentType = 'image/png';
 
-const LEAD = '今から一緒に遊べる人を探す';
+const LEAD = '共に遊べる人を探す';
 const SUB = '#コンパスの募集掲示板 (非公式)';
 const PURPOSES = ['バトルアリーナ', 'フリーバトル', '大会練習', 'カスタム', 'チャレンジバトル'];
 
@@ -28,7 +28,7 @@ export default async function Image() {
       >
         <OgLogo size={56} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 72, color: OG_COLORS.ink, lineHeight: 1.15 }}>{LEAD}</div>
+          <div style={{ fontSize: 84, color: OG_COLORS.ink, lineHeight: 1.15 }}>{LEAD}</div>
           <div style={{ fontSize: 36, color: OG_COLORS.muted, marginTop: 20 }}>{SUB}</div>
         </div>
         <div style={{ display: 'flex', gap: 14 }}>
