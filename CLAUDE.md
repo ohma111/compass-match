@@ -99,6 +99,16 @@
 - 容量: 管理画面の容量は10秒ごとに読み直す (admin_db_size)。「容量を詰める」は pg_cron に VACUUM FULL を予約し (admin_compact、ジョブ名 admin-compact)、成功したら定期処理が予約を外す。DB は 14MB 程度で、その大半は Supabase の仕組みの分。
 - migration 16 (本番適用済み)。
 
+## 2026-10-08 (v13 点検の修正)
+- 点検の結果は Claude Doc「JOIN COMPASS 総点検と対策案」(スレッド「機能の洗い出しと確認」)。
+- フォント: Zen Kaku Gothic New を preload: false に。前は初回に315ファイル・約3MBを先読みしていた (スマホ幅で読み込み完了まで約10秒)。見た目は同じ。
+- 通報: 通報した時点の対象の文と持ち主を reports.target_snapshot / target_owner_id に写す (トリガー)。発言が90分で消えても管理画面に中身と送り主が出て BAN できる。プライバシーポリシーに追記。migration 17 (**本番は未適用。push の前に SQL Editor で流すこと**)。
+- 共有カード: サイト全体と募集ごとの opengraph-image (募集は目的・開始・あと何人)。日本語は Google Fonts から使う字だけ取る (`src/lib/og.tsx`)。募集の詳細は noindex、robots.txt と sitemap.xml を追加。
+- アイコン: apple-icon.png (iPhone のホーム画面)、icon-192/512.png、通知用の badge.png (単色)。
+- 募集詳細の自動更新: 15秒ごとに Supabase へ小さな問い合わせ (人数・状態・見える参加の行・部屋番号・最新の発言) だけを送り、変わったときだけ router.refresh (Vercel の関数の回数を抑える)。
+- 毎日の DB バックアップ: `.github/workflows/db-backup.yml`。GitHub の Secrets に SUPABASE_DB_URL (運営者が入れる) があれば動き、Artifacts に7日。
+- VC ありの Discord 必須は運営者の指定 (v11) のまま。
+
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
 - 実機 (iPhone Safari) で文字の折り返しを見る。

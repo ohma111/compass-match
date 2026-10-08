@@ -18,18 +18,28 @@ const mono = JetBrains_Mono({
   display: 'swap',
   variable: '--font-mono-face',
 });
+// 日本語は文字の範囲ごとに約80ファイル×4太さに分かれている。先読みすると初回に315ファイル・約3.5MBを
+// 取りに行くので先読みしない (ブラウザが画面に出る文字の分だけ取る。見た目は同じ)
 const text = Zen_Kaku_Gothic_New({
   weight: ['400', '500', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
+  preload: false,
   variable: '--font-text',
 });
 
+const DESCRIPTION = '#コンパスで一緒に遊ぶ人を探せる募集掲示板です。バトルアリーナ・フリーバトル・大会練習・カスタム。非公式のファンサイトです。';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://compass-match.vercel.app'),
   title: { default: 'JOIN◆COMPASS | #コンパスの募集掲示板 (非公式)', template: '%s | JOIN◆COMPASS' },
-  description: '#コンパスで一緒に遊ぶ人を探せる募集掲示板です。バトルアリーナ・フリーバトル・大会練習・カスタム。非公式のファンサイトです。',
+  description: DESCRIPTION,
   manifest: '/manifest.webmanifest',
-  icons: { icon: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/apple-icon.png' },
+  appleWebApp: { capable: true, title: 'JOIN COMPASS', statusBarStyle: 'default' },
+  // X・Discord・LINE で URL を貼ったときのカード (画像は opengraph-image.tsx)
+  openGraph: { siteName: 'JOIN◆COMPASS', title: 'JOIN◆COMPASS | #コンパスの募集掲示板 (非公式)', description: DESCRIPTION, locale: 'ja_JP', type: 'website' },
+  twitter: { card: 'summary_large_image' },
 };
 
 // すべてのページはログイン状態に依存するため、動的レンダリングにする

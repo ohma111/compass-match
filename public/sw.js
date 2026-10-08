@@ -27,8 +27,9 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',
-      icon: '/icon.svg',
-      badge: '/icon.svg',
+      // Android は SVG を通知のアイコンに使えないので PNG。badge は通知バーの単色の形
+      icon: '/icon-192.png',
+      badge: '/badge.png',
       tag: data.tag || undefined,
       renotify: Boolean(data.tag),
       data: { url: data.url || '/notifications' },

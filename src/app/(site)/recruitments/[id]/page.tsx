@@ -3,7 +3,9 @@ import { blockedRecruitmentIds, getRecruitment } from '@/lib/queries';
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
-import type { JoinState } from '@/lib/capacity';
+import { effectiveStatus, seatLabel, type JoinState } from '@/lib/capacity';
+import { PURPOSE_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
+import { formatJst } from '@/lib/time';
 import { siteUrl } from '@/lib/env';
 import { authStateOf, getSessionClaims } from '@/lib/auth';
 import { sanitizeSrc } from '@/lib/src-param';
@@ -14,9 +16,15 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!uuidSchema.safeParse(id).success) return {};
+  // 募集は15日で消えるので検索には載せない (共有カードは出す。X などのカード取得は noindex でも行われる)
+  const robots = { index: false, follow: true };
+  if (!uuidSchema.safeParse(id).success) return { robots };
   const r = await getRecruitment(id).catch(() => null);
-  return r ? { title: r.title } : {};
+  if (!r) return { robots };
+  const status = effectiveStatus(r.status, r.ends_at);
+  const seats = status === 'open' || status === 'full' ? seatLabel(r.capacity, r.approved_count) : RECRUIT_STATUS_LABELS[status];
+  const description = `${PURPOSE_LABELS[r.purpose] ?? ''} ・ ${formatJst(r.starts_at)} 開始 ・ ${seats}`;
+  return { title: r.title, description, robots, openGraph: { title: r.title, description, type: 'website', siteName: 'JOIN◆COMPASS', locale: 'ja_JP' } };
 }
 
 export default async function RecruitmentDetailPage({

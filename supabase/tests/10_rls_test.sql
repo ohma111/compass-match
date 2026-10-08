@@ -648,5 +648,20 @@ select pg_temp.assert((public.admin_list_users('', 1) ->> 'total')::int > 10, 'a
 select pg_temp.assert(jsonb_array_length(public.admin_list_users('', 1) -> 'rows') = 10, 'page size 10');
 reset role;
 
+-- v13: 通報した発言が消えても、管理画面に中身と送り主が残る
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '通報される発言');
+reset role;
+select pg_temp.as_user(:U4);
+select public.submit_report('message', (select id from public.messages where body = '通報される発言'), '暴言');
+reset role;
+select pg_temp.assert((select target_owner_id from public.reports where reason = '暴言') = :LR, 'report keeps owner');
+delete from public.messages where body = '通報される発言';
+select pg_temp.as_user(:ADM);
+select pg_temp.assert((select target_owner from public.admin_report_summary() where '暴言' = any(reasons)) = :LR, 'admin sees owner of deleted message');
+select pg_temp.assert((select target_label from public.admin_report_summary() where '暴言' = any(reasons)) = '通報される発言', 'admin sees body of deleted message');
+select pg_temp.assert((select owner_name from public.admin_report_summary() where '暴言' = any(reasons)) = 'A以下さん', 'admin sees owner name');
+reset role;
+
 select 'ALL RLS TESTS PASSED' as result;
 
