@@ -259,7 +259,7 @@ export function CreateRecruitmentForm({
   return (
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className={`tone-${c.purpose} lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-14`}>
       <input type="hidden" name="src" value={src} />
-      <div className="space-y-8 pb-28 lg:pb-0">
+      <div className="space-y-8 pb-28 short:pb-0 lg:pb-0">
         {resumed && <p className="alert-ok">先ほどの内容で募集を出しています…</p>}
 
         {/* 目的 */}
@@ -271,7 +271,7 @@ export function CreateRecruitmentForm({
               return (
                 <label
                   key={p}
-                  className={`pick h-14 gap-2 px-2 text-[14px] sm:h-20 sm:flex-col sm:gap-1.5 sm:text-[13px]`}
+                  className={`pick h-14 gap-1.5 px-1.5 text-[13px] tracking-normal whitespace-nowrap min-[400px]:text-[14px] min-[400px]:tracking-[inherit] sm:h-20 sm:flex-col sm:gap-1.5 sm:text-[13px]`}
                 >
                   <input
                     type="radio"
@@ -472,8 +472,8 @@ export function CreateRecruitmentForm({
         <div className="space-y-2">{submit}</div>
       </aside>
 
-      {/* スマホ: タブバーの上に固定 */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t-2 border-ink bg-sheet lg:hidden">
+      {/* スマホ: タブバーの上に固定 (横向きではフォームの末尾に置く) */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t-2 border-ink bg-sheet short:static short:mt-8 short:-mx-4 lg:hidden">
         <div className="mx-auto max-w-xl space-y-2 px-4 py-2">
           {state && !state.ok && (
             <p className="alert-error" role="alert">

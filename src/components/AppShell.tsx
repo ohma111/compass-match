@@ -57,11 +57,11 @@ export function AppShell({
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-sheet focus:px-3 focus:py-2">
         本文へ移動
       </a>
-      <header className="sticky top-0 z-30 border-b-2 border-ink bg-floor/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
-        <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-4 px-4 lg:h-16 lg:px-8">
+      <header className="sticky top-0 z-30 short:static border-b-2 border-ink bg-floor/95 pt-[env(safe-area-inset-top)] backdrop-blur-sm">
+        <div className="mx-auto flex h-13 max-w-[1240px] items-center gap-3 px-4 min-[400px]:gap-4 lg:h-16 lg:px-8">
           <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2 whitespace-nowrap" aria-label="JOIN COMPASS ホーム">
             <LogoMark className="h-5 w-8 lg:h-6 lg:w-9" />
-            <Wordmark className="truncate text-[22px] lg:text-[28px]" />
+            <Wordmark className="truncate text-[16px] min-[400px]:text-[22px] lg:text-[28px]" />
             <span className="type-tag border border-ink/60 px-1 text-[10px] text-ink-2">非公式</span>
           </Link>
           <nav aria-label="メニュー" className="ml-auto hidden items-center gap-1 lg:flex">
@@ -81,7 +81,11 @@ export function AppShell({
                 <Link href="/me" className={nav}>マイページ</Link>
               </>
             ) : (
-              <Link href="/transfer" className={nav}>ログイン</Link>
+              <>
+                {/* 未登録でもマイページ (プロフィールの作成) を出す。スマホは下のタブバーにある */}
+                <Link href="/me" className={nav}>マイページ</Link>
+                <Link href="/transfer" className={nav}>ログイン</Link>
+              </>
             )}
             <Link href="/recruitments/new" className="btn-signal ml-3">
               <Plus className="size-4" strokeWidth={3} aria-hidden />
@@ -89,7 +93,7 @@ export function AppShell({
             </Link>
           </nav>
           {!signedIn && (
-            <Link href="/transfer" className="ml-auto inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4 lg:hidden">
+            <Link href="/transfer" className="ml-auto inline-flex min-h-11 shrink-0 items-center text-sm font-bold whitespace-nowrap underline decoration-2 underline-offset-4 lg:hidden">
               ログイン
             </Link>
           )}
@@ -111,7 +115,7 @@ export function AppShell({
       </main>
 
       {/* スマホは下の固定バー (タブバーか募集ボタン、どちらも64px) の分だけ余白を取る */}
-      <footer className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] text-xs text-slate lg:px-8 lg:pb-12">
+      <footer className="mx-auto w-full max-w-[1240px] px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] text-xs short:pb-6 text-slate lg:px-8 lg:pb-12">
         <div className="border-t-2 border-ink pt-2 lg:pt-4">
           <nav aria-label="サイト情報">
             <ul className="divide-y divide-ink/15 text-[14px] font-bold text-ink lg:flex lg:gap-x-8 lg:divide-y-0 lg:text-xs">

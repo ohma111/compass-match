@@ -14,7 +14,7 @@ function tabOf(path: string): TabKey {
   return 'none';
 }
 
-/** 下部タブバー (スマホのみ)。「＋募集する」は画面の中央に来るよう左右の幅をそろえている */
+/** 下部タブバー (スマホのみ)。「＋募集する」は朱の丸で、タブとは別の「押すもの」に見せる */
 export function TabBar({ unread, active }: { unread: number; active?: TabKey }) {
   const path = usePathname() ?? '/';
   const current = active ?? tabOf(path);
@@ -25,7 +25,7 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
   return (
     <nav
       aria-label="メインメニュー"
-      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-ink bg-floor pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 short:static border-t-2 border-ink bg-floor pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto grid h-16 max-w-xl grid-cols-4 items-stretch">
         <Link href="/" className={item(current === 'home')} aria-current={current === 'home' ? 'page' : undefined}>
@@ -33,10 +33,24 @@ export function TabBar({ unread, active }: { unread: number; active?: TabKey }) 
           <House className="size-6" strokeWidth={current === 'home' ? 2.5 : 2} aria-hidden />
           ホーム
         </Link>
-        <Link href="/recruitments/new" className="m-1.5 flex flex-col items-center justify-center gap-0.5 bg-signal text-xs font-black text-ink active:bg-[#ff6a40]">
-          <Plus className="size-6" strokeWidth={3} aria-hidden />
-          募集する
-        </Link>
+        {/* タブと取り違えないよう、朱の丸をバーから浮かせる。募集画面にいるときは送信ボタンに重ならないよう、ほかのタブと同じ形で選択中にする */}
+        {current === 'new' ? (
+          <Link href="/recruitments/new" className={item(true)} aria-current="page">
+            {bar}
+            <Plus className="size-6 text-signal-deep" strokeWidth={3} aria-hidden />
+            募集する
+          </Link>
+        ) : (
+          <Link href="/recruitments/new" className="group relative flex flex-col items-center justify-end pb-2 text-xs font-black text-ink">
+            <span
+              aria-hidden
+              className="absolute -top-5 left-1/2 flex size-14 -translate-x-1/2 items-center justify-center rounded-full border-2 border-ink bg-signal shadow-[0_3px_0_var(--color-ink)] transition-transform group-active:translate-y-[3px] group-active:shadow-none"
+            >
+              <Plus className="size-7" strokeWidth={3} />
+            </span>
+            募集する
+          </Link>
+        )}
         <Link href="/notifications" className={item(current === 'notif')} aria-current={current === 'notif' ? 'page' : undefined}>
           {current === 'notif' && bar}
           <span className="relative">

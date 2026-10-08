@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Megaphone, Users, ShieldAlert, X, Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
-import { requireViewer } from '@/lib/auth';
+import { getRegisteredViewer } from '@/lib/auth';
+import { SignInGate } from '@/components/GateScreens';
 import { createClient } from '@/lib/supabase/server';
 import { NOTIFICATION_LABELS } from '@/lib/constants';
 import { formatJst } from '@/lib/time';
@@ -37,7 +38,8 @@ const ICONS: Record<string, { icon: LucideIcon; color: string }> = {
 };
 
 export default async function NotificationsPage() {
-  const viewer = await requireViewer('/notifications');
+  const viewer = await getRegisteredViewer();
+  if (!viewer) return <SignInGate title="通知" lead="通知はプロフィールを作成した方に届きます。" />;
   const supabase = await createClient();
   const { data } = await supabase
     .from('notifications')

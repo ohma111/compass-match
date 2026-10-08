@@ -19,6 +19,7 @@ import { PURPOSE_LABELS } from '@/lib/constants';
 import { APPEAL_PAGE, maintenanceNotice, type SiteStatus } from '@/lib/site-status';
 import { AnnounceForm, MaintenanceForm } from './AdminForms';
 import { LiveDbSize } from './LiveDbSize';
+import { UserBulkForm } from './UserBulkForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: '管理画面', robots: { index: false } };
@@ -240,10 +241,14 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
         <div><dt className="inline font-bold text-ink">BAN</dt><dd className="inline">: アカウントは残し、サイトを使えなくします。本人には BAN の画面と異議申し立ての欄が出ます。解除できます。</dd></div>
         <div><dt className="inline font-bold text-ink">削除</dt><dd className="inline">: アカウントとプロフィール・募集・チャットを消します。元に戻せません。</dd></div>
       </dl>
+      <UserBulkForm>
       <ul className="space-y-2">
         {rows.map((u) => (
           <li key={u.id} className="card space-y-2 py-3">
             <div className="flex flex-wrap items-center gap-2 text-sm">
+              {!u.is_admin && (
+                <input type="checkbox" name="uid" value={u.id} className="size-5 accent-[var(--color-ink)]" aria-label={`${u.display_name}さんを選ぶ`} />
+              )}
               <Link href={`/users/${u.id}`} className="font-bold link">{u.display_name}</Link>
               {u.is_admin && <span className="chip">管理者</span>}
               <span className="chip">{u.is_anonymous ? '匿名' : '引き継ぎ・Discord'}</span>
@@ -275,6 +280,7 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
           </li>
         ))}
       </ul>
+      </UserBulkForm>
       <Pager tab="users" page={page} total={res.total} extra={q ? { q } : undefined} />
     </div>
   );

@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { features } from '@/lib/env';
-import { requireViewer } from '@/lib/auth';
+import { getRegisteredViewer } from '@/lib/auth';
+import { SignInGate } from '@/components/GateScreens';
 import { createClient } from '@/lib/supabase/server';
 import { nowListView } from '@/lib/now-list';
 import { formatJstTime } from '@/lib/time';
@@ -16,7 +17,8 @@ export const metadata = { title: '今から遊べる' };
 export default async function NowPage() {
   // 機能フラグ (NEXT_PUBLIC_FEATURE_AVAILABLE_NOW) がOFFなら存在しないページとして扱う
   if (!features.availableNow) notFound();
-  const viewer = await requireViewer('/now');
+  const viewer = await getRegisteredViewer();
+  if (!viewer) return <SignInGate title="今から遊べる人" lead="プロフィールを作成すると表示されます。" />;
   const supabase = await createClient();
   const { data } = await supabase
     .from('presence_now')

@@ -71,6 +71,15 @@ export async function requireViewer(next: string, opts: { allowNoProfile?: boole
   return viewer;
 }
 
+/**
+ * 未登録の人に理由を見せたいページ用。未ログイン・プロフィール未作成なら null を返す (転送しない)。
+ * ページ側は null のとき <SignInGate> を出す。
+ */
+export async function getRegisteredViewer(): Promise<Viewer | null> {
+  const viewer = isSupabaseConfigured() ? await getViewer() : null;
+  return viewer?.profile ? viewer : null;
+}
+
 export function isRestricted(p: Profile | null): boolean {
   return Boolean(p && (p.banned_at || p.suspended_at || p.hidden_at));
 }

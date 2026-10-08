@@ -605,6 +605,30 @@ export async function adminDeleteUserAction(userId: string): Promise<ActionResul
   return { ok: true, message: 'アカウントを削除しました' };
 }
 
+/** 管理画面のユーザー一覧で選んだ人をまとめて BAN / 削除する。守られているアカウント・管理者は DB 側で拒否され、件数に入らない */
+export async function adminBulkUsersAction(userIds: string[], op: 'ban' | 'delete'): Promise<ActionResult> {
+  const ids = Array.isArray(userIds) ? [...new Set(userIds)] : [];
+  if (ids.length === 0 || ids.length > 50 || !ids.every((id) => uuidSchema.safeParse(id).success) || (op !== 'ban' && op !== 'delete')) {
+    return fail('操作できませんでした。ページを再読み込みしてください');
+  }
+  const supabase = await createClient();
+  let done = 0;
+  let firstError: string | null = null;
+  for (const id of ids) {
+    const { error } =
+      op === 'delete'
+        ? await supabase.rpc('admin_delete_user', { p_user: id })
+        : await supabase.rpc('admin_set_user_state', { p_user: id, p_action: 'ban' });
+    if (error) firstError ??= toUserMessage(error);
+    else done++;
+  }
+  revalidatePath('/admin');
+  const verb = op === 'delete' ? '削除しました' : 'BANしました';
+  if (done === 0) return fail(firstError ?? '操作できませんでした');
+  const skipped = ids.length - done;
+  return { ok: true, message: skipped > 0 ? `${done}人を${verb} (${skipped}人はできませんでした: ${firstError})` : `${done}人を${verb}` };
+}
+
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function adminDeleteRecruitmentLogsAction(from: string, to: string, withStats: boolean): Promise<ActionResult> {

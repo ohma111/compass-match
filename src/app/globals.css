@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* 横向きのスマホなど、高さが低い画面。固定のヘッダー・タブバー・送信ボタンが本文を潰すので、固定をやめる */
+@custom-variant short (@media (orientation: landscape) and (max-height: 500px));
+
 /*
  * v5「タイムテーブル」: 生成りの紙に、インクの罫と文字。差し色は朱 1 色。
  * - 募集は開始時刻の時間割として縦に並べる。時刻が一番大きい。
@@ -384,6 +387,53 @@ button:hover > .seat-open {
 }
 
 /* 起動直後の待機画面のくるくる (動きを減らす設定では点滅だけ) */
+/* 表紙の JOIN◆COMPASS: 左右から入って一瞬止まり (ヒットストップ)、最後に朱のひし形を押す。ひし形はその後ゆっくり明滅する */
+@keyframes cover-in-l {
+  0% { transform: translateX(-60%); opacity: 0; }
+  60% { transform: translateX(3%); opacity: 1; }
+  72%, 100% { transform: translateX(0); }
+}
+@keyframes cover-in-r {
+  0% { transform: translateX(70%); opacity: 0; }
+  60% { transform: translateX(-4%) skewX(-6deg); opacity: 1; }
+  70% { transform: translateX(-4%) skewX(-6deg); }
+  100% { transform: translateX(0); }
+}
+@keyframes cover-dot {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+@keyframes cover-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.cover-in-l { display: inline-block; animation: cover-in-l 560ms var(--ease-snap) both; }
+.cover-in-r { display: inline-block; animation: cover-in-r 620ms var(--ease-snap) 140ms both; }
+.cover-dot {
+  display: inline-block;
+  transform-origin: 50% 50%;
+  animation: cover-dot 320ms var(--ease-snap) 760ms both, cover-blink 2.4s ease-in-out 1.6s infinite;
+}
+/* 入りのあと: JOIN と COMPASS が交互に「ポン」と跳ねる (縮んで、伸びて、戻る) */
+@keyframes cover-bob {
+  0%, 62%, 100% { transform: translateY(0) scale(1, 1); }
+  68% { transform: translateY(2%) scale(1.04, 0.92); }
+  76% { transform: translateY(-12%) scale(0.97, 1.05); }
+  86% { transform: translateY(0) scale(1.03, 0.95); }
+  92% { transform: translateY(0) scale(1, 1); }
+}
+.cover-bob { transform-origin: 50% 100%; animation: cover-bob 2.4s var(--ease-snap) 1.4s infinite; }
+.cover-bob-2 { animation-delay: 2.6s; }
+/* 背景: 目的の刻印が2段、逆向きにゆっくり流れる */
+@keyframes cover-flow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.cover-flow { color: color-mix(in srgb, var(--color-ink) 7%, transparent); font-size: clamp(40px, 9vw, 96px); line-height: 1.15; overflow: hidden; }
+.cover-flow-row { display: flex; width: max-content; white-space: pre; animation: cover-flow 40s linear infinite; }
+.cover-flow-rev { animation-direction: reverse; animation-duration: 52s; }
+@media (prefers-reduced-motion: reduce) {
+  .cover-in-l, .cover-in-r, .cover-dot, .cover-bob, .cover-flow-row { animation: none; }
+}
+
 @keyframes boot-spin {
   to { transform: rotate(360deg); }
 }

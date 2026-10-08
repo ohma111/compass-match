@@ -11,6 +11,7 @@ import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { TransferView } from '@/components/views/AuthViews';
 import { MeView } from '@/components/views/MeView';
 import { GuestMeView } from '@/components/views/GuestMeView';
+import { CoverView } from '@/components/views/CoverView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
 import { BanScreen, MaintenancePlanned, MaintenanceScreen } from '@/components/GateScreens';
 import { ME_ID, people, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
@@ -29,6 +30,12 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   let sheetOpen = false;
 
   switch (screen) {
+    case 'cover':
+      active = 'home';
+      signedIn = false;
+      unread = 0;
+      body = <CoverView items={[...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at))} now={now} />;
+      break;
     case 'me-guest':
       active = 'me';
       signedIn = false;
