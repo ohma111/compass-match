@@ -38,27 +38,47 @@ export function ChatRoom({
   const [reportingId, setReportingId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Supabase Realtime: RLSにより、メンバー以外には配信されない
+  // 新しい発言の合図 (Realtime の Broadcast)。合図には中身を載せず、受け取った側が RLS のとおりに読み直す。
+  // 前は postgres_changes (DB の変更を Realtime が読み続ける) で、混雑時に DB の CPU の大半を使っていた。
+  // 合図が届かない環境でも、LobbyLineup の20秒ごとの確認で新しい発言があれば描き直す。
+  const channelRef = useRef<ReturnType<ReturnType<typeof getBrowserClient>['channel']> | null>(null);
+  const lastAtRef = useRef<string | null>(null);
+  lastAtRef.current = messages.length ? messages[messages.length - 1].created_at : null;
   useEffect(() => {
-    let supabase;
+    let supabase: ReturnType<typeof getBrowserClient>;
     try {
       supabase = getBrowserClient();
     } catch {
       return;
     }
+    let fetching = false;
+    const pull = async () => {
+      if (fetching) return;
+      fetching = true;
+      try {
+        let q = supabase
+          .from('messages')
+          .select('id, recruitment_id, user_id, body, created_at')
+          .eq('recruitment_id', recruitmentId)
+          .order('created_at', { ascending: true })
+          .limit(50);
+        // 時刻はサーバーと端末で少しずれるので、最後の発言の1分前から取り直す (id で重複を除く)
+        if (lastAtRef.current) q = q.gte('created_at', new Date(Date.parse(lastAtRef.current) - 60_000).toISOString());
+        const { data } = await q;
+        if (data?.length) setMessages((prev) => mergeMessages(prev, data as Message[]));
+      } finally {
+        fetching = false;
+      }
+    };
     const channel = supabase
-      .channel(`messages:${recruitmentId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `recruitment_id=eq.${recruitmentId}` },
-        (payload) => {
-          const m = payload.new as Message & { hidden_at?: string | null };
-          if (m.hidden_at) return;
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-        },
-      )
+      .channel(`chat:${recruitmentId}`)
+      .on('broadcast', { event: 'new' }, () => {
+        void pull();
+      })
       .subscribe();
+    channelRef.current = channel;
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [recruitmentId]);
@@ -89,11 +109,12 @@ export function ChatRoom({
       const r = await sendMessageAction(recruitmentId, trimmed);
       if (r.ok) {
         setBody('');
-        // Realtime の配信を待たずに自分の発言を出す (届いたら id で重複を除く)
+        // 自分の発言はすぐ出す (読み直したときは id で重複を除く)
         if (r.data) {
           const sent = { ...r.data, recruitment_id: recruitmentId, user_id: viewerId };
           setMessages((prev) => mergeMessages(prev, [sent]));
         }
+        void channelRef.current?.send({ type: 'broadcast', event: 'new', payload: {} });
       } else setError(r.error);
     });
   }

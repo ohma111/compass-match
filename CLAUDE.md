@@ -121,6 +121,7 @@
 - 続き2 (対策): ヘッダー用の4回の読み込みを1回の RPC (viewer_header) に。関数がない間は前のやり方に戻る。参加していない方の自動確認は /api/live/[id] (CDN に10秒、proxy の対象外) を読む。「容量を詰める」(VACUUM FULL、全テーブルが止まる) を廃止。容量表示の読み直しは1分ごと。migration 20 (notifications を Realtime の対象から外す・admin_compact を止める・viewer_header)。**本番は未適用。SQL Editor で流すこと** (19 と独立)。
 
 - 確認の出し方 (2026-10-09): ActionButton の確認 (募集・参加の取り消し、削除、ブロックなど) は window.confirm をやめ、押すとその場に「確認の文 + 実行ボタン + やめる」を出す。アプリ内ブラウザでは confirm が出ずに false が返り、押しても何も起きないことがあった。ほかの window.confirm (引き継ぎ・ログアウト・管理画面の一部) はまだ残っている。
+- 続き3 (10/10 朝): Pro + Small に変更 (運営者)。一晩で募集 85→337件・202人。CPU 97% (Disk IO 1%)。pg_stat_statements の1位は Realtime の realtime.list_changes (6万回・計385秒、2位の約9倍)。チャットを postgres_changes から Broadcast の合図 (中身なし、受けた側が RLS のとおりに読み直す、チャネル chat:<募集ID>) に変更。migration 21 で messages を Realtime の配信対象から外す (**本番は未適用**)。
 
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
