@@ -700,18 +700,10 @@ export async function saveDiscordAction(name: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** 管理画面: 今のデータベースの容量 (10秒ごとに読み直す) */
+/** 管理画面: 今のデータベースの容量 (1分ごとに読み直す) */
 export async function adminDbSizeAction(): Promise<ActionResult<{ db_bytes: number; at: string; compact_scheduled: boolean }>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('admin_db_size');
   if (error || !data) return fail(toUserMessage(error));
   return { ok: true, data: data as { db_bytes: number; at: string; compact_scheduled: boolean } };
-}
-
-/** 管理画面: 削除で空いた場所を詰めて、ファイルを実際に小さくする (1分以内に1回実行) */
-export async function adminCompactAction(): Promise<ActionResult> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc('admin_compact');
-  if (error) return fail(toUserMessage(error));
-  return { ok: true, message: '1分以内に容量を詰めます' };
 }

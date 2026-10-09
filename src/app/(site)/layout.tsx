@@ -1,8 +1,6 @@
 import { headers } from 'next/headers';
-import { getViewerSafe } from '@/lib/viewer-safe';
 import { isSupabaseConfigured } from '@/lib/env';
-import { createClient } from '@/lib/supabase/server';
-import { getSessionClaims, isRestricted, type Viewer } from '@/lib/auth';
+import { getViewerHeader, isRestricted, type Viewer } from '@/lib/auth';
 import { AppShell } from '@/components/AppShell';
 import { getSiteStatus } from '@/lib/site-status';
 import { BanScreen, MaintenancePlanned, MaintenanceScreen } from '@/components/GateScreens';
@@ -13,41 +11,17 @@ const OPEN_DURING_MAINTENANCE = ['/transfer', '/auth', '/terms', '/privacy'];
 const OPEN_WHEN_BANNED = ['/terms', '/privacy'];
 const under = (path: string, list: string[]) => list.some((p) => path === p || path.startsWith(`${p}/`));
 
-async function unreadCount(userId: string): Promise<number> {
-  try {
-    const supabase = await createClient();
-    const { count } = await supabase
-      .from('notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .is('read_at', null);
-    return count ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
-async function hasDiscord(userId: string): Promise<boolean> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase.from('profile_contacts').select('contact_discord').eq('user_id', userId).maybeSingle();
-    return Boolean((data as { contact_discord: string | null } | null)?.contact_discord);
-  } catch {
-    return false;
-  }
-}
-
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   // ヘッダーの表示用。取得に失敗してもページ本体 (各ページが自分で取得してエラーを出す) は表示する
-  // 未読数はユーザーIDだけで取れるので、プロフィールの取得と並行して始める
-  const claims = isSupabaseConfigured() ? await getSessionClaims().catch(() => null) : null;
-  const [viewer, unread, status, discordReady, h] = await Promise.all([
-    getViewerSafe().catch((): Viewer | null => null),
-    claims ? unreadCount(claims.userId) : Promise.resolve(0),
+  // プロフィール・未読数・Discord の有無は1回の問い合わせで取る (getViewerHeader、ページ側とも共有)
+  const [header, status, h] = await Promise.all([
+    isSupabaseConfigured() ? getViewerHeader().catch(() => null) : Promise.resolve(null),
     getSiteStatus(),
-    claims ? hasDiscord(claims.userId) : Promise.resolve(false),
     headers(),
   ]);
+  const viewer: Viewer | null = header?.viewer ?? null;
+  const unread = header?.unread ?? 0;
+  const discordReady = header?.hasDiscord ?? false;
   const path = h.get('x-pathname') ?? '';
   const isAdmin = Boolean(viewer?.isAdmin);
   // メンテナンス中は管理者以外にメンテナンスの画面を出す。書き込みは DB 側 (require_active_user) でも止めている

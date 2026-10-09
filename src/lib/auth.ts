@@ -41,26 +41,56 @@ export const getSessionClaims = cache(async (): Promise<SessionClaims | null> =>
   return { userId: c.sub, email: c.email || null, isAnonymous: Boolean(c.is_anonymous) };
 });
 
+/** ヘッダーにも出す、ログイン中の方の情報 (未読数・Discord の有無も一緒に取る) */
+export interface ViewerHeader {
+  viewer: Viewer;
+  unread: number;
+  hasDiscord: boolean;
+}
+
+/** 関数 viewer_header がまだない (migration 20 の適用前) */
+const isMissingFunction = (e: { code?: string } | null) => e?.code === 'PGRST202' || e?.code === '42883';
+
 /**
- * ログイン中のユーザーを取得 (未ログインならnull)。
+ * ログイン中のユーザーと、ヘッダー用の未読数・Discord の有無を1回の問い合わせで取る (未ログインならnull)。
+ * migration 20 の viewer_header がなければ、前と同じく別々に読む。
  * プロフィールの取得でエラーが出た場合は例外を投げる。エラーを「プロフィールなし」と扱うと、
  * 登録済みの人が初回登録画面に戻されてしまう (v2 の不具合)。
  */
-export const getViewer = cache(async (): Promise<Viewer | null> => {
+export const getViewerHeader = cache(async (): Promise<ViewerHeader | null> => {
   const claims = await getSessionClaims();
   if (!claims) return null;
   const supabase = await createClient();
-  const [profileRes, rolesRes] = await Promise.all([
+  const rpc = await supabase.rpc('viewer_header');
+  if (!rpc.error && rpc.data) {
+    const d = rpc.data as { profile: Profile | null; is_admin: boolean; unread: number; has_discord: boolean };
+    return {
+      viewer: { userId: claims.userId, profile: d.profile ?? null, isAdmin: Boolean(d.is_admin) },
+      unread: Number(d.unread) || 0,
+      hasDiscord: Boolean(d.has_discord),
+    };
+  }
+  if (rpc.error && !isMissingFunction(rpc.error)) throw new ProfileLoadError();
+  const [profileRes, rolesRes, unreadRes, contactRes] = await Promise.all([
     supabase.from('profiles').select(PROFILE_SELECT).eq('id', claims.userId).maybeSingle(),
     supabase.from('user_roles').select('role').eq('user_id', claims.userId),
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', claims.userId).is('read_at', null),
+    supabase.from('profile_contacts').select('contact_discord').eq('user_id', claims.userId).maybeSingle(),
   ]);
   if (profileRes.error) throw new ProfileLoadError();
   return {
-    userId: claims.userId,
-    profile: (profileRes.data as unknown as Profile | null) ?? null,
-    isAdmin: (rolesRes.data ?? []).some((r: { role: string }) => r.role === 'admin'),
+    viewer: {
+      userId: claims.userId,
+      profile: (profileRes.data as unknown as Profile | null) ?? null,
+      isAdmin: (rolesRes.data ?? []).some((r: { role: string }) => r.role === 'admin'),
+    },
+    unread: unreadRes.count ?? 0,
+    hasDiscord: Boolean((contactRes.data as { contact_discord: string | null } | null)?.contact_discord),
   };
 });
+
+/** ログイン中のユーザーを取得 (未ログインならnull)。レイアウトと同じ1回の問い合わせを使う */
+export const getViewer = cache(async (): Promise<Viewer | null> => (await getViewerHeader())?.viewer ?? null);
 
 /** ログイン必須のページ用。未ログインなら登録/ログインへ、プロフィール未作成(Discordで初めて入った人)なら初回登録へ */
 export async function requireViewer(next: string, opts: { allowNoProfile?: boolean } = {}): Promise<Viewer> {
