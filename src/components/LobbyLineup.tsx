@@ -11,12 +11,13 @@ import { getBrowserClient } from '@/lib/supabase/client';
  * 募集の「今の状態」を短い文字列にする。変わっていればページを描き直す。
  * 読めるものは RLS のとおり (未ログインは人数と状態だけ、募集者は申請中の行も、参加者は部屋番号と発言も)。
  */
-async function liveSignature(recruitmentId: string, member: boolean): Promise<string> {
+async function liveSignature(recruitmentId: string, member: boolean, signedIn: boolean): Promise<string> {
   const db = getBrowserClient();
   const none = Promise.resolve({ data: null, error: null });
   const [rec, parts, room, msg] = await Promise.all([
     db.from('recruitments').select('approved_count, status, hidden_at').eq('id', recruitmentId).maybeSingle(),
-    db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id'),
+    // 未ログインの方は参加の行を読めないので問い合わせない
+    signedIn ? db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id') : none,
     member ? db.rpc('get_room_code', { p_recruitment_id: recruitmentId }) : none,
     // チャットは Realtime で届くが、つながらない環境のために最新の発言も見る
     member ? db.from('messages').select('id').eq('recruitment_id', recruitmentId).order('created_at', { ascending: false }).limit(1) : none,
@@ -26,7 +27,9 @@ async function liveSignature(recruitmentId: string, member: boolean): Promise<st
 }
 
 /** 席の状態を見に行く間隔 (画面が見えているときだけ) */
-const LIVE_REFRESH_MS = 15_000;
+const LIVE_REFRESH_MS = 20_000;
+/** 参加していない方 (未ログインを含む) は人数が変わったかだけ分かればよいので、間を空ける */
+const LIVE_REFRESH_GUEST_MS = 45_000;
 
 /**
  * 募集詳細の「ロビー」。
@@ -72,10 +75,12 @@ export function LobbyLineup(props: {
 
   // 席の自動更新。ページをサーバーで描き直す (Vercel の関数1回) のは、変化があったときだけにする。
   // 間隔ごとには Supabase に小さな問い合わせ (人数・状態・見えている参加の行・部屋番号) だけを送り、
-  // 前回と違えば描き直す。開いた直後は15秒ごと、触らずに置いてあるほど間隔を空ける。
-  // 画面が見えていないときは何もせず、戻ってきたら1回だけすぐ確かめる。問い合わせに失敗したら描き直す。
+  // 前回と違えば描き直す。参加者・募集者は20秒ごと、それ以外の方は45秒ごと。触らずに置いてあるほど間隔を空ける。
+  // 画面が見えていないときは何もせず、戻ってきたら1回だけすぐ確かめる。問い合わせに失敗しても描き直さない。
   const memberRef = useRef(props.joined || props.isOwner);
   memberRef.current = props.joined || props.isOwner;
+  const signedInRef = useRef(props.auth !== 'guest');
+  signedInRef.current = props.auth !== 'guest';
   useEffect(() => {
     if (!props.live) return;
     let last = Date.now();
@@ -88,12 +93,13 @@ export function LobbyLineup(props: {
     };
     const interval = () => {
       const idle = Date.now() - last;
-      const base = idle < 5 * 60_000 ? LIVE_REFRESH_MS : idle < 20 * 60_000 ? 45_000 : 120_000;
+      const first = memberRef.current ? LIVE_REFRESH_MS : LIVE_REFRESH_GUEST_MS;
+      const base = idle < 5 * 60_000 ? first : idle < 20 * 60_000 ? Math.max(first, 60_000) : 180_000;
       // 失敗が続くとき (サーバーが混み合っているとき) は間隔を空ける (最大2分)
-      return failures > 0 ? Math.max(base, Math.min(120_000, LIVE_REFRESH_MS * 2 ** failures)) : base;
+      return failures > 0 ? Math.max(base, Math.min(180_000, LIVE_REFRESH_MS * 2 ** failures)) : base;
     };
     const check = async () => {
-      const sig = await liveSignature(props.recruitmentId, memberRef.current).catch(() => null);
+      const sig = await liveSignature(props.recruitmentId, memberRef.current, signedInRef.current).catch(() => null);
       if (stopped) return;
       // 失敗したときは描き直さない (混み合っているときに、さらに負荷をかけないため)
       if (sig === null) {
