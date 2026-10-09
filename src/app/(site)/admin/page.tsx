@@ -125,7 +125,7 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted">未処理の通報を対象ごとにまとめています。3人以上から通報された対象は自動で非表示になります。</p>
+        <p className="text-xs text-muted">未処理の通報を対象ごとにまとめています。通報だけでは非表示になりません。</p>
         <ActionButton action={adminDeleteReportsAction.bind(null, null, null, true)} className="btn-outline btn-sm" confirm="処理済みの通報をすべて削除しますか？">
           処理済みの通報を削除
         </ActionButton>
@@ -138,7 +138,7 @@ async function ReportsTab({ supabase }: { supabase: SB }) {
               <span className="chip-brand">{TYPE_LABEL[r.target_type]}</span>
               <span className="font-bold">{r.target_label ?? '(削除済み)'}</span>
               <span className="text-danger">通報者 {r.reporter_count}人</span>
-              {r.is_hidden && <span className="chip">自動非表示中</span>}
+              {r.is_hidden && <span className="chip">非表示中</span>}
               <span className="ml-auto text-xs text-muted">{formatJst(r.latest_at)}</span>
             </div>
             <p className="text-sm">
@@ -253,7 +253,7 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
               {u.is_admin && <span className="chip">管理者</span>}
               <span className="chip">{u.is_anonymous ? '匿名' : '引き継ぎ・Discord'}</span>
               {u.banned_at && <span className="chip text-danger">BAN中</span>}
-              {u.hidden_at && <span className="chip">通報で非表示</span>}
+              {u.hidden_at && <span className="chip">非表示</span>}
               <span className="ml-auto text-xs text-muted">
                 登録 {formatJst(u.created_at)}
                 {u.last_seen_at ? `・最終操作 ${formatJst(u.last_seen_at)}` : ''}

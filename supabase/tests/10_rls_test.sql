@@ -6,11 +6,12 @@ insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000004'),
   ('00000000-0000-4000-8000-000000000005'),
   ('00000000-0000-4000-8000-000000000009');
+-- 管理者は先に役割を付ける (v14: 管理者以外は「管理者」などの名前を使えない)
+insert into public.user_roles (user_id, role) values ('00000000-0000-4000-8000-000000000009', 'admin');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
   ('00000000-0000-4000-8000-000000000004', 'テスト4', 'a', now(), 't'),
   ('00000000-0000-4000-8000-000000000005', 'テスト5', 'a', now(), 't'),
   ('00000000-0000-4000-8000-000000000009', '管理者', 'a', now(), 't');
-insert into public.user_roles (user_id, role) values ('00000000-0000-4000-8000-000000000009', 'admin');
 
 create or replace function pg_temp.as_user(p uuid) returns void language plpgsql as $$
 begin
@@ -137,7 +138,7 @@ select pg_temp.expect_error($$select public.request_join('10000000-0000-4000-800
 reset role;
 select pg_temp.assert((select status from public.participations where user_id = :U4 and recruitment_id = :R1) = 'cancelled', 'blocked pending cancelled');
 
--- 9. 通報: 同一通報者の重複はカウントせず、異なる3人で自動非表示
+-- 9. 通報: 同一通報者の重複は1件にまとめる。v14: 何人が通報しても自動では非表示にならない
 select pg_temp.as_user(:U2);
 select pg_temp.assert(public.submit_report('recruitment', :R1, '不適切') = false, '1st report no hide');
 select pg_temp.assert(public.submit_report('recruitment', :R1, '不適切(再)') = false, 'duplicate no hide');
@@ -151,7 +152,12 @@ select pg_temp.as_user(:U1);
 select pg_temp.expect_error($$select public.submit_report('recruitment', '10000000-0000-4000-8000-000000000001', 'x')$$, 'self report rejected');
 reset role;
 select pg_temp.as_user(:U5);
-select pg_temp.assert(public.submit_report('recruitment', :R1, 'スパム') = true, '3rd distinct reporter hides');
+select pg_temp.assert(public.submit_report('recruitment', :R1, 'スパム') = false, '3rd distinct reporter does not hide');
+reset role;
+select pg_temp.assert((select hidden_at is null from public.recruitments where id = :R1), 'reports never hide automatically');
+-- 非表示 (hidden_at) の見え方は、列を直接立てて確かめる
+update public.recruitments set hidden_at = now() where id = :R1;
+select pg_temp.as_user(:U5);
 select pg_temp.assert((select count(*) from public.recruitments where id = :R1) = 0, 'hidden recruitment invisible to others');
 reset role;
 select pg_temp.as_user(null);
@@ -375,7 +381,7 @@ select pg_temp.as_user(null);
 select pg_temp.expect_error($$select public.confirm_my_rank('a')$$, 'anon cannot confirm rank');
 reset role;
 
--- 16. v3: 通報時点で作成24時間未満のアカウントの通報は自動非表示の人数に数えない
+-- 16. v14: 作成直後のアカウントでも古いアカウントでも、通報は記録だけで非表示にはならない
 insert into auth.users (id) values
   ('00000000-0000-4000-8000-000000000021'), ('00000000-0000-4000-8000-000000000022');
 insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
@@ -384,37 +390,23 @@ insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms
 insert into public.recruitments (id, owner_id, title, purpose, starts_at, ends_at, capacity)
 values ('10000000-0000-4000-8000-000000000016', '00000000-0000-4000-8000-000000000007', '通報テスト', 'enjoy', now(), now() + interval '1 hour', 3);
 \set RT '''10000000-0000-4000-8000-000000000016'''
--- 作成直後のアカウント3人 (テスト6・新規1・新規2) の通報では非表示にならない
-select pg_temp.as_user('00000000-0000-4000-8000-000000000006');
-select pg_temp.assert(public.submit_report('recruitment', :RT, '新規') = false, 'fresh reporter 1 not counted');
-reset role;
 select pg_temp.as_user('00000000-0000-4000-8000-000000000021');
-select pg_temp.assert(public.submit_report('recruitment', :RT, '新規') = false, 'fresh reporter 2 not counted');
+select pg_temp.assert(public.submit_report('recruitment', :RT, '新規') = false, 'fresh reporter 1');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8000-000000000022');
-select pg_temp.assert(public.submit_report('recruitment', :RT, '新規') = false, 'fresh reporter 3 not counted');
+select pg_temp.assert(public.submit_report('recruitment', :RT, '新規') = false, 'fresh reporter 2');
 reset role;
-select pg_temp.assert((select hidden_at is null from public.recruitments where id = :RT), '3 fresh reporters do not hide');
-select pg_temp.assert((select count(*) from public.reports where target_id = :RT) = 3, 'fresh reports still recorded');
--- 作成から24時間以上のアカウントは数える (3人目で非表示)
 select pg_temp.as_user(:U2);
 select pg_temp.assert(public.submit_report('recruitment', :RT, '古い1') = false, 'old reporter 1');
 reset role;
 select pg_temp.as_user(:U4);
-select pg_temp.assert(public.submit_report('recruitment', :RT, '古い2') = false, 'old reporter 2 (fresh ones still not counted)');
+select pg_temp.assert(public.submit_report('recruitment', :RT, '古い2') = false, 'old reporter 2');
 reset role;
 select pg_temp.as_user(:U5);
-select pg_temp.assert(public.submit_report('recruitment', :RT, '古い3') = true, 'third old reporter hides');
+select pg_temp.assert(public.submit_report('recruitment', :RT, '古い3') = false, 'old reporter 3');
 reset role;
--- 新規アカウントが後から24時間経っても、通報した時点の判定のまま (遡って数えない)
--- (作成3日前・その1時間後に通報した状態を再現する)
-update public.profiles set created_at = now() - interval '3 days' where id = '00000000-0000-4000-8000-000000000021';
-update public.reports set created_at = now() - interval '3 days' + interval '1 hour' where reporter_id = '00000000-0000-4000-8000-000000000021';
-update public.recruitments set hidden_at = null where id = :RT;
-delete from public.reports where target_id = :RT and reporter_id = :U5;
-select pg_temp.as_user(:U2);
-select pg_temp.assert(public.submit_report('recruitment', :RT, '古い1(再)') = false, 'aged-later account not counted retroactively');
-reset role;
+select pg_temp.assert((select hidden_at is null from public.recruitments where id = :RT), '5 reporters do not hide');
+select pg_temp.assert((select count(*) from public.reports where target_id = :RT) = 5, 'all reports recorded');
 
 -- 17. v4: 匿名サインインのユーザー (auth.users.is_anonymous = true, provider = anonymous)
 \set AN '''00000000-0000-4000-8000-000000000031'''
@@ -523,7 +515,8 @@ select pg_temp.as_user(:U2);
 select pg_temp.expect_error($$insert into public.follows (follower_id, followee_id) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001')$$, 'no direct follow insert');
 select pg_temp.expect_error($$select * from public.server_secrets$$, 'server secrets hidden');
 select pg_temp.expect_error($$select * from public.push_subscriptions$$, 'push subscriptions hidden');
-select public.save_push_subscription('https://push.example.com/abc', 'key', 'auth');
+select pg_temp.expect_error($$select public.save_push_subscription('https://push.example.com/abc', 'key', 'auth')$$, 'unknown push host rejected');
+select public.save_push_subscription('https://fcm.googleapis.com/fcm/send/abc', 'key', 'auth');
 select pg_temp.assert(public.has_push_subscription(), 'push subscription saved');
 reset role;
 

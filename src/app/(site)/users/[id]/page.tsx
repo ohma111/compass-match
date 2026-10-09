@@ -13,6 +13,7 @@ import { RoleIcon } from '@/components/RoleIcon';
 import { FollowButton } from '@/components/FollowButton';
 import { blockUserAction } from '@/app/actions';
 import type { Profile } from '@/lib/types';
+import { StaffBadge } from '@/components/StaffBadge';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +41,10 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
       <section className="flex items-center gap-6">
         <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} avatar={p.avatar ?? null} />
         <div className="min-w-0">
-          <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{p.display_name}</h1>
+          <h1 className="flex min-w-0 items-center gap-2 text-[24px] leading-tight font-black tracking-[-0.01em]">
+            <span className="truncate">{p.display_name}</span>
+            {p.is_staff && <StaffBadge className="text-[12px] text-signal-deep" />}
+          </h1>
           <p className="mt-1 text-sm font-bold">{rankLabel(p.rank_band)}</p>
         </div>
       </section>

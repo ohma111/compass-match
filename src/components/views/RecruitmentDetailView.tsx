@@ -69,6 +69,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   const nameOf = new Map<string, string>();
   if (r.owner) nameOf.set(r.owner_id, r.owner.display_name);
   for (const p of approved) if (p.profile) nameOf.set(p.user_id, p.profile.display_name);
+  const staffIds = [r.owner?.is_staff ? r.owner_id : null, ...approved.map((p) => (p.profile?.is_staff ? p.user_id : null))].filter(
+    (v): v is string => Boolean(v),
+  );
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
   const left = remainingSlots(r.capacity, r.approved_count);
@@ -310,6 +313,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               viewerId={viewerId!}
               initialMessages={messages}
               names={Object.fromEntries(nameOf)}
+              staffIds={staffIds}
               blockedIds={props.blockedIds ?? []}
               open={chatOpen && !restricted}
             />

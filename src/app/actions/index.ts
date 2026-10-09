@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { dispatchPush } from '@/lib/push/server';
+import { isPushEndpoint } from '@/lib/push/endpoint';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
@@ -506,9 +507,7 @@ export async function setFollowAction(userId: string, on: boolean): Promise<Acti
 export async function savePushSubscriptionAction(sub: { endpoint: string; p256dh: string; auth: string }): Promise<ActionResult> {
   const ok =
     sub &&
-    typeof sub.endpoint === 'string' &&
-    /^https:\/\//.test(sub.endpoint) &&
-    sub.endpoint.length <= 1000 &&
+    isPushEndpoint(sub.endpoint) &&
     typeof sub.p256dh === 'string' &&
     sub.p256dh.length <= 200 &&
     typeof sub.auth === 'string' &&

@@ -10,12 +10,14 @@ import { LIMITS } from '@/lib/constants';
 import { ReportButton } from '@/components/ReportButton';
 import type { Message } from '@/lib/types';
 import { mergeMessages } from '@/lib/chat-merge';
+import { StaffBadge } from '@/components/StaffBadge';
 
 export function ChatRoom({
   recruitmentId,
   viewerId,
   initialMessages,
   names,
+  staffIds = [],
   blockedIds = [],
   open,
 }: {
@@ -23,6 +25,8 @@ export function ChatRoom({
   viewerId: string;
   initialMessages: Message[];
   names: Record<string, string>;
+  /** 運営の印を付ける人 */
+  staffIds?: string[];
   /** ブロックしている方の発言は中身を出さない */
   blockedIds?: string[];
   open: boolean;
@@ -115,6 +119,7 @@ export function ChatRoom({
             <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
               <div className="mb-0.5 flex items-center text-xs text-slate">
                 <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? '参加者')}</span>
+                {!mine && staffIds.includes(m.user_id) && <StaffBadge className="ml-1 text-signal-deep" />}
                 <span className="ml-1.5 tabular-nums">{formatJstTime(m.created_at)}</span>
                 {!mine && (
                   <button
