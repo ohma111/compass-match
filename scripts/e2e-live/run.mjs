@@ -106,7 +106,7 @@ async function eventually(page, locatorFn, { timeout = 40_000, reload = true } =
   }
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 let recruitmentUrl = null;
 let transferCode = null;
 const A = await newContext(browser, 'A');
@@ -281,6 +281,7 @@ try {
         const btn = p.getByRole('button', { name: '参加を取り消す' });
         if (await btn.count()) {
           await btn.click();
+          await p.getByRole('group').getByRole('button', { name: '参加を取り消す' }).click();
           await p.getByRole('button', { name: /参加する/ }).first().waitFor({ timeout: 15_000 });
         }
         await snap(p, 'cleanup-B-left');
@@ -293,6 +294,7 @@ try {
         const p = A.page;
         await p.goto(recruitmentUrl, { waitUntil: 'networkidle' });
         await p.getByRole('button', { name: '募集を取り消す' }).click();
+        await p.getByRole('group').getByRole('button', { name: '募集を取り消す' }).click();
         await p.getByText('取り消し').first().waitFor({ timeout: 15_000 });
         await p.goto(BASE, { waitUntil: 'networkidle' });
         const id = recruitmentUrl.split('/').pop();

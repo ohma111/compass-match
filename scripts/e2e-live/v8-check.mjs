@@ -116,6 +116,7 @@ try {
     const p = X.page;
     await p.goto(`${BASE}/notifications`, { waitUntil: 'networkidle' });
     await p.getByRole('button', { name: 'すべて削除' }).click();
+    await p.getByRole('group').getByRole('button', { name: 'すべて削除' }).click();
     await p.getByText('通知はありません').waitFor({ timeout: 15_000 });
   });
   await step('一般ユーザーが /admin を開いても中身は出ない', async () => {
@@ -144,7 +145,7 @@ try {
     try {
       await who.page.goto(url, { waitUntil: 'networkidle' });
       const b = who.page.getByRole('button', { name: '募集を取り消す' });
-      if (await b.count()) { await b.click(); await who.page.getByText('取り消し').first().waitFor({ timeout: 15_000 }); }
+      if (await b.count()) { await b.click(); await who.page.getByRole('group').getByRole('button', { name: '募集を取り消す' }).click(); await who.page.getByText('取り消し').first().waitFor({ timeout: 15_000 }); }
       console.log(`片付け: ${url} を取り消し`);
     } catch (e) { console.log(`片付け失敗: ${url} ${e.message.split('\n')[0]}`); }
   }
