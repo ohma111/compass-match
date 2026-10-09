@@ -1,7 +1,7 @@
-import { blockedRecruitmentIds, listRecruitments, myJoinStates } from '@/lib/queries';
+import { blockedRecruitmentIds, listRecruitments, listRecruitmentsPublic, myJoinStates } from '@/lib/queries';
 import { isSupabaseConfigured, features } from '@/lib/env';
 import { getViewerSafe } from '@/lib/viewer-safe';
-import { authStateOf } from '@/lib/auth';
+import { authStateOf, getSessionClaims } from '@/lib/auth';
 import { listFilterSchema } from '@/lib/validation/schemas';
 import { cookies } from 'next/headers';
 import { HomeView } from '@/components/views/HomeView';
@@ -20,8 +20,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   let blocked = new Set<string>();
   let loadError = false;
   // 一覧とログイン情報は互いに依存しないので同時に取る
+  // ログインしていない方は全員同じ一覧なので、まとめて取ったもの (15秒) を使う
+  const claims = isSupabaseConfigured() ? await getSessionClaims().catch(() => null) : null;
   const listing = isSupabaseConfigured()
-    ? listRecruitments({ purpose: filter.purpose, soon: filter.soon }, now).then(
+    ? (claims ? listRecruitments({ purpose: filter.purpose, soon: filter.soon }, now) : listRecruitmentsPublic(filter.purpose, filter.soon)).then(
         (r) => r,
         () => null,
       )

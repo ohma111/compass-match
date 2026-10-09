@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { createClient } from '@supabase/supabase-js';
-import { getSupabaseEnv } from '@/lib/env';
+import { getRecruitmentPublic } from '@/lib/queries';
 import { OG_COLORS, OG_SIZE, OgLogo, loadOgFont, ogFonts } from '@/lib/og';
 import { PURPOSE_LABELS, RANK_MIN_LABELS, type Purpose, type RankBand, type RecruitStatus } from '@/lib/constants';
 import { effectiveStatus, occupiedSeats, remainingSlots } from '@/lib/capacity';
@@ -28,15 +27,8 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   let r: Row | null = null;
   if (uuidSchema.safeParse(id).success) {
     try {
-      // 共有先のクローラーはログインしていないので、未ログインと同じ見え方で読む (Cookie は使わない)
-      const { url, anonKey } = getSupabaseEnv();
-      const db = createClient(url, anonKey, { auth: { persistSession: false } });
-      const { data } = await db
-        .from('recruitments')
-        .select('title, purpose, starts_at, ends_at, capacity, approved_count, min_rank, status')
-        .eq('id', id)
-        .maybeSingle();
-      r = (data as Row | null) ?? null;
+      // 共有先のクローラーはログインしていないので、未ログインと同じ見え方で読む (10秒まとめて使う)
+      r = ((await getRecruitmentPublic(id)) as unknown as Row | null) ?? null;
     } catch {
       r = null;
     }

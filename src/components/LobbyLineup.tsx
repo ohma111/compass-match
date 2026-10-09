@@ -82,20 +82,25 @@ export function LobbyLineup(props: {
     let timer: number;
     let prev: string | null = null;
     let stopped = false;
+    let failures = 0;
     const touch = () => {
       last = Date.now();
     };
     const interval = () => {
       const idle = Date.now() - last;
-      return idle < 5 * 60_000 ? LIVE_REFRESH_MS : idle < 20 * 60_000 ? 45_000 : 120_000;
+      const base = idle < 5 * 60_000 ? LIVE_REFRESH_MS : idle < 20 * 60_000 ? 45_000 : 120_000;
+      // 失敗が続くとき (サーバーが混み合っているとき) は間隔を空ける (最大2分)
+      return failures > 0 ? Math.max(base, Math.min(120_000, LIVE_REFRESH_MS * 2 ** failures)) : base;
     };
     const check = async () => {
       const sig = await liveSignature(props.recruitmentId, memberRef.current).catch(() => null);
       if (stopped) return;
+      // 失敗したときは描き直さない (混み合っているときに、さらに負荷をかけないため)
       if (sig === null) {
-        router.refresh();
+        failures++;
         return;
       }
+      failures = 0;
       if (prev !== null && sig !== prev) router.refresh();
       prev = sig;
     };

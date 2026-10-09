@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { blockedRecruitmentIds, getRecruitment } from '@/lib/queries';
+import { blockedRecruitmentIds, getRecruitment, getRecruitmentPublic } from '@/lib/queries';
 import { getViewerSafe } from '@/lib/viewer-safe';
 import { createClient } from '@/lib/supabase/server';
 import { uuidSchema } from '@/lib/validation/schemas';
@@ -19,7 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   // 募集は15日で消えるので検索には載せない (共有カードは出す。X などのカード取得は noindex でも行われる)
   const robots = { index: false, follow: true };
   if (!uuidSchema.safeParse(id).success) return { robots };
-  const r = await getRecruitment(id).catch(() => null);
+  const signedIn = Boolean(await getSessionClaims().catch(() => null));
+  const r = await (signedIn ? getRecruitment(id) : getRecruitmentPublic(id)).catch(() => null);
   if (!r) return { robots };
   const status = effectiveStatus(r.status, r.ends_at);
   const seats = status === 'open' || status === 'full' ? seatLabel(r.capacity, r.approved_count) : RECRUIT_STATUS_LABELS[status];
@@ -44,7 +45,7 @@ export default async function RecruitmentDetailPage({
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
   const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks] = await Promise.all([
-    getRecruitment(id).catch(() => null),
+    (signedIn ? getRecruitment(id) : getRecruitmentPublic(id)).catch(() => null),
     getViewerSafe(),
     signedIn
       ? supabase
