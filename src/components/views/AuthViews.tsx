@@ -26,7 +26,7 @@ function LobbyAside() {
         <Lineup
           seats={[{ kind: 'owner', name: '募集者' }, { kind: 'member', name: 'あなた', you: true }, { kind: 'empty' }]}
           size="lg"
-          label="募集者とあなたの席、空いている1つの席"
+          label="募集者とあなた、空き枠1つ"
         />
       </div>
     </aside>

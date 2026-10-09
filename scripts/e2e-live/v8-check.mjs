@@ -68,7 +68,7 @@ try {
   await step('Y が参加する', async () => {
     const p = Y.page;
     await p.goto(xUrl, { waitUntil: 'networkidle' });
-    await p.getByRole('button', { name: /空いている席から/ }).click();
+    await p.getByRole('button', { name: /空いている枠から/ }).click();
     await fillSheet(p, '確認Y', 'A以下');
     await p.waitForURL(/joined=1/, { timeout: 30_000 });
   });

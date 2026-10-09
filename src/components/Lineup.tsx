@@ -162,7 +162,7 @@ export function Lineup({
                 onClick={joinSeat!.onJoin}
                 disabled={joinSeat!.pending}
                 className="block w-full text-left focus-visible:outline-offset-4 disabled:cursor-wait"
-                aria-label={`空いている席から${joinSeat!.label}`}
+                aria-label={`空いている枠から${joinSeat!.label}`}
               >
                 {body}
               </button>

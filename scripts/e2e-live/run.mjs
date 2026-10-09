@@ -150,7 +150,7 @@ try {
     await p.locator(`a[href="/recruitments/${id}"]`).first().click();
     await p.waitForURL(`**/recruitments/${id}`);
     await snap(p, 'B-detail');
-    await p.getByRole('button', { name: /空いている席から/ }).click();
+    await p.getByRole('button', { name: /空いている枠から/ }).click();
     // ページを読み込み直していないことの確認用の目印
     await p.evaluate(() => (window.__noReload = true));
     await fillSheet(p, 'テストB');
