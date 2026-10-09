@@ -9,18 +9,22 @@ import { getBrowserClient } from '@/lib/supabase/client';
 
 /**
  * 募集の「今の状態」を短い文字列にする。変わっていればページを描き直す。
- * 読めるものは RLS のとおり (未ログインは人数と状態だけ、募集者は申請中の行も、参加者は部屋番号と発言も)。
+ * 参加者・募集者は Supabase に直接 (RLS のとおり、申請中の行・部屋番号・発言も)。
+ * それ以外の方は人数と状態だけでよいので、CDN に10秒置いた /api/live を読む (何人いても DB は10秒に1回)。
  */
-async function liveSignature(recruitmentId: string, member: boolean, signedIn: boolean): Promise<string> {
+async function liveSignature(recruitmentId: string, member: boolean): Promise<string> {
+  if (!member) {
+    const res = await fetch(`/api/live/${recruitmentId}`);
+    if (!res.ok) throw new Error('busy');
+    return JSON.stringify(await res.json());
+  }
   const db = getBrowserClient();
-  const none = Promise.resolve({ data: null, error: null });
   const [rec, parts, room, msg] = await Promise.all([
     db.from('recruitments').select('approved_count, status, hidden_at').eq('id', recruitmentId).maybeSingle(),
-    // 未ログインの方は参加の行を読めないので問い合わせない
-    signedIn ? db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id') : none,
-    member ? db.rpc('get_room_code', { p_recruitment_id: recruitmentId }) : none,
+    db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id'),
+    db.rpc('get_room_code', { p_recruitment_id: recruitmentId }),
     // チャットは Realtime で届くが、つながらない環境のために最新の発言も見る
-    member ? db.from('messages').select('id').eq('recruitment_id', recruitmentId).order('created_at', { ascending: false }).limit(1) : none,
+    db.from('messages').select('id').eq('recruitment_id', recruitmentId).order('created_at', { ascending: false }).limit(1),
   ]);
   if (rec.error) throw rec.error;
   return JSON.stringify([rec.data, parts.error ? null : parts.data, room.error ? null : room.data, msg.error ? null : msg.data]);
@@ -79,8 +83,6 @@ export function LobbyLineup(props: {
   // 画面が見えていないときは何もせず、戻ってきたら1回だけすぐ確かめる。問い合わせに失敗しても描き直さない。
   const memberRef = useRef(props.joined || props.isOwner);
   memberRef.current = props.joined || props.isOwner;
-  const signedInRef = useRef(props.auth !== 'guest');
-  signedInRef.current = props.auth !== 'guest';
   useEffect(() => {
     if (!props.live) return;
     let last = Date.now();
@@ -99,7 +101,7 @@ export function LobbyLineup(props: {
       return failures > 0 ? Math.max(base, Math.min(180_000, LIVE_REFRESH_MS * 2 ** failures)) : base;
     };
     const check = async () => {
-      const sig = await liveSignature(props.recruitmentId, memberRef.current, signedInRef.current).catch(() => null);
+      const sig = await liveSignature(props.recruitmentId, memberRef.current).catch(() => null);
       if (stopped) return;
       // 失敗したときは描き直さない (混み合っているときに、さらに負荷をかけないため)
       if (sig === null) {

@@ -590,7 +590,7 @@ async function UsageTab({ supabase }: { supabase: SB }) {
   const inactiveRows = (inactive ?? []) as { id: string; display_name: string; last_seen_at: string }[];
   return (
     <div className="space-y-4 text-sm">
-      <LiveDbSize initialBytes={u.db_bytes} initialScheduled={false} />
+      <LiveDbSize initialBytes={u.db_bytes} />
       <div className="card">
         <p className="font-bold">大きい表</p>
         <ul className="mt-2 space-y-1 font-mono text-[13px]">
