@@ -47,7 +47,9 @@
   --color-p-tournament: #8a5a00;
   --color-p-custom: #7a2fd0;
 
-  --font-sans: var(--font-text), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  /* 本文は端末の標準フォント。太字・極太だけ Zen Kaku (下の @layer base) */
+  --font-sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Yu Gothic UI", system-ui, sans-serif;
+  --font-strong: var(--font-text), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   --font-display: var(--font-display-face), var(--font-text), "Hiragino Sans", sans-serif;
   --font-mono: var(--font-mono-face), ui-monospace, "SFMono-Regular", Menlo, monospace;
   --radius-card: 0px;
@@ -90,6 +92,21 @@ body {
 ::selection {
   background: var(--color-signal);
   color: var(--color-ink);
+}
+
+/* 太字・極太の日本語は Zen Kaku (本文は端末の標準フォント)。font-mono などの指定があればそちらが勝つ。
+   @apply で font-bold を使う部品は、同じ行に font-strong を足す */
+@utility font-strong {
+  font-family: var(--font-strong);
+}
+@layer base {
+  .font-bold,
+  .font-extrabold,
+  .font-black,
+  strong,
+  b {
+    font-family: var(--font-strong);
+  }
 }
 
 /* 時刻・数字: Archivo を細長く */
@@ -135,7 +152,7 @@ body {
 }
 
 @utility btn {
-  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 px-4 text-sm font-bold transition-[background-color,color,transform] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45;
+  @apply inline-flex min-h-11 select-none items-center justify-center gap-2 px-4 text-sm font-bold transition-[background-color,color,transform] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45 font-strong;
 }
 
 /* 主ボタン: インクの四角。押せないときは色を抜く */
@@ -184,7 +201,7 @@ body {
 }
 
 @utility label {
-  @apply mb-2 block text-sm font-bold;
+  @apply mb-2 block text-sm font-bold font-strong;
 }
 
 @utility hint {
@@ -193,11 +210,11 @@ body {
 
 /* 見出しは Zen Kaku Gothic New の900。時刻・英字の大見出しは type-poster */
 @utility section-title {
-  @apply text-[17px] font-black tracking-[0.02em] text-ink;
+  @apply text-[17px] font-black tracking-[0.02em] text-ink font-strong;
 }
 
 @utility type-heavy {
-  @apply font-black tracking-[0.02em];
+  @apply font-black tracking-[0.02em] font-strong;
 }
 
 @utility chip {
@@ -205,24 +222,24 @@ body {
 }
 
 @utility chip-brand {
-  @apply inline-flex items-center gap-1 bg-ally-soft px-2 py-0.5 text-xs font-bold text-ink;
+  @apply inline-flex items-center gap-1 bg-ally-soft px-2 py-0.5 text-xs font-bold text-ink font-strong;
 }
 
 /* タップで選ぶチップ (radio / checkbox を内包する label)。選択中はインクで塗る */
 @utility pick {
-  @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-1.5 border-2 border-ink/25 bg-sheet px-3.5 text-sm font-bold text-ink-2 transition-colors hover:border-slate has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink;
+  @apply inline-flex min-h-12 cursor-pointer select-none items-center justify-center gap-1.5 border-2 border-ink/25 bg-sheet px-3.5 text-sm font-bold text-ink-2 transition-colors hover:border-slate has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-white has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink font-strong;
 }
 
 @utility link {
-  @apply font-bold text-ink underline decoration-signal decoration-2 underline-offset-4;
+  @apply font-bold text-ink underline decoration-signal decoration-2 underline-offset-4 font-strong;
 }
 
 @utility alert-error {
-  @apply border-2 border-signal-deep bg-sheet px-3 py-2.5 text-sm font-bold text-signal-deep;
+  @apply border-2 border-signal-deep bg-sheet px-3 py-2.5 text-sm font-bold text-signal-deep font-strong;
 }
 
 @utility alert-ok {
-  @apply border-2 border-ok bg-sheet px-3 py-2.5 text-sm font-bold text-ok;
+  @apply border-2 border-ok bg-sheet px-3 py-2.5 text-sm font-bold text-ok font-strong;
 }
 
 @utility no-scrollbar {
