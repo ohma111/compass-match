@@ -109,6 +109,11 @@
 - 毎日の DB バックアップ: `.github/workflows/db-backup.yml`。GitHub の Secrets に SUPABASE_DB_URL (運営者が入れる) があれば動き、Artifacts に7日。
 - VC ありの Discord 必須は運営者の指定 (v11) のまま。
 
+## 2026-10-09 夜 (アクセス集中の緊急対策)
+- アクセス集中で Supabase の DB が応答しなくなった (Vercel と Supabase 全体は正常、このプロジェクトの Postgres が詰まった)。
+- 未ログインの方の読み込みを全員で共有する: 一覧は 15秒 (listRecruitmentsPublic)、募集詳細と共有カード画像は 10秒 (getRecruitmentPublic)、メンテナンス状態は全員 30秒 (site-status.ts)。`unstable_cache` + Cookie を使わない `src/lib/supabase/public.ts`。ログインしている方はブロックの見え方があるので今までどおり。
+- 募集詳細の自動確認は、失敗したときに描き直さない (前は失敗のたびに router.refresh して負荷を足していた)。失敗が続くと間隔を最大2分まで空ける。
+
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
 - 実機 (iPhone Safari) で文字の折り返しを見る。
