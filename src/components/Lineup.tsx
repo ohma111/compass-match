@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Crown, User } from 'lucide-react';
 import { RANK_LABELS, RANK_SHORT, type Avatar, type PlayRole, type RankBand } from '@/lib/constants';
 import { AvatarIcon } from './Avatar';

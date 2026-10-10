@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { PurposeMark } from '@/components/Tags';
 import { EnterListLink } from '@/components/EnterListLink';
 import { PURPOSE_LABELS } from '@/lib/constants';

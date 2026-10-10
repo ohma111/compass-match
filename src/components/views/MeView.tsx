@@ -1,7 +1,7 @@
 import { MiniSeat, ProfileSeat } from '@/components/Lineup';
 import { FollowButton } from '@/components/FollowButton';
 import { PushToggle } from '@/components/PushToggle';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { ChevronRight, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { RoleIcon } from '@/components/RoleIcon';

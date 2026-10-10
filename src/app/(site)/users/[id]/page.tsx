@@ -1,5 +1,5 @@
 import { ProfileSeat } from '@/components/Lineup';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { getRegisteredViewer } from '@/lib/auth';
 import { SignInGate } from '@/components/GateScreens';

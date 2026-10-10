@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Plus, Radio } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { PurposeMark } from '@/components/Tags';

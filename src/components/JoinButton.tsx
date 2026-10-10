@@ -1,6 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronRight, Hand, Zap } from 'lucide-react';
 import { requestJoinAction } from '@/app/actions';

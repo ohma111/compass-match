@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { isPreviewEnabled } from '@/lib/preview';
 import { PREVIEW_SCREENS as SCREENS } from '@/lib/preview';

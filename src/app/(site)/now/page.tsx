@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { features } from '@/lib/env';
 import { getRegisteredViewer } from '@/lib/auth';
 import { SignInGate } from '@/components/GateScreens';
