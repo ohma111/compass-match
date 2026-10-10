@@ -123,6 +123,13 @@
 - 確認の出し方 (2026-10-09): ActionButton の確認 (募集・参加の取り消し、削除、ブロックなど) は window.confirm をやめ、押すとその場に「確認の文 + 実行ボタン + やめる」を出す。アプリ内ブラウザでは confirm が出ずに false が返り、押しても何も起きないことがあった。ほかの window.confirm (引き継ぎ・ログアウト・管理画面の一部) はまだ残っている。
 - 続き3 (10/10 朝): Pro + Small に変更 (運営者)。一晩で募集 85→337件・202人。CPU 97% (Disk IO 1%)。pg_stat_statements の1位は Realtime の realtime.list_changes (6万回・計385秒、2位の約9倍)。チャットを postgres_changes から Broadcast の合図 (中身なし、受けた側が RLS のとおりに読み直す、チャネル chat:<募集ID>) に変更。migration 21 で messages を Realtime の配信対象から外す (**本番は未適用**)。
 
+## 2026-10-10 (Vercel の Function Invocations の削減)
+- 無料枠 (100万回) の75%の警告。本番で未ログインのホームを1回見てスクロールすると、サーバーへ42件 (すべて関数が動く)。原因は `<Link>` の自動先読み: ページがすべて動的で loading.tsx があるので、画面に入ったリンクごと (募集カード・タブ・フッター・絞り込み) にサーバーで描画していた。さらに proxy も1件ごとに動く (Vercel では proxy も Invocation に数える)。
+- リンクは `@/components/Link` (prefetch={false} が既定) を使う。`next/link` を直接 import するとテスト (tests/proxy-matcher.test.ts) で落ちる。押したときに1回だけ読む。
+- proxy はログイン Cookie (`sb-<ref>-auth-token` / `.0`)・`?src=`・メンテナンス中も開くページ (/transfer /auth /terms /privacy) のときだけ動く。ref は `src/lib/supabase-ref.ts` に固定し、`NEXT_PUBLIC_SUPABASE_URL` と違うと next.config.ts がビルドを止める。Supabase のプロジェクトを変えるときは supabase-ref.ts と proxy.ts の matcher を両方直す。未ログインの方は x-pathname を自分で付けるとメンテナンスの画面を避けて閲覧だけはできる (書き込みは DB で止まる)。
+- 募集ごとの共有画像は CDN に5分 (失敗時30秒)、proxy の対象外。robots.txt で `/?purpose=` `/?soon=` を外した。
+- 案のまま: 操作のあとの router.refresh の重複 (ActionButton など。revalidatePath だけで画面は更新される)、staleTimes.dynamic。実数は Vercel の Usage / Observability で見る。
+
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
 - 実機 (iPhone Safari) で文字の折り返しを見る。

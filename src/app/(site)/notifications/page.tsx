@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Megaphone, Users, ShieldAlert, X, Bell, BellRing, CircleCheck, CircleX, Hand, LogOut, MessageCircle, UserMinus, UserPlus, type LucideIcon } from 'lucide-react';
 import { getRegisteredViewer } from '@/lib/auth';
 import { SignInGate } from '@/components/GateScreens';

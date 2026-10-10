@@ -25,12 +25,14 @@ interface Row {
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let r: Row | null = null;
+  let failed = false;
   if (uuidSchema.safeParse(id).success) {
     try {
       // 共有先のクローラーはログインしていないので、未ログインと同じ見え方で読む (10秒まとめて使う)
       r = ((await getRecruitmentPublic(id)) as unknown as Row | null) ?? null;
     } catch {
       r = null;
+      failed = true;
     }
   }
 
@@ -81,6 +83,12 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         </div>
       </div>
     ),
-    { ...size, fonts: ogFonts(font) },
+    {
+      ...size,
+      fonts: ogFonts(font),
+      // Vercel の CDN に5分置く (X・Discord などが取りに来るたびに関数を動かさない)。人数の表示は最大で数分遅れる。
+      // 読み込みに失敗したときの共通の絵柄は30秒だけ
+      headers: { 'Cache-Control': failed ? 'public, s-maxage=30' : 'public, s-maxage=300, stale-while-revalidate=600' },
+    },
   );
 }

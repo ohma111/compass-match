@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { LogoMark } from '@/components/LogoMark';
 import { Wordmark } from '@/components/Wordmark';
 

@@ -61,6 +61,30 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
+// Vercel では proxy の実行も関数の実行回数 (Function Invocations) に数えられる。
+// 未ログインの方のページ表示では何もすることがないので、次のどれかに当てはまるときだけ動かす。
+// - Supabase のログイン Cookie がある (セッションの更新と400日への書き直し)。大きいと .0 .1 … に分かれる。
+//   名前の ref は src/lib/supabase-ref.ts と同じ。食い違うと next.config.ts がビルドを止める (tests/proxy-matcher.test.ts でも確認)
+// - ?src= がある (流入元の記録)
+// - メンテナンス中・BAN 中でも開くページ (画面側がパスで判定するため、未ログインでも x-pathname を渡す)
+// matcher は書いたままの値しか読まれない (変数は使えない) ので、除外の並びをそれぞれに書いている。
 export const config = {
-  matcher: ['/((?!_next/static|api/live/|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png).*)'],
+  matcher: [
+    {
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      has: [{ type: 'cookie', key: 'sb-jjhnmqeukfrknujtkash-auth-token' }],
+    },
+    {
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      has: [{ type: 'cookie', key: 'sb-jjhnmqeukfrknujtkash-auth-token.0' }],
+    },
+    {
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      has: [{ type: 'query', key: 'src' }],
+    },
+    '/transfer',
+    '/auth/:path*',
+    '/terms',
+    '/privacy',
+  ],
 };

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Ban, UserRound, Wrench } from 'lucide-react';
 import { formatJst, formatJstRange } from '@/lib/time';
 import { APPEAL_PAGE, type SiteStatus } from '@/lib/site-status-shared';

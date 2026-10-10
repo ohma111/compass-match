@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { NavProgress } from './NavProgress';
 import { CopyButton } from './CopyButton';
 import { SUPPORT_CODE } from '@/lib/constants';
