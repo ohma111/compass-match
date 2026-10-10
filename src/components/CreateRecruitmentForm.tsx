@@ -19,6 +19,13 @@ import {
   DISCORD_HINT,
   DURATION_LABELS,
   type Duration,
+  DECK_LEVELS,
+  PLAY_ROLES,
+  PLAY_ROLE_LABELS,
+  asksDeck,
+  canDuo,
+  isDeckLevel,
+  type PlayRole,
   STANCE_LABELS,
   type Stance,
   type JoinMode,
@@ -34,6 +41,9 @@ import { containsUrl } from '@/lib/validation/url';
 import { takeIntent } from '@/lib/intent';
 import { Lineup, type Seat } from '@/components/Lineup';
 import { RankPicker } from '@/components/RankPicker';
+import { RoleIcon } from '@/components/RoleIcon';
+
+const collabOk = (v: string) => /^\d{1,4}$/.test(v) && Number(v) >= 1;
 import { useEnsureProfile } from '@/components/ProfileSheet';
 import { useEnsureRank } from '@/components/RankSheet';
 
@@ -58,6 +68,15 @@ interface Choices {
   vc: RecruitVc;
   tags: MoodTag[];
   duration: Duration;
+  /** 2固定でも可 (バトルアリーナ・フリーバトルの3人募集) */
+  duoOk: boolean;
+  /** ほしいロール (任意) */
+  wantedRoles: PlayRole[];
+  /** バトルアリーナの承認制: あなたのデキレ・コラボ数と、参加の条件 */
+  ownerDeck: number | '';
+  ownerCollab: string;
+  minDeck: number | '';
+  minCollab: string;
 }
 interface Draft extends Choices {
   title: string;
@@ -75,6 +94,12 @@ const DEFAULTS: Choices = {
   vc: 'any',
   tags: [],
   duration: 60,
+  duoOk: false,
+  wantedRoles: [],
+  ownerDeck: '',
+  ownerCollab: '',
+  minDeck: '',
+  minCollab: '',
 };
 
 /** localStorage の値を検証して取り込む (壊れた値・古い値は無視) */
@@ -92,6 +117,11 @@ function sanitize(raw: unknown): Partial<Draft> {
   if (r.minRank === '' || RANK_BANDS.includes(r.minRank as RankBand)) out.minRank = r.minRank as RankBand | '';
   if (RECRUIT_VC.includes(r.vc as RecruitVc)) out.vc = r.vc as RecruitVc;
   if (DURATIONS.includes(r.duration as Duration)) out.duration = r.duration as Duration;
+  if (typeof r.duoOk === 'boolean') out.duoOk = r.duoOk;
+  if (Array.isArray(r.wantedRoles)) out.wantedRoles = r.wantedRoles.filter((x): x is PlayRole => PLAY_ROLES.includes(x as PlayRole));
+  // 自分のデキレ・コラボ数は前回の値を使う (条件は毎回選ぶ)
+  if (isDeckLevel(r.ownerDeck)) out.ownerDeck = r.ownerDeck;
+  if (typeof r.ownerCollab === 'string' && /^\d{1,4}$/.test(r.ownerCollab)) out.ownerCollab = r.ownerCollab;
   if (Array.isArray(r.tags)) out.tags = r.tags.filter((t): t is MoodTag => MOOD_TAGS.includes(t as MoodTag));
   if (typeof r.title === 'string') out.title = r.title.slice(0, LIMITS.title);
   return out;
@@ -175,6 +205,9 @@ export function CreateRecruitmentForm({
   const titleError = containsUrl(title) ? 'URLは使えません' : null;
   const ready = Boolean(startAt) && !titleError;
   const [needStance, setNeedStance] = useState(false);
+  const [needDeck, setNeedDeck] = useState(false);
+  const deckOn = asksDeck(c.purpose, c.joinMode);
+  const duoOn = canDuo(c.purpose, capacity);
 
   useEffect(() => {
     if (autoSubmit && startAt) {
@@ -195,6 +228,12 @@ export function CreateRecruitmentForm({
       e.preventDefault();
       setNeedStance(true);
       document.getElementById('stance')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+    if (deckOn && (!c.ownerDeck || !collabOk(c.ownerCollab))) {
+      e.preventDefault();
+      setNeedDeck(true);
+      document.getElementById('owner-deck')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
     if (c.vc === 'on' && !discordOk) {
@@ -233,7 +272,7 @@ export function CreateRecruitmentForm({
     PURPOSE_LABELS[c.purpose],
     !startAt ? '時刻を選んでください' : startKey === 'now' ? '今すぐ' : `${startPreview(startAt, now).replace('今日 ', '')}〜`,
     ...(c.stance ? [STANCE_LABELS[c.stance]] : []),
-    `あと${capacity - 1}人`,
+    `@${capacity - 1}人`,
   ];
   const previewSeats: Seat[] = [
     { kind: 'owner', name: ownerName ?? 'あなた', you: true },
@@ -376,6 +415,12 @@ export function CreateRecruitmentForm({
               </label>
             ))}
           </div>
+          {duoOn && (
+            <label className="pick mt-2 w-full">
+              <input type="checkbox" name="duoOk" checked={c.duoOk} onChange={(e) => set('duoOk', e.target.checked)} className="sr-only" />
+              2固定でも可 (2人でも遊ぶ)
+            </label>
+          )}
         </fieldset>
 
         {/* 参加方式 */}
@@ -400,6 +445,66 @@ export function CreateRecruitmentForm({
           </div>
         </fieldset>
 
+        {/* デキレ・コラボ数 (バトルアリーナの承認制だけ) */}
+        {deckOn && (
+          <fieldset className="space-y-4 border-2 border-ink p-4">
+            <legend className="px-1 text-[15px] font-bold">デキレ・コラボ数</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="label">あなたのデキレ</span>
+                <select
+                  id="owner-deck"
+                  name="ownerDeck"
+                  value={c.ownerDeck}
+                  onChange={(e) => set('ownerDeck', e.target.value ? Number(e.target.value) : '')}
+                  className="input"
+                  aria-invalid={needDeck && !c.ownerDeck}
+                >
+                  <option value="">選ぶ</option>
+                  {DECK_LEVELS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">あなたのコラボ数</span>
+                <input
+                  name="ownerCollab"
+                  value={c.ownerCollab}
+                  onChange={(e) => set('ownerCollab', e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4))}
+                  inputMode="numeric"
+                  className="input"
+                  placeholder="例: 30"
+                  aria-invalid={needDeck && !collabOk(c.ownerCollab)}
+                />
+              </label>
+              <label className="block">
+                <span className="label">参加の条件: デキレ</span>
+                <select name="minDeck" value={c.minDeck} onChange={(e) => set('minDeck', e.target.value ? Number(e.target.value) : '')} className="input">
+                  <option value="">指定なし</option>
+                  {DECK_LEVELS.map((d) => (
+                    <option key={d} value={d}>{d}以上</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="label">参加の条件: コラボ数</span>
+                <input
+                  name="minCollab"
+                  value={c.minCollab}
+                  onChange={(e) => set('minCollab', e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4))}
+                  inputMode="numeric"
+                  className="input"
+                  placeholder="指定なし"
+                />
+              </label>
+            </div>
+            {needDeck && (!c.ownerDeck || !collabOk(c.ownerCollab)) && (
+              <p className="text-[13px] font-bold text-signal-deep" role="alert">あなたのデキレとコラボ数を入力してください</p>
+            )}
+          </fieldset>
+        )}
+
         {/* 条件・ひとこと */}
         <section className="border-t-2 border-ink pt-6">
           <h2 className="sr-only">条件</h2>
@@ -411,6 +516,28 @@ export function CreateRecruitmentForm({
               </legend>
               <input type="hidden" name="minRank" value={c.minRank} />
               <RankPicker min value={c.minRank} onChange={(v) => set('minRank', v)} />
+            </fieldset>
+            <fieldset>
+              <legend className={legend}>
+                <span>ほしいロール</span>
+                <span className="text-[13px] font-medium text-slate">任意・複数可</span>
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                {PLAY_ROLES.map((role) => (
+                  <label key={role} className="pick">
+                    <input
+                      type="checkbox"
+                      name="wantedRoles"
+                      value={role}
+                      checked={c.wantedRoles.includes(role)}
+                      onChange={(e) => set('wantedRoles', e.target.checked ? [...c.wantedRoles, role] : c.wantedRoles.filter((x) => x !== role))}
+                      className="sr-only"
+                    />
+                    <RoleIcon role={role} className="size-4" />
+                    {PLAY_ROLE_LABELS[role]}
+                  </label>
+                ))}
+              </div>
             </fieldset>
             <fieldset>
               <legend className={legend}>VC</legend>

@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { AVATARS, TERMS_VERSION } from '@/lib/constants';
+import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
@@ -155,6 +155,12 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     minRank: fd.get('minRank') ?? '',
     vc: fd.get('vc') ?? 'any',
     duration: fd.get('duration') ?? undefined,
+    duoOk: fd.get('duoOk') ?? undefined,
+    wantedRoles: formStrings(fd, 'wantedRoles'),
+    ownerDeck: fd.get('ownerDeck') ?? undefined,
+    ownerCollab: fd.get('ownerCollab') ?? undefined,
+    minDeck: fd.get('minDeck') ?? undefined,
+    minCollab: fd.get('minCollab') ?? undefined,
     tags: formStrings(fd, 'tags'),
     title: fd.get('title') ?? '',
     src: await srcFromCookie(fd.get('src')),
@@ -182,6 +188,12 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     p_src: v.src,
     p_join_mode: v.joinMode,
     p_stance: v.stance,
+    p_duo_ok: v.duoOk,
+    p_wanted_roles: v.wantedRoles,
+    p_owner_deck_level: v.ownerDeck,
+    p_owner_collab: v.ownerCollab,
+    p_min_deck_level: v.minDeck,
+    p_min_collab: v.minCollab,
   });
   if (error) return fail(toUserMessage(error));
   pushLater();
@@ -209,7 +221,6 @@ export async function setRoomCodeAction(recruitmentId: string, roomCode: string)
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_room_code', { p_recruitment_id: id.data, p_room_code: code });
   if (error) return fail(toUserMessage(error));
-  pushLater();
   revalidatePath(`/recruitments/${id.data}`);
   return { ok: true, message: '部屋番号を更新しました' };
 }
@@ -242,13 +253,18 @@ export async function setChatMuteAction(recruitmentId: string, muted: boolean): 
 export async function requestJoinAction(
   recruitmentId: string,
   src?: string | null,
+  deck?: { deck: number; collab: number } | null,
 ): Promise<ActionResult<{ joined: boolean }>> {
   const id = uuidSchema.safeParse(recruitmentId);
   if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  if (deck && (!isDeckLevel(deck.deck) || !Number.isInteger(deck.collab) || deck.collab < 1 || deck.collab > COLLAB_MAX)) {
+    return fail('デキレとコラボ数を選び直してください');
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('request_join', {
     p_recruitment_id: id.data,
     p_src: await srcFromCookie(src),
+    ...(deck ? { p_deck_level: deck.deck, p_collab: deck.collab } : {}),
   });
   if (error) return fail(toUserMessage(error));
   pushLater();

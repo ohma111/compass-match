@@ -4,10 +4,10 @@ import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel,
 import { formatJst, formatJstRange, formatJstTime } from '@/lib/time';
 import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
-import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
+import { DeckInfo, DuoAndRoles, JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
 import { TimeRail } from '@/components/TimeRail';
 import { ShareButton } from '@/components/ShareButton';
-import { JoinButton } from '@/components/JoinButton';
+import { JoinButton, joinExtraOf } from '@/components/JoinButton';
 import { LobbyLineup } from '@/components/LobbyLineup';
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
@@ -39,6 +39,8 @@ export interface RecruitmentDetailViewProps {
   siteUrl: string;
   /** 自分がブロックしている人が募集者か参加者にいる */
   blockedHere?: boolean;
+  /** ほかの募集に参加中・募集中 (参加の前に確かめる) */
+  busyElsewhere?: boolean;
   /** 自分がブロックしている方 (チャットで発言を隠す) */
   blockedIds?: string[];
 }
@@ -166,8 +168,10 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             <JoinModeBadge mode={r.join_mode} />
             <VcBadge vc={r.vc} />
             {r.min_rank && <span className="text-xs font-bold text-ink-2">ランク条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
+            <span className="inline-flex items-center gap-3 text-xs"><DuoAndRoles r={r} /></span>
             <MoodTags tags={r.tags} />
           </div>
+          <DeckInfo r={r} className="mt-2 text-[13px] text-ink-2" />
           {r.note && <p className="mt-4 border-2 border-ink/20 bg-sheet p-3 text-sm whitespace-pre-wrap break-words">{r.note}</p>}
         </section>
 
@@ -187,6 +191,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               warnBlocked={Boolean(props.blockedHere)}
               minRank={r.min_rank}
               vcOn={r.vc === 'on'}
+              extra={joinExtraOf(r, Boolean(props.busyElsewhere))}
             />
           )}
           {isMember ? roomPanel(false) : active && LOCKED}
@@ -225,6 +230,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             warnBlocked={Boolean(props.blockedHere)}
             minRank={r.min_rank}
               vcOn={r.vc === 'on'}
+              extra={joinExtraOf(r, Boolean(props.busyElsewhere))}
           />
           {!isOwner && (
             <div className="mt-2 space-y-2 lg:mx-auto lg:max-w-md">
@@ -278,6 +284,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                       </Link>
                       {p.profile && <span className="shrink-0 text-xs text-slate">{rankLabel(p.profile.rank_band)}</span>}
                     </div>
+                    {p.deck_level != null && (
+                      <p className="text-[13px] font-bold">デキレ{p.deck_level}・コラボ{p.collab}</p>
+                    )}
                     {p.profile && p.profile.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5"><MoodTags tags={p.profile.tags} /></div>
                     )}

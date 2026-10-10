@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import {
+  COLLAB_MAX,
+  asksDeck,
+  canDuo,
+  isDeckLevel,
   DEFAULT_DURATION_MIN,
   DURATIONS,
   JOIN_MODES,
@@ -137,6 +141,16 @@ export const recoverSchema = z.object({
   password: passwordSchema,
 });
 
+/** 空欄は null。デキレは 120〜240 の10刻み、コラボ数は1〜9999 (それ以外も null にして、必須の判定で弾く) */
+const optDeck = z.unknown().optional().transform((v) => {
+  const n = Number(v);
+  return v !== '' && v != null && isDeckLevel(n) ? n : null;
+});
+const optCollab = z.unknown().optional().transform((v) => {
+  const n = Number(typeof v === 'string' ? v.normalize('NFKC') : v);
+  return v !== '' && v != null && Number.isInteger(n) && n >= 1 && n <= COLLAB_MAX ? n : null;
+});
+
 /** 募集作成(タップ式)の入力。開始時刻はチップのキーで受け取り、サーバーの現在時刻で解決する */
 export const recruitmentSchema = z
   .object({
@@ -159,6 +173,12 @@ export const recruitmentSchema = z
     tags: uniqueArray(MOOD_TAGS),
     title: safeText(LIMITS.title, { label: 'ひとこと' }),
     src: z.unknown().transform(sanitizeSrc),
+    duoOk: z.unknown().optional().transform((v) => v === 'on' || v === true),
+    wantedRoles: uniqueArray(PLAY_ROLES).catch([]),
+    ownerDeck: optDeck,
+    ownerCollab: optCollab,
+    minDeck: optDeck,
+    minCollab: optCollab,
   })
   .superRefine((v, ctx) => {
     if (!isValidCapacity(v.purpose, v.capacity)) {
@@ -194,7 +214,17 @@ export function buildRecruitment(
   const windowError = validateStartWindow(startsAt, now);
   if (windowError) return { ok: false, error: windowError };
   const title = v.title || autoTitle({ purpose: v.purpose, minRank: v.minRank, capacity: v.capacity });
-  return { ok: true, data: { ...v, title, startsAt, endsAt: autoEnd(startsAt, duration) } };
+  // デキレ・コラボ数はバトルアリーナの承認制だけ (そのときは自分の値が必須)。2固定はバトルアリーナ・フリーバトルの3人募集だけ
+  const deck = asksDeck(v.purpose, v.joinMode);
+  if (deck && (v.ownerDeck === null || v.ownerCollab === null)) return { ok: false, error: 'あなたのデキレとコラボ数を入力してください' };
+  const extra = {
+    duoOk: v.duoOk && canDuo(v.purpose, v.capacity),
+    ownerDeck: deck ? v.ownerDeck : null,
+    ownerCollab: deck ? v.ownerCollab : null,
+    minDeck: deck ? v.minDeck : null,
+    minCollab: deck ? v.minCollab : null,
+  };
+  return { ok: true, data: { ...v, ...extra, title, startsAt, endsAt: autoEnd(startsAt, duration) } };
 }
 
 /** 作成時の開始日時チェック (now を注入できるよう分離) */

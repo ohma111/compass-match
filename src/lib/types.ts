@@ -38,6 +38,15 @@ export interface Recruitment {
   approved_count: number;
   hidden_at: string | null;
   created_at: string;
+  /** v15: 2固定でも可 (バトルアリーナ・フリーバトル) */
+  duo_ok?: boolean;
+  /** v15: ほしいロール (任意) */
+  wanted_roles?: PlayRole[];
+  /** v15: バトルアリーナの承認制だけ。募集者のデキレ・コラボ数と、参加の条件 */
+  owner_deck_level?: number | null;
+  owner_collab?: number | null;
+  min_deck_level?: number | null;
+  min_collab?: number | null;
   owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null }) | null;
 }
 
@@ -47,6 +56,9 @@ export interface Participation {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   created_at: string;
+  /** v15: デキレを聞く募集で申告した値 */
+  deck_level?: number | null;
+  collab?: number | null;
   profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar'> | null;
 }
 

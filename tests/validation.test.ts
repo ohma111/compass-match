@@ -145,9 +145,24 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(build({ capacity: '1' }).ok).toBe(false);
   });
   it('validates join mode (instant / approval only)', () => {
-    expect(build({ joinMode: 'approval' }).ok).toBe(true);
+    expect(build({ joinMode: 'approval', purpose: 'enjoy' }).ok).toBe(true);
     expect(build({ joinMode: 'auto' }).ok).toBe(false);
     expect(build({ joinMode: undefined }).ok).toBe(false);
+  });
+  it('バトルアリーナの承認制はデキレとコラボ数が必須。それ以外の募集では捨てる', () => {
+    expect(build({ joinMode: 'approval' }).ok).toBe(false);
+    const ok = build({ joinMode: 'approval', ownerDeck: '230', ownerCollab: '４０', minDeck: '200', minCollab: '' });
+    expect(ok.ok && [ok.data.ownerDeck, ok.data.ownerCollab, ok.data.minDeck, ok.data.minCollab]).toEqual([230, 40, 200, null]);
+    expect(build({ joinMode: 'approval', ownerDeck: '235', ownerCollab: '40' }).ok).toBe(false);
+    const free = build({ purpose: 'enjoy', ownerDeck: '230', ownerCollab: '40' });
+    expect(free.ok && free.data.ownerDeck).toBe(null);
+  });
+  it('2固定でも可は3人のバトルアリーナ・フリーバトルだけ', () => {
+    const three = build({ capacity: '3', duoOk: 'on', wantedRoles: ['tank', 'tank'] });
+    expect(three.ok && three.data.duoOk).toBe(true);
+    expect(three.ok && three.data.wantedRoles).toEqual(['tank']);
+    const two = build({ capacity: '2', duoOk: 'on' });
+    expect(two.ok && two.data.duoOk).toBe(false);
   });
   it('rejects a slot that has already passed (no rollover to tomorrow)', () => {
     const r = build({}, new Date('2026-10-01T12:45:00Z')); // JST 21:45

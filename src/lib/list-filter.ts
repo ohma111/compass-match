@@ -8,7 +8,7 @@ import type { Recruitment } from './types';
 export const LIST_SORTS = ['start', 'left', 'rank'] as const;
 export type ListSort = (typeof LIST_SORTS)[number];
 export const LIST_SORT_LABELS: Record<ListSort, string> = {
-  start: '開始が近い順',
+  start: '予定が先',
   left: '空きが多い順',
   rank: '募集者のランクが高い順',
 };
@@ -44,8 +44,12 @@ export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
   return s ? `/?${s}` : '/';
 }
 
-/** 一覧に条件を当てて並べ替える。eligible は自分のランクが分かるときだけ効く */
-export function applyListView(items: Recruitment[], v: ListView, myRank: RankBand | null | undefined): Recruitment[] {
+/**
+ * 一覧に条件を当てて並べ替える。eligible は自分のランクが分かるときだけ効く。
+ * 既定の並び (start) は、時刻を決めた「これからの募集」を上に (開始が近い順)、始まっている募集 (NOW) をその下に
+ * (古い順) 置く。あとから出た「今すぐ」に人が流れて、先に時刻を決めた募集に人が来ないという声への対応 (v15)。
+ */
+export function applyListView(items: Recruitment[], v: ListView, myRank: RankBand | null | undefined, now: Date = new Date()): Recruitment[] {
   let out = items.filter((r) => {
     if (v.open && (r.status === 'full' || isFull(r.capacity, r.approved_count))) return false;
     if (v.eligible && myRank && !meetsMinRank(myRank, r.min_rank)) return false;
@@ -53,7 +57,11 @@ export function applyListView(items: Recruitment[], v: ListView, myRank: RankBan
     if (v.stance && r.stance !== v.stance) return false;
     return true;
   });
-  if (v.sort === 'left') {
+  if (v.sort === 'start') {
+    const t = now.getTime();
+    const at = (r: Recruitment) => new Date(r.starts_at).getTime();
+    out = [...out.filter((r) => at(r) > t).sort((a, b) => at(a) - at(b)), ...out.filter((r) => at(r) <= t).sort((a, b) => at(a) - at(b))];
+  } else if (v.sort === 'left') {
     out = [...out].sort((a, b) => remainingSlots(b.capacity, b.approved_count) - remainingSlots(a.capacity, a.approved_count));
   } else if (v.sort === 'rank') {
     const rv = (r: Recruitment) => (r.owner?.rank_band ? rankValue(r.owner.rank_band) : -1);

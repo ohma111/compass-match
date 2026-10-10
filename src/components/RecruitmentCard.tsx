@@ -1,12 +1,12 @@
 import Link from '@/components/Link';
 import type { Recruitment } from '@/lib/types';
-import { canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
+import { canRequestJoin, effectiveStatus, leftLabel, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
-import { MoodTags, PurposeMark } from './Tags';
+import { DeckInfo, DuoAndRoles, MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
 import { Lineup } from './Lineup';
-import { JoinButton, type AuthState } from './JoinButton';
+import { JoinButton, joinExtraOf, type AuthState } from './JoinButton';
 
 /**
  * 時間割の1行。左に開始時刻、右に「目的・募集者・条件」の札、タイトル、席と参加ボタン。
@@ -22,6 +22,7 @@ export function RecruitmentCard({
   repeatTime = false,
   index = 0,
   blockedHere = false,
+  busyElsewhere = false,
 }: {
   r: Recruitment;
   now: Date;
@@ -35,6 +36,8 @@ export function RecruitmentCard({
   index?: number;
   /** 自分がブロックしている人が参加している */
   blockedHere?: boolean;
+  /** ほかの募集に参加中・募集中 */
+  busyElsewhere?: boolean;
   /** v4 までの「大きく見せる」指定。v5 では使わない */
   featured?: boolean;
 }) {
@@ -87,16 +90,15 @@ export function RecruitmentCard({
             {(isOwner || myState === 'approved' || myState === 'pending') && (
               <span className="shrink-0 bg-ink px-1 font-black text-white">{isOwner ? 'あなたの募集' : myState === 'pending' ? '承認待ち' : '参加中'}</span>
             )}
-            <span className="shrink-0 font-mono text-[13px] font-black text-ink">
-              {Math.min(r.capacity, r.approved_count + 1)}/{r.capacity}
-            </span>
-            <span className={`shrink-0 px-1 font-black ${left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>{left > 0 ? `あと${left}人` : '満員'}</span>
+            <span className={`shrink-0 px-1 font-black ${left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>{leftLabel(r.capacity, r.approved_count)}</span>
             {r.stance && <span className="shrink-0 text-ink">{STANCE_LABELS[r.stance]}</span>}
             <span className="shrink-0">{JOIN_MODE_LABELS[r.join_mode]}</span>
             <span className="shrink-0">{RECRUIT_VC_LABELS[r.vc]}</span>
             {r.min_rank && <span className="shrink-0 text-ink-2">条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
+            <DuoAndRoles r={r} />
             <MoodTags tags={r.tags} max={1} />
           </p>
+          <DeckInfo r={r} className="mt-1 text-[12px] text-ink-2" />
           {blockedHere && <p className="mt-1.5 text-[12px] font-bold text-signal-deep">ブロックしている方がいます</p>}
         </Link>
         <div className="mt-3 flex items-center gap-2.5 lg:mt-0 lg:flex-col lg:items-stretch lg:gap-2 lg:pt-5">
@@ -116,6 +118,7 @@ export function RecruitmentCard({
                 warnBlocked={blockedHere}
                 minRank={r.min_rank}
                 vcOn={r.vc === 'on'}
+                extra={joinExtraOf(r, busyElsewhere)}
                 compact
               />
             </div>

@@ -52,13 +52,14 @@ export default async function RecruitmentDetailPage({
   const supabase = await createClient();
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
-  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks, mute] = await Promise.all([
+  const nowIso = new Date().toISOString();
+  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks, mute, myOwn, myJoins] = await Promise.all([
     (signedIn ? getRecruitment(id) : getRecruitmentPublic(id)).catch(() => null),
     getViewerSafe(),
     signedIn
       ? supabase
           .from('participations')
-          .select('id, recruitment_id, user_id, status, created_at, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags, avatar)')
+          .select('id, recruitment_id, user_id, status, created_at, deck_level, collab, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags, avatar)')
           .eq('recruitment_id', id)
           .order('created_at', { ascending: true })
       : null,
@@ -76,6 +77,21 @@ export default async function RecruitmentDetailPage({
     signedIn && claims ? supabase.from('blocks').select('blocked_id').eq('blocker_id', claims.userId) : null,
     // チャットの通知を止めているか (表がなければ止めていない扱い)
     signedIn ? supabase.from('chat_mutes').select('recruitment_id').eq('recruitment_id', id).maybeSingle() : null,
+    // ほかに募集中・参加中の募集があるか (参加の前に確かめるため)
+    signedIn && claims
+      ? supabase.from('recruitments').select('id').eq('owner_id', claims.userId).in('status', ['open', 'full']).gt('ends_at', nowIso).neq('id', id).limit(1)
+      : null,
+    signedIn && claims
+      ? supabase
+          .from('participations')
+          .select('recruitment_id, recruitment:recruitments!inner(status, ends_at)')
+          .eq('user_id', claims.userId)
+          .in('status', ['pending', 'approved'])
+          .neq('recruitment_id', id)
+          .in('recruitment.status', ['open', 'full'])
+          .gt('recruitment.ends_at', nowIso)
+          .limit(1)
+      : null,
   ]);
   if (!r) notFound();
   const isOwner = viewer?.userId === r.owner_id;
@@ -107,6 +123,7 @@ export default async function RecruitmentDetailPage({
       myState={myState}
       room={room}
       chatMuted={Boolean(mute?.data)}
+      busyElsewhere={Boolean(myOwn?.data?.length || myJoins?.data?.length)}
       anonymous={Boolean(claims?.isAnonymous)}
       contacts={contacts}
       messages={messages}

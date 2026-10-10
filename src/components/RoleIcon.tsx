@@ -30,10 +30,10 @@ function PistolIcon({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
 }
 
 /**
- * スプリンター用のアイコン (自作)。前は足跡で、何のロールか分かりにくいという声があった。
- * 前へ走る矢印と、後ろに流れる速さの線で「速さ」を表す。
+ * スプリンター用のアイコン (自作)。運営者の指定で脚の形 (絵文字の 🦵 のような、膝を曲げた脚と足先)。
+ * 前は足跡で、何のロールか分かりにくいという声があった。
  */
-function DashIcon({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
+function LegIcon({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -45,13 +45,8 @@ function DashIcon({ className, ...rest }: React.SVGProps<SVGSVGElement>) {
       className={className}
       {...rest}
     >
-      {/* 速さの線 */}
-      <path d="M2 8h6" />
-      <path d="M1 12h8" />
-      <path d="M2 16h6" />
-      {/* 前へ進む矢印 */}
-      <path d="M12 5l7 7-7 7" />
-      <path d="M17 5l5 7-5 7" />
+      {/* 腰から膝へ横に伸びる太もも → 膝 → 下へ伸びるすね → 左を向いた足先 */}
+      <path d="M7 3h12.5c2.2 0 3.2 1.6 3 3.4-.2 1.6-1.4 2.6-3 2.8l-8.2 1.4c-.7.1-1.1.7-1.1 1.4l.6 7.6c.1 1-.1 1.6-.6 2.4H2.6c.4-1.3 1.6-2.2 3.3-2.8L4.2 6.6C3.9 4.6 5.1 3 7 3z" />
     </svg>
   );
 }
@@ -62,7 +57,7 @@ export const ROLE_ICON: Record<PlayRole, IconComponent> = {
   attacker: Sword,
   gunner: PistolIcon,
   tank: Shield,
-  sprinter: DashIcon,
+  sprinter: LegIcon,
 };
 
 /** ロールのアイコン (公式の素材は使わず、汎用・自作のアイコンで表す)。framed は細い枠で囲む (小さく並べるとき用) */

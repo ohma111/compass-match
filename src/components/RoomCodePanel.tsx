@@ -9,7 +9,7 @@ import { formatJstTime } from '@/lib/time';
 /**
  * 部屋番号。参加が確定したメンバーには大きく表示+コピー。
  * 募集者と参加が確定したメンバーは、その場で入力・変更できる (部屋が落ちて作り直したときなど)。
- * 開いている間に番号が変わったら (自動確認で届く)、目立たせて知らせる。
+ * 開いている間に番号が変わったら (自動確認で届く)、この欄を目立たせる (通知は送らない)。
  * スマホでは、この欄が画面の外に出ているあいだ、下に小さく番号を出しておく。
  */
 export function RoomCodePanel({
@@ -50,9 +50,6 @@ export function RoomCodePanel({
     if (!code || code === before || updatedByMe) return;
     setValue(code);
     setChanged(true);
-    try {
-      navigator.vibrate?.(200);
-    } catch {}
     const t = window.setTimeout(() => setChanged(false), 15_000);
     return () => window.clearTimeout(t);
   }, [code, updatedByMe]);
@@ -127,7 +124,6 @@ export function RoomCodePanel({
               </button>
             )}
             {error && <p className="text-[13px] font-bold text-signal-on-ink" role="alert">{error}</p>}
-            <p className="text-[12px] text-white/70">変えると、ほかのメンバーに通知が届きます。</p>
           </form>
         ) : code ? (
           <>

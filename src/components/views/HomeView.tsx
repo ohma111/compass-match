@@ -228,7 +228,8 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
           <div className="border-b-2 border-ink">
             {items.map((r, i) => (
               <Fragment key={r.id}>
-                {timetable && new Date(r.starts_at) > now && (i === 0 || new Date(items[i - 1].starts_at) <= now) && <NowLine serverNow={now.toISOString()} />}
+                {/* 予定の募集が上、始まっている募集 (NOW) が下。その境目に「今」の線 */}
+                {timetable && new Date(r.starts_at) <= now && (i === 0 || new Date(items[i - 1].starts_at) > now) && <NowLine serverNow={now.toISOString()} />}
                 {timetable && dayChanges(items, i, now) && (
                   <p className="type-tag border-t-4 border-ink bg-ink py-1 pl-2 text-white">{dayLabel(r.starts_at)}</p>
                 )}
@@ -239,8 +240,9 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
                 viewerId={viewerId}
                 myState={states[r.id]}
                 blockedHere={blocked.includes(r.id)}
+                busyElsewhere={myRooms.some((x) => x.id !== r.id)}
                 index={i}
-                repeatTime={timetable && i > 0 && items[i - 1].starts_at === r.starts_at && new Date(r.starts_at) > now}
+                repeatTime={timetable && i > 0 && items[i - 1].starts_at === r.starts_at}
                 />
               </Fragment>
             ))}

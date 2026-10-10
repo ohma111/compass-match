@@ -173,7 +173,24 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   filled: 'メンバーがそろいました',
   announcement: '運営からのお知らせ',
   room_code: '部屋番号が変わりました',
+  starting: '予定時刻になりました',
+  auto_closed: '人がそろわなかったため、募集を終了しました',
 };
+
+/** v15: デキレ (240 が上で10ずつ下がる) */
+export const DECK_LEVELS: readonly number[] = Array.from({ length: 13 }, (_, i) => 240 - i * 10);
+export function isDeckLevel(n: unknown): n is number {
+  return typeof n === 'number' && DECK_LEVELS.includes(n);
+}
+export const COLLAB_MAX = 9999;
+/** デキレ・コラボ数を聞くのは、バトルアリーナの承認制の募集だけ */
+export function asksDeck(purpose: Purpose, joinMode: JoinMode): boolean {
+  return purpose === 'rank' && joinMode === 'approval';
+}
+/** 2固定でも可を選べる募集 (3人パーティのバトルアリーナ・フリーバトル) */
+export function canDuo(purpose: Purpose, capacity: number): boolean {
+  return (purpose === 'rank' || purpose === 'enjoy') && capacity === 3;
+}
 
 /** Discord のユーザー名の見つけ方 (表示名と間違えやすい) */
 export const DISCORD_HINT = 'Discord アプリで自分のアイコンを押すと、名前の下に出る半角英数字の名前です (表示名ではありません)。';

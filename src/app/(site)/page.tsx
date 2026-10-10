@@ -51,7 +51,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     ? items.filter((r) => r.owner_id === viewer.userId || states[r.id] === 'approved' || states[r.id] === 'pending')
     : [];
   const myRank = viewer?.profile?.rank_band ?? null;
-  const shown = applyListView(items, filter, myRank);
+  const shown = applyListView(items, filter, myRank, now);
   return (
     <HomeView
       items={shown}

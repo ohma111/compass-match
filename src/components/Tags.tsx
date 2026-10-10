@@ -2,6 +2,7 @@ import { Headphones, Hand, Mic, MicOff, Zap } from 'lucide-react';
 import {
   JOIN_MODE_LABELS,
   MOOD_TAG_LABELS,
+  PLAY_ROLE_LABELS,
   PURPOSE_LABELS,
   RECRUIT_VC_LABELS,
   type JoinMode,
@@ -9,6 +10,8 @@ import {
   type Purpose,
   type RecruitVc,
 } from '@/lib/constants';
+import type { Recruitment } from '@/lib/types';
+import { RoleIcon } from './RoleIcon';
 
 /** 目的の刻印 (色を使わず形で分ける: バトルアリーナ■ フリーバトル● 大会練習▲ カスタム◆ チャレンジバトル★) */
 export function PurposeMark({ purpose, className = 'size-2.5' }: { purpose: Purpose; className?: string }) {
@@ -72,5 +75,36 @@ export function VcBadge({ vc, compact = false }: { vc: RecruitVc; compact?: bool
       <Icon className="size-4" aria-hidden />
       <span className={compact ? 'sr-only sm:not-sr-only' : ''}>{RECRUIT_VC_LABELS[vc]}</span>
     </span>
+  );
+}
+
+/** v15: 2固定でも可・ほしいロール (一覧の札と詳細で同じもの) */
+export function DuoAndRoles({ r }: { r: Pick<Recruitment, 'duo_ok' | 'wanted_roles'> }) {
+  return (
+    <>
+      {r.duo_ok && <span className="shrink-0 font-black text-ink">2固定OK</span>}
+      {r.wanted_roles && r.wanted_roles.length > 0 && (
+        <span className="inline-flex shrink-0 items-center gap-1 text-ink" aria-label={`ほしいロール: ${r.wanted_roles.map((x) => PLAY_ROLE_LABELS[x]).join('・')}`}>
+          求
+          {r.wanted_roles.map((x) => (
+            <RoleIcon key={x} role={x} className="size-3.5" />
+          ))}
+        </span>
+      )}
+    </>
+  );
+}
+
+/** v15: バトルアリーナの承認制の、募集者のデキレ・コラボ数と参加の条件 */
+export function DeckInfo({ r, className = '' }: { r: Pick<Recruitment, 'owner_deck_level' | 'owner_collab' | 'min_deck_level' | 'min_collab'>; className?: string }) {
+  if (r.owner_deck_level == null) return null;
+  const cond = [r.min_deck_level != null ? `デキレ${r.min_deck_level}↑` : null, r.min_collab != null ? `コラボ${r.min_collab}↑` : null].filter(Boolean);
+  return (
+    <p className={`flex flex-wrap gap-x-3 font-bold ${className}`}>
+      <span>
+        募集者 デキレ{r.owner_deck_level}・コラボ{r.owner_collab}
+      </span>
+      {cond.length > 0 && <span className="text-ink">条件 {cond.join('・')}</span>}
+    </p>
   );
 }
