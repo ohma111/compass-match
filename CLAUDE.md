@@ -129,6 +129,8 @@
 - proxy はログイン Cookie (`sb-<ref>-auth-token` / `.0`)・`?src=`・メンテナンス中も開くページ (/transfer /auth /terms /privacy) のときだけ動く。ref は `src/lib/supabase-ref.ts` に固定し、`NEXT_PUBLIC_SUPABASE_URL` と違うと next.config.ts がビルドを止める。Supabase のプロジェクトを変えるときは supabase-ref.ts と proxy.ts の matcher を両方直す。未ログインの方は x-pathname を自分で付けるとメンテナンスの画面を避けて閲覧だけはできる (書き込みは DB で止まる)。
 - 募集ごとの共有画像は CDN に5分 (失敗時30秒)、proxy の対象外。robots.txt で `/?purpose=` `/?soon=` を外した。
 - 案のまま: 操作のあとの router.refresh の重複 (ActionButton など。revalidatePath だけで画面は更新される)、staleTimes.dynamic。実数は Vercel の Usage / Observability で見る。
+- 本番反映 (05:38 UTC ごろ) 後に実測: 未ログインのホーム 42件 → 1件、表紙 16件 → 1件、共有画像は2回目から CDN の HIT。run.mjs (11項目)・v8-check.mjs (9項目) すべて通過。
+- 記録・比較の方法・残りの最適化案 (A 再読み込みの重複 / B staleTimes / C /api/live)・未適用の migration 17・19・20・21 の調査・残るリスクは `docs/ops/2026-10-10-vercel-usage.md`。ダッシュボードの実数を見てから次を決める (運営者の指定)。案はまだ実装しない。
 
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
