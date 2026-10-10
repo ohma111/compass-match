@@ -3,6 +3,7 @@ import { useActionState, useState } from 'react';
 import { reportAction } from '@/app/actions';
 import { FormMessage } from './FormMessage';
 import { LIMITS } from '@/lib/constants';
+import { keepForm } from '@/lib/use-keep-form';
 
 const TARGET_LABEL = { user: 'このユーザー', recruitment: 'この募集', message: 'このメッセージ' } as const;
 
@@ -31,7 +32,7 @@ export function ReportButton({
       {state?.ok ? (
         <FormMessage state={state} />
       ) : (
-        <form action={formAction} className="space-y-2">
+        <form onSubmit={keepForm(formAction)} className="space-y-2">
           <p className="text-sm font-bold">{TARGET_LABEL[targetType]}を通報</p>
           <input type="hidden" name="targetType" value={targetType} />
           <input type="hidden" name="targetId" value={targetId} />

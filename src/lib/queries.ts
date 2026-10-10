@@ -8,7 +8,7 @@ import type { JoinState } from './capacity';
 import type { Recruitment } from './types';
 
 export const RECRUIT_BASE_COLUMNS =
-  'id, owner_id, title, purpose, starts_at, ends_at, capacity, min_rank, vc, tags, note, status, join_mode, stance, approved_count, hidden_at, created_at';
+  'id, owner_id, title, purpose, starts_at, ends_at, capacity, min_rank, vc, tags, note, status, join_mode, stance, approved_count, hidden_at, created_at, duo_ok, wanted_roles, owner_deck_level, owner_collab, min_deck_level, min_collab, owner_roles, duo_playing, close_check_at';
 const RECRUIT_COLUMNS = `${RECRUIT_BASE_COLUMNS}, owner:profiles!recruitments_owner_id_fkey(id, display_name, rank_band, play_roles, avatar)`;
 
 /** 「今すぐ」フィルタ: 開始が30分以内、または開催中 */

@@ -38,6 +38,21 @@ export interface Recruitment {
   approved_count: number;
   hidden_at: string | null;
   created_at: string;
+  /** v15: 2固定でも可 (バトルアリーナ・フリーバトル) */
+  duo_ok?: boolean;
+  /** v15: ほしいロール (任意) */
+  wanted_roles?: PlayRole[];
+  /** v15: バトルアリーナの承認制だけ。募集者のデキレ・コラボ数と、参加の条件 */
+  owner_deck_level?: number | null;
+  owner_collab?: number | null;
+  min_deck_level?: number | null;
+  min_collab?: number | null;
+  /** v16: 募集者が使うロール */
+  owner_roles?: PlayRole[];
+  /** v16: 2固定中 (2人で遊びながら、もう1人を待つ) */
+  duo_playing?: boolean;
+  /** v16: 募集者に「続けますか」を聞いた時刻 (5分で取り消し) */
+  close_check_at?: string | null;
   owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null }) | null;
 }
 
@@ -47,6 +62,9 @@ export interface Participation {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   created_at: string;
+  /** v15: デキレを聞く募集で申告した値 */
+  deck_level?: number | null;
+  collab?: number | null;
   profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar'> | null;
 }
 
@@ -56,6 +74,8 @@ export interface Message {
   user_id: string;
   body: string;
   created_at: string;
+  /** 送った方の表示名 (参加者でない方の発言もあるため) */
+  author?: { display_name: string } | null;
 }
 
 export interface MemberContact {
@@ -68,3 +88,10 @@ export interface MemberContact {
 }
 
 export type ActionResult<T = undefined> = { ok: true; data?: T; message?: string } | { ok: false; error: string };
+
+/** 部屋番号と、最後に変えた方・時刻 (参加が確定したメンバーだけ) */
+export interface RoomInfo {
+  code: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+}

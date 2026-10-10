@@ -9,6 +9,7 @@ import { CoverView } from '@/components/views/CoverView';
 import { COVER_SEEN_COOKIE } from '@/lib/cover';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
+import { applyListView, hasExtraFilter } from '@/lib/list-filter';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   else items = listed;
   // 未登録で、まだ表紙から一覧に入っていない方には表紙を出す (絞り込みのリンクで来た方は一覧へ)
   const auth = authStateOf(viewer);
-  const unfiltered = filter.purpose === 'all' && !filter.soon;
+  const unfiltered = filter.purpose === 'all' && !filter.soon && !hasExtraFilter(filter);
   if ((auth === 'guest' || auth === 'no-profile') && unfiltered && !(await cookies()).has(COVER_SEEN_COOKIE)) {
     return <CoverView items={items} now={now} loadError={loadError} />;
   }
@@ -45,14 +46,23 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       loadError = true;
     }
   }
+  // 自分の募集・参加中の募集 (読み込んだ一覧の中から。問い合わせは増やさない)
+  const myRooms = viewer
+    ? items.filter((r) => r.owner_id === viewer.userId || states[r.id] === 'approved' || states[r.id] === 'pending')
+    : [];
+  const myRank = viewer?.profile?.rank_band ?? null;
+  const shown = applyListView(items, filter, myRank, now);
   return (
     <HomeView
-      items={items}
+      items={shown}
+      total={items.length}
+      myRooms={myRooms}
+      canEligible={Boolean(myRank)}
       states={states}
       blocked={[...blocked]}
       auth={auth}
       viewerId={viewer?.userId}
-      filter={{ purpose: filter.purpose, soon: filter.soon }}
+      filter={filter}
       now={now}
       loadError={loadError}
       availableNow={features.availableNow}

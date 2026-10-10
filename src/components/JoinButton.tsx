@@ -9,6 +9,8 @@ import { meetsMinRank, RANK_MIN_LABELS, type JoinMode, type RankBand } from '@/l
 import { useEnsureProfile } from './ProfileSheet';
 import { useCurrentRank, useEnsureRank, useRankNow } from './RankSheet';
 import { useEnsureDiscord } from './DiscordSheet';
+import { useJoinAsk, type DeckAnswer } from './JoinAskSheet';
+import type { Recruitment } from '@/lib/types';
 
 export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted';
 
@@ -24,7 +26,22 @@ export interface JoinControl {
  * そのあと詳細ページで自動的に参加を再開する (IntentRunner)。
  * 文字のボタンと、ロビーの空き席の両方から同じものを使う。
  */
-export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null, minRank?: RankBand | null, vcOn = false): JoinControl {
+/** v15: デキレを聞く募集の条件と、ほかの募集に参加中・募集中か */
+export interface JoinExtra {
+  deck?: { minDeck: number | null; minCollab: number | null } | null;
+  busyElsewhere?: boolean;
+}
+
+/** 募集から JoinExtra を作る */
+export function joinExtraOf(r: Pick<Recruitment, 'owner_deck_level' | 'min_deck_level' | 'min_collab'>, busyElsewhere = false): JoinExtra {
+  return {
+    deck: r.owner_deck_level != null ? { minDeck: r.min_deck_level ?? null, minCollab: r.min_collab ?? null } : null,
+    busyElsewhere,
+  };
+}
+
+export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null, minRank?: RankBand | null, vcOn = false, extra: JoinExtra = {}): JoinControl {
+  const ask = useJoinAsk();
   const router = useRouter();
   const ensureProfile = useEnsureProfile();
   const ensureRank = useEnsureRank();
@@ -52,14 +69,22 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
       setError(`ランク条件 (${RANK_MIN_LABELS[minRank!]}) を満たしていないため、参加できません`);
       return;
     }
+    // ほかの募集に参加中・募集中なら確かめる (止めはしない)
+    if (extra.busyElsewhere && !(await ask.confirm('ほかの募集に参加中か、募集を出しています。こちらにも参加しますか？', '参加する'))) return;
     // VC ありの募集は Discord のユーザー名を先に聞く
     if (vcOn && !(await ensureDiscord())) return;
-    doJoin();
+    // バトルアリーナの承認制は、デキレとコラボ数を聞く
+    let deck: DeckAnswer | null = null;
+    if (extra.deck) {
+      deck = await ask.deck(extra.deck);
+      if (!deck) return;
+    }
+    doJoin(deck);
   }
 
-  function doJoin() {
+  function doJoin(deck: DeckAnswer | null) {
     start(async () => {
-      const r = await requestJoinAction(recruitmentId, src ?? null);
+      const r = await requestJoinAction(recruitmentId, src ?? null, deck);
       if (!r.ok) {
         setError(r.error);
         return;
@@ -98,8 +123,9 @@ export function JoinButton(props: {
   minRank?: RankBand | null;
   /** VC ありの募集 (参加のとき Discord のユーザー名を聞く) */
   vcOn?: boolean;
+  extra?: JoinExtra;
 }) {
-  const own = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn);
+  const own = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn, props.extra);
   const myRank = useCurrentRank();
   const { join, pending, error, done } = props.control ?? own;
   const [confirming, setConfirming] = useState(false);

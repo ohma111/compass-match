@@ -6,6 +6,7 @@ import { isPreviewEnabled } from '@/lib/preview';
 import { AppShell } from '@/components/AppShell';
 import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
+import { DEFAULT_VIEW } from '@/lib/list-filter';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { TransferView } from '@/components/views/AuthViews';
@@ -57,7 +58,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       body = (
         <>
           <MaintenancePlanned status={{ active: false, manual_on: false, starts_at: new Date(now.getTime() + 86_400_000).toISOString(), ends_at: new Date(now.getTime() + 86_400_000 + 7200_000).toISOString(), message: '' }} />
-          <HomeView items={feed(now)} states={{}} auth="ready" viewerId={ME_ID} filter={{ purpose: 'all', soon: false }} now={now} />
+          <HomeView items={feed(now)} states={{}} auth="ready" viewerId={ME_ID} filter={DEFAULT_VIEW} now={now} />
         </>
       );
       break;
@@ -75,7 +76,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       unread = 0;
       sheetOpen = true;
       body = (
-        <HomeView items={feed(now)} states={{}} auth="guest" viewerId={null} filter={{ purpose: 'all', soon: false }} now={now} />
+        <HomeView items={feed(now)} states={{}} auth="guest" viewerId={null} filter={DEFAULT_VIEW} now={now} />
       );
       break;
     case 'home':
@@ -87,7 +88,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           states={homeStates()}
           auth="ready"
           viewerId={ME_ID}
-          filter={{ purpose: 'all', soon: false }}
+          filter={DEFAULT_VIEW}
           now={now}
         />
       );
@@ -108,7 +109,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           viewerId={ME_ID}
           participations={d.participations}
           myState={d.myState}
-          roomCode={d.roomCode}
+          room={d.roomCode ? { code: d.roomCode, updated_at: null, updated_by: null } : null}
           contacts={d.contacts}
           messages={d.messages}
           src={null}

@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { MessageCircle, SendHorizontal } from 'lucide-react';
-import { sendMessageAction } from '@/app/actions';
+import { Bell, BellOff, MessageCircle, SendHorizontal } from 'lucide-react';
+import { sendMessageAction, setChatMuteAction } from '@/app/actions';
+import { playChime, primeChime } from '@/lib/chime';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { formatJstTime } from '@/lib/time';
 import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '@/lib/moderation/banned';
@@ -18,6 +19,8 @@ export function ChatRoom({
   names,
   blockedIds = [],
   open,
+  muted: initialMuted = false,
+  member = true,
 }: {
   recruitmentId: string;
   viewerId: string;
@@ -26,6 +29,10 @@ export function ChatRoom({
   /** ブロックしている方の発言は中身を出さない */
   blockedIds?: string[];
   open: boolean;
+  /** この募集のチャットの通知 (プッシュと効果音) を止めている */
+  muted?: boolean;
+  /** 参加が確定したメンバー (通知の切り替えはメンバーだけ) */
+  member?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   // ページが更新されたら (15秒ごとのロビーの更新など)、サーバーから来たメッセージも取り込む
@@ -37,6 +44,38 @@ export function ChatRoom({
   const [pending, start] = useTransition();
   const [reportingId, setReportingId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [muted, setMuted] = useState(initialMuted);
+  const [muteBusy, startMute] = useTransition();
+  const [muteError, setMuteError] = useState<string | null>(null);
+
+  // ほかの方の新しい発言が届いたら短い音を鳴らす (通知を止めた募集・画面が見えていないときは鳴らさない)
+  const seen = useRef<Set<string> | null>(null);
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  useEffect(() => primeChime(), []);
+  useEffect(() => {
+    if (!seen.current) {
+      seen.current = new Set(messages.map((m) => m.id));
+      return;
+    }
+    let fresh = false;
+    for (const m of messages) {
+      if (seen.current.has(m.id)) continue;
+      seen.current.add(m.id);
+      if (m.user_id !== viewerId && !blockedIds.includes(m.user_id)) fresh = true;
+    }
+    if (fresh && !mutedRef.current && document.visibilityState === 'visible') playChime();
+  }, [messages, viewerId, blockedIds]);
+
+  function toggleMute() {
+    const next = !muted;
+    setMuteError(null);
+    startMute(async () => {
+      const r = await setChatMuteAction(recruitmentId, next);
+      if (r.ok) setMuted(next);
+      else setMuteError(r.error);
+    });
+  }
 
   // 新しい発言の合図 (Realtime の Broadcast)。合図には中身を載せず、受け取った側が RLS のとおりに読み直す。
   // 前は postgres_changes (DB の変更を Realtime が読み続ける) で、混雑時に DB の CPU の大半を使っていた。
@@ -58,14 +97,14 @@ export function ChatRoom({
       try {
         let q = supabase
           .from('messages')
-          .select('id, recruitment_id, user_id, body, created_at')
+          .select('id, recruitment_id, user_id, body, created_at, author:profiles!messages_user_id_fkey(display_name)')
           .eq('recruitment_id', recruitmentId)
           .order('created_at', { ascending: true })
           .limit(50);
         // 時刻はサーバーと端末で少しずれるので、最後の発言の1分前から取り直す (id で重複を除く)
         if (lastAtRef.current) q = q.gte('created_at', new Date(Date.parse(lastAtRef.current) - 60_000).toISOString());
         const { data } = await q;
-        if (data?.length) setMessages((prev) => mergeMessages(prev, data as Message[]));
+        if (data?.length) setMessages((prev) => mergeMessages(prev, data as unknown as Message[]));
       } finally {
         fetching = false;
       }
@@ -126,8 +165,18 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <span className="text-xs text-slate">募集終了の90分後に消えます</span>
+        {member && <button
+          type="button"
+          onClick={toggleMute}
+          disabled={muteBusy}
+          aria-pressed={!muted}
+          className="-my-2 inline-flex min-h-11 items-center gap-1.5 px-1 text-[13px] font-bold text-ink-2"
+        >
+          {muted ? <BellOff className="size-4" aria-hidden /> : <Bell className="size-4" aria-hidden />}
+          {muted ? '通知・音: オフ' : '通知・音: オン'}
+        </button>}
       </div>
+      <p className="text-xs text-slate">募集終了の90分後に消えます{muteError ? ` / ${muteError}` : ''}</p>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
         {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだメッセージはありません</p>}
         {messages.map((m) => {
@@ -135,7 +184,7 @@ export function ChatRoom({
           return (
             <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
               <div className="mb-0.5 flex items-center text-xs text-slate">
-                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? '参加者')}</span>
+                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? m.author?.display_name ?? 'ユーザー')}</span>
                 <span className="ml-1.5 tabular-nums">{formatJstTime(m.created_at)}</span>
                 {!mine && (
                   <button
@@ -175,7 +224,7 @@ export function ChatRoom({
               enterKeyHint="send"
               autoComplete="off"
               className="input"
-              placeholder="20文字まで"
+              placeholder={`${LIMITS.message}文字まで`}
               aria-label="メッセージ"
             />
             <button

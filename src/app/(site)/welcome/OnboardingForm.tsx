@@ -6,6 +6,7 @@ import { onboardAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
 import { RoleIcon } from '@/components/RoleIcon';
 import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS } from '@/lib/constants';
+import { keepForm } from '@/lib/use-keep-form';
 
 export function OnboardingForm({ next, suggestedName }: { next: string; suggestedName: string }) {
   const [state, formAction, pending] = useActionState(onboardAction, null);
@@ -14,7 +15,7 @@ export function OnboardingForm({ next, suggestedName }: { next: string; suggeste
   const ready = name.trim().length > 0 && agree;
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form onSubmit={keepForm(formAction)} className="space-y-8">
       <input type="hidden" name="next" value={next} />
       <div>
         <label className="label" htmlFor="displayName">

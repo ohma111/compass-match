@@ -103,6 +103,7 @@ const baseRecruit = {
   tags: ['serious', 'serious'],
   title: '',
   src: 'guild',
+  ownerRoles: ['gunner'],
 };
 
 function build(over: Record<string, unknown> = {}, now = NOW) {
@@ -123,6 +124,12 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(r.data.stance).toBe('win');
     expect(r.data.src).toBe('guild');
   });
+  it('募集の時間は 1・2・3時間から選べ、ほかの値は1時間になる', () => {
+    const two = build({ duration: '120' });
+    expect(two.ok && two.data.endsAt.toISOString()).toBe('2026-10-01T14:00:00.000Z');
+    const bad = build({ duration: '600' });
+    expect(bad.ok && bad.data.endsAt.toISOString()).toBe('2026-10-01T13:00:00.000Z');
+  });
   it('keeps a custom title (ひとこと)', () => {
     const r = build({ title: '  1戦だけ!  ' });
     expect(r.ok && r.data.title).toBe('1戦だけ!');
@@ -139,9 +146,29 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(build({ capacity: '1' }).ok).toBe(false);
   });
   it('validates join mode (instant / approval only)', () => {
-    expect(build({ joinMode: 'approval' }).ok).toBe(true);
+    expect(build({ joinMode: 'approval', purpose: 'enjoy' }).ok).toBe(true);
     expect(build({ joinMode: 'auto' }).ok).toBe(false);
     expect(build({ joinMode: undefined }).ok).toBe(false);
+  });
+  it('バトルアリーナの承認制はデキレとコラボ数が必須。それ以外の募集では捨てる', () => {
+    expect(build({ joinMode: 'approval' }).ok).toBe(false);
+    const ok = build({ joinMode: 'approval', ownerDeck: '230', ownerCollab: '０', minDeck: '200', minCollab: '' });
+    expect(ok.ok && [ok.data.ownerDeck, ok.data.ownerCollab, ok.data.minDeck, ok.data.minCollab]).toEqual([230, 0, 200, null]);
+    expect(build({ joinMode: 'approval', ownerDeck: '235', ownerCollab: '40' }).ok).toBe(false);
+    const free = build({ purpose: 'enjoy', ownerDeck: '230', ownerCollab: '40' });
+    expect(free.ok && free.data.ownerDeck).toBe(null);
+  });
+  it('自分が使うロールは必須', () => {
+    expect(build({ ownerRoles: [] }).ok).toBe(false);
+    const ok = build({ ownerRoles: ['tank', 'sprinter'] });
+    expect(ok.ok && ok.data.ownerRoles).toEqual(['tank', 'sprinter']);
+  });
+  it('2固定でも可は3人のバトルアリーナ・フリーバトルだけ', () => {
+    const three = build({ capacity: '3', duoOk: 'on', wantedRoles: ['tank', 'tank'] });
+    expect(three.ok && three.data.duoOk).toBe(true);
+    expect(three.ok && three.data.wantedRoles).toEqual(['tank']);
+    const two = build({ capacity: '2', duoOk: 'on' });
+    expect(two.ok && two.data.duoOk).toBe(false);
   });
   it('rejects a slot that has already passed (no rollover to tomorrow)', () => {
     const r = build({}, new Date('2026-10-01T12:45:00Z')); // JST 21:45
@@ -181,9 +208,9 @@ describe('validateStartWindow', () => {
 
 describe('messageSchema', () => {
   const id = '10000000-0000-4000-8000-000000000001';
-  it('accepts up to 20 chars and rejects banned words', () => {
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(20) }).success).toBe(true);
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(21) }).success).toBe(false);
+  it('accepts up to 50 chars and rejects banned words', () => {
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(50) }).success).toBe(true);
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(51) }).success).toBe(false);
     expect(messageSchema.safeParse({ recruitmentId: id, body: '何歳ですか' }).success).toBe(false);
   });
   it('rejects empty, URLs and control chars', () => {
@@ -209,9 +236,11 @@ describe('report / feedback / filters', () => {
     expect(feedbackSchema.parse({ body: 'ok', page: '/recruitments' }).page).toBe('/recruitments');
   });
   it('feed filters fall back to all', () => {
-    expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ purpose: 'all', soon: false });
-    expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ purpose: 'rank', soon: true });
-    expect(listFilterSchema.parse({})).toEqual({ purpose: 'all', soon: false });
+    const base = { eligible: false, vc: undefined, stance: undefined, sort: 'start' };
+    expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ ...base, purpose: 'all', soon: false });
+    expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ ...base, purpose: 'rank', soon: true });
+    expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
+    expect(listFilterSchema.parse({ vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, vc: 'on' });
   });
 });
 

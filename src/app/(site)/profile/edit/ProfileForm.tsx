@@ -7,6 +7,7 @@ import { saveProfileAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
 import { RoleIcon } from '@/components/RoleIcon';
 import {
+  DISCORD_HINT,
   LIMITS,
   MOOD_TAGS,
   MOOD_TAG_LABELS,
@@ -20,6 +21,7 @@ import {
   RANK_LABELS,
 } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
+import { keepForm } from '@/lib/use-keep-form';
 
 interface Contacts {
   contact_discord: string | null;
@@ -43,7 +45,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
   const chars = [...profile.characters, '', '', ''].slice(0, LIMITS.maxCharacters);
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form onSubmit={keepForm(formAction)} className="space-y-8">
       <AvatarPicker initial={profile.avatar ?? null} />
       <div>
         <label className="label" htmlFor="displayName">
@@ -52,11 +54,11 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         <input id="displayName" name="displayName" required maxLength={LIMITS.displayName} defaultValue={profile.display_name} className="input" />
       </div>
       <fieldset>
-        <legend className="label">ランク</legend>
+        <legend className="label">現在のランク <span className="text-xs font-normal text-muted">(最高ランクではなく、今のランク)</span></legend>
         <RankPicker name="rankBand" value={profile.rank_band ?? ''} />
       </fieldset>
       <fieldset>
-        <legend className="label">得意ロール <span className="text-xs font-normal text-muted">(複数可)</span></legend>
+        <legend className="label">得意ロール <span className="text-xs font-normal text-muted">(複数可・4つすべて選ぶとオールラウンダー)</span></legend>
         <div className="grid grid-cols-2 gap-2">
           {PLAY_ROLES.map((r) => (
             <label key={r} className="pick">
@@ -117,7 +119,8 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         <p className="text-xs text-slate">参加が確定したメンバーにだけ表示されます</p>
         <div>
           <label className="label" htmlFor="contactDiscord">Discordのユーザー名</label>
-          <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" autoComplete="off" />
+          <input id="contactDiscord" name="contactDiscord" maxLength={32} defaultValue={contacts?.contact_discord ?? ''} className="input" autoCapitalize="off" autoComplete="off" placeholder="例: compass_taro" />
+          <p className="hint">{DISCORD_HINT}</p>
         </div>
         <div>
           <label className="label" htmlFor="contactX">XのID</label>

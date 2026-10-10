@@ -121,8 +121,12 @@ export const RECRUIT_STATUS_LABELS = {
 } as const;
 export type RecruitStatus = keyof typeof RECRUIT_STATUS_LABELS;
 
-/** 終了時刻は入力させず、開始 + この時間で自動設定する */
+/** 終了時刻は入力させず、開始 + 選んだ時間で自動設定する (既定は1時間) */
 export const DEFAULT_DURATION_MIN = 60;
+/** 募集の時間の選択肢 (分)。DB の制約は開始から6時間まで */
+export const DURATIONS = [60, 120, 180] as const;
+export type Duration = (typeof DURATIONS)[number];
+export const DURATION_LABELS: Record<Duration, string> = { 60: '1時間', 120: '2時間', 180: '3時間' };
 
 export const LIMITS = {
   displayName: 20,
@@ -131,7 +135,7 @@ export const LIMITS = {
   maxCharacters: 3,
   title: 40, // 「ひとこと」(タイトル)
   note: 200,
-  message: 20,
+  message: 50,
   reportReason: 500,
   feedback: 1000,
   roomCode: 4,
@@ -168,7 +172,29 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   blocked_joined: 'ブロックしている方が参加しました',
   filled: 'メンバーがそろいました',
   announcement: '運営からのお知らせ',
+  room_code: '部屋番号が変わりました',
+  starting: '予定時刻になりました',
+  auto_closed: '確認がなかったため、募集を取り消しました',
+  close_check: '募集を続けますか？ 5分以内に操作がないと取り消されます',
 };
+
+/** v15: デキレ (240 が上で10ずつ下がる) */
+export const DECK_LEVELS: readonly number[] = Array.from({ length: 13 }, (_, i) => 240 - i * 10);
+export function isDeckLevel(n: unknown): n is number {
+  return typeof n === 'number' && DECK_LEVELS.includes(n);
+}
+export const COLLAB_MAX = 9999;
+/** デキレ・コラボ数を聞くのは、バトルアリーナの承認制の募集だけ */
+export function asksDeck(purpose: Purpose, joinMode: JoinMode): boolean {
+  return purpose === 'rank' && joinMode === 'approval';
+}
+/** 2固定でも可を選べる募集 (3人パーティのバトルアリーナ・フリーバトル) */
+export function canDuo(purpose: Purpose, capacity: number): boolean {
+  return (purpose === 'rank' || purpose === 'enjoy') && capacity === 3;
+}
+
+/** Discord のユーザー名の見つけ方 (表示名と間違えやすい) */
+export const DISCORD_HINT = 'Discord アプリで自分のアイコンを押すと、名前の下に出る半角英数字の名前です (表示名ではありません)。';
 
 /** 運営者のゲーム内の応援コード (フッターに表示) */
 export const SUPPORT_CODE = 'C-KtAo';

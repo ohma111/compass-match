@@ -11,6 +11,7 @@ import {
   transferCredentials,
 } from '@/lib/transfer';
 import { CopyButton } from './CopyButton';
+import { InlineConfirm } from './InlineConfirm';
 
 /** 4つに区切ったコード (区切りの途中で改行しない) */
 export function TransferCodeDisplay({ code }: { code: string }) {
@@ -36,10 +37,12 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
   const [code, setCode] = useState<string | null>(initialCode ?? null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const linked = Boolean(email);
 
+  // 確認は画面の中で出す (アプリ内ブラウザでは window.confirm が出ずに false が返る)
   async function issue() {
-    if (linked && !window.confirm('引き継ぎコードを作り直しますか？ 今のコードは使えなくなります。')) return;
+    setAsking(false);
     setPending(true);
     setError(null);
     try {
@@ -90,10 +93,14 @@ export function TransferIssue({ email, initialCode }: { email: string | null; in
   return (
     <div className="space-y-3">
       {error && <p className="alert-error" role="alert">{error}</p>}
-      <button type="button" className="btn-primary w-full" onClick={issue} disabled={pending}>
-        <Smartphone className="size-5" aria-hidden />
-        {pending ? '作成中…' : linked ? 'コードを作り直す' : '引き継ぎコードを作る'}
-      </button>
+      {asking ? (
+        <InlineConfirm message="引き継ぎコードを作り直しますか？ 今のコードは使えなくなります。" confirmLabel="作り直す" onConfirm={issue} onCancel={() => setAsking(false)} />
+      ) : (
+        <button type="button" className={linked ? 'btn-outline w-full' : 'btn-primary w-full'} onClick={() => (linked ? setAsking(true) : void issue())} disabled={pending}>
+          <Smartphone className="size-5" aria-hidden />
+          {pending ? '作成中…' : linked ? 'コードを作り直す' : '引き継ぎコードを作る'}
+        </button>
+      )}
     </div>
   );
 }
@@ -103,16 +110,23 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
   const [raw, setRaw] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asking, setAsking] = useState(false);
   const code = normalizeTransferCode(raw);
   const valid = isValidTransferCode(code);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!valid) {
       setError('引き継ぎコードは20文字です');
       return;
     }
-    if (hasProfileHere && !window.confirm('今のプロフィールから切り替えますか？ 引き継ぎコードがないと、今のプロフィールには戻れなくなります。')) return;
+    // この端末に別のプロフィールがあるときは、切り替えてよいか画面の中で確かめる
+    if (hasProfileHere) setAsking(true);
+    else void login();
+  }
+
+  async function login() {
+    setAsking(false);
     setPending(true);
     setError(null);
     try {
@@ -156,10 +170,19 @@ export function TransferRedeem({ configured, hasProfileHere }: { configured: boo
         </p>
       </div>
       {error && <p className="alert-error" role="alert">{error}</p>}
-      <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured || code.length === 0}>
-        {pending ? '確認中…' : 'ログイン'}
-        {!pending && <ArrowRight className="size-5" aria-hidden />}
-      </button>
+      {asking ? (
+        <InlineConfirm
+          message="今のプロフィールから切り替えますか？ 今のプロフィールの引き継ぎコードがないと、今のプロフィールには戻れなくなります。"
+          confirmLabel="切り替えてログイン"
+          onConfirm={login}
+          onCancel={() => setAsking(false)}
+        />
+      ) : (
+        <button className="btn-primary btn-lg w-full text-base" disabled={pending || !configured || code.length === 0}>
+          {pending ? '確認中…' : 'ログイン'}
+          {!pending && <ArrowRight className="size-5" aria-hidden />}
+        </button>
+      )}
     </form>
   );
 }
