@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { ChevronLeft } from 'lucide-react';
 import { requireViewer } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
