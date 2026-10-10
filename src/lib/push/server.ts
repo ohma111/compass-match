@@ -3,6 +3,7 @@ import webpush from 'web-push';
 import { createAdminClient } from '../supabase/admin';
 import { getServiceRoleKey, siteUrl } from '../env';
 import { NOTIFICATION_LABELS } from '../constants';
+import { isPushEndpoint } from './endpoint';
 
 /**
  * プッシュ通知 (Web Push)。
@@ -85,7 +86,7 @@ export async function dispatchPush(): Promise<number> {
     await Promise.all(
       rows.flatMap((n) =>
         subs
-          .filter((s) => s.user_id === n.user_id)
+          .filter((s) => s.user_id === n.user_id && isPushEndpoint(s.endpoint))
           .map(async (s) => {
             const payload = JSON.stringify({
               title:
@@ -100,6 +101,8 @@ export async function dispatchPush(): Promise<number> {
               await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, {
                 TTL: 60 * 60,
                 urgency: 'high',
+                // 応答しない相手で関数が止まり続けないように
+                timeout: 5000,
               });
             } catch (e) {
               const code = (e as { statusCode?: number }).statusCode;

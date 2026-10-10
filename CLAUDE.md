@@ -109,6 +109,16 @@
 - 毎日の DB バックアップ: `.github/workflows/db-backup.yml`。GitHub の Secrets に SUPABASE_DB_URL (運営者が入れる) があれば動き、Artifacts に7日。
 - VC ありの Discord 必須は運営者の指定 (v11) のまま。
 
+## 2026-10-09 (v14 セキュリティの対策)
+- 通報による自動非表示をやめた (捨てアカウント3つで誰でも締め出せたため)。通報は記録だけで、判断は管理画面。src/lib/moderation.ts は削除。
+- プッシュ通知の登録先は各ブラウザのプッシュサーバー (FCM / Mozilla / Apple / Windows) だけ (DB の private.is_push_endpoint と src/lib/push/endpoint.ts)。送信は5秒でタイムアウト。
+- 運営バッジ: profiles.is_staff (user_roles の admin と自動で同期)。席・カード・チャット・ユーザーページで名前の横に枠線の「運営」。管理者以外は「運営」「公式」「管理者」「staff」「JOIN COMPASS」などを名前に使えない。
+- private.play_mates_counted に外部キー (募集・アカウントが消えたら一緒に消える)。前は永久に残っていた。
+- 通知を受け取る人 (follows.active) は30人まで。一緒に遊んだ人の自動追加も30人に達したら足さない。
+- Next.js 16.3.8 (既知の脆弱性の修正)。
+- migration 18。**本番は未適用。migration 17 も本番に入っていなかった (2026-10-09 に reports.target_snapshot がないことを確認)。17 → 18 の順に SQL Editor で流してから merge すること** (18 の is_staff がないと一覧の読み込みが失敗する)。
+- リポジトリは公開 (public) だった。db-backup の Artifacts が誰でも落とせるので、SUPABASE_DB_URL を入れる前に非公開にする。
+
 ## 2026-10-09 夜 (アクセス集中の緊急対策)
 - アクセス集中で Supabase の DB が応答しなくなった (Vercel と Supabase 全体は正常、このプロジェクトの Postgres が詰まった)。
 - 未ログインの方の読み込みを全員で共有する: 一覧は 15秒 (listRecruitmentsPublic)、募集詳細と共有カード画像は 10秒 (getRecruitmentPublic)、メンテナンス状態は全員 30秒 (site-status.ts)。`unstable_cache` + Cookie を使わない `src/lib/supabase/public.ts`。ログインしている方はブロックの見え方があるので今までどおり。

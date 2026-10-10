@@ -18,6 +18,8 @@ export interface Profile {
   rank_confirmed?: boolean;
   /** v11: 選んだアイコン (null ならロールか模様) */
   avatar?: Avatar | null;
+  /** v14: 運営 (管理者) の印 */
+  is_staff?: boolean;
 }
 
 export interface Recruitment {
@@ -38,7 +40,7 @@ export interface Recruitment {
   approved_count: number;
   hidden_at: string | null;
   created_at: string;
-  owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null }) | null;
+  owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null; is_staff?: boolean }) | null;
 }
 
 export interface Participation {
@@ -47,7 +49,7 @@ export interface Participation {
   user_id: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   created_at: string;
-  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar'> | null;
+  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar' | 'is_staff'> | null;
 }
 
 export interface Message {

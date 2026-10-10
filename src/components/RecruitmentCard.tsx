@@ -7,6 +7,7 @@ import { MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
 import { Lineup } from './Lineup';
 import { JoinButton, type AuthState } from './JoinButton';
+import { StaffBadge } from '@/components/StaffBadge';
 
 /**
  * 時間割の1行。左に開始時刻、右に「目的・募集者・条件」の札、タイトル、席と参加ボタン。
@@ -73,6 +74,7 @@ export function RecruitmentCard({
             <span aria-hidden>/</span>
             <span className="truncate text-ink-2">
               {r.owner?.display_name ?? '―'}
+              {r.owner?.is_staff && <StaffBadge className="ml-1 text-signal-deep" />}
               {r.owner && <span className="text-slate"> {rankLabel(r.owner.rank_band)}</span>}
             </span>
           </p>
