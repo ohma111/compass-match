@@ -22,6 +22,7 @@ export interface Mate {
   following: boolean;
 }
 import type { JoinState } from '@/lib/capacity';
+import { formatJst } from '@/lib/time';
 
 export interface MeViewProps {
   userId: string;
@@ -40,10 +41,12 @@ export interface MeViewProps {
   mates: Mate[];
   /** ベルをオンにしている方 */
   favorites?: Mate[];
+  /** 有料版 (Plus) が有効なら期限 (期限なしは null)。無効・機能 OFF なら undefined */
+  plus?: { until: string | null };
   now: Date;
 }
 
-export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, mates, favorites = [], now }: MeViewProps) {
+export function MeView({ userId, profile, loginId, accountKind, transferEmail, previewTransferCode, isAdmin, hasContacts, mine, joined, mates, favorites = [], plus, now }: MeViewProps) {
   const warnNoWayBack = accountKind === 'anonymous';
   const menu = 'flex min-h-12 w-full items-center gap-3 text-sm font-bold';
   return (
@@ -68,6 +71,12 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           <Pencil className="size-4" aria-hidden />
           プロフィールを編集
         </Link>
+        {plus && (
+          <p className="flex items-baseline justify-between gap-3 border-2 border-ink px-3 py-2 text-sm">
+            <span className="font-bold">JOIN COMPASS Plus</span>
+            <span className="font-mono text-xs text-slate">{plus.until ? `〜${formatJst(plus.until)}` : '有効'}</span>
+          </p>
+        )}
 
         {!hasContacts && (
           <Link href="/profile/edit#contacts" className="flex items-center gap-3 border-2 border-ink p-3">

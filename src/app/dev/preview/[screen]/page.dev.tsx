@@ -6,6 +6,7 @@ import { isPreviewEnabled } from '@/lib/preview';
 import { AppShell } from '@/components/AppShell';
 import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
+import { AdSlot } from '@/components/AdSlot';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { TransferView } from '@/components/views/AuthViews';
@@ -79,16 +80,18 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       );
       break;
     case 'home':
+    case 'home-ad':
     case 'home-empty':
       active = 'home';
       body = (
         <HomeView
-          items={screen === 'home' ? [...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : []}
+          items={screen === 'home' || screen === 'home-ad' ? [...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : []}
           states={homeStates()}
           auth="ready"
           viewerId={ME_ID}
           filter={{ purpose: 'all', soon: false }}
           now={now}
+          ad={screen === 'home-ad' ? <AdSlot placement="list" client={null} slot={null} placeholder /> : null}
         />
       );
       break;

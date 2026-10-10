@@ -10,4 +10,4 @@ export function pageExtensionsFor(nodeEnv: string | undefined): string[] {
 }
 
 /** プレビューできる画面 (scripts/screenshots.mjs もこの順で撮影する) */
-export const PREVIEW_SCREENS = ['home', 'home-empty', 'sheet', 'new', 'detail', 'detail-joined', 'me', 'transfer-code', 'transfer', 'login'] as const;
+export const PREVIEW_SCREENS = ['home', 'home-ad', 'home-empty', 'sheet', 'new', 'detail', 'detail-joined', 'me', 'transfer-code', 'transfer', 'login'] as const;

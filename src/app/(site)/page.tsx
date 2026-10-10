@@ -7,6 +7,8 @@ import { cookies } from 'next/headers';
 import { HomeView } from '@/components/views/HomeView';
 import { CoverView } from '@/components/views/CoverView';
 import { COVER_SEEN_COOKIE } from '@/lib/cover';
+import { adSlotId, monetization, shouldShowAds } from '@/lib/plan';
+import { AdSlot } from '@/components/AdSlot';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
 
@@ -56,6 +58,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       now={now}
       loadError={loadError}
       availableNow={features.availableNow}
+      ad={shouldShowAds(viewer) ? <AdSlot placement="list" client={monetization.adsenseClient} slot={adSlotId('list')} /> : null}
     />
   );
 }
