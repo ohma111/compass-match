@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  DEFAULT_DURATION_MIN,
+  DURATIONS,
   JOIN_MODES,
   LIMITS,
   MOOD_TAGS,
@@ -11,6 +13,7 @@ import {
   RECRUIT_VC,
   STANCES,
 } from '../constants';
+import { LIST_SORTS } from '../list-filter';
 import { containsUrl } from './url';
 import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '../moderation/banned';
 import { sanitizeSrc } from '../src-param';
@@ -149,6 +152,10 @@ export const recruitmentSchema = z
       .optional()
       .transform((v) => (v ? v : null)),
     vc: z.enum(RECRUIT_VC).catch('any'),
+    duration: z.coerce
+      .number()
+      .refine((n) => (DURATIONS as readonly number[]).includes(n))
+      .catch(DEFAULT_DURATION_MIN),
     tags: uniqueArray(MOOD_TAGS),
     title: safeText(LIMITS.title, { label: 'ひとこと' }),
     src: z.unknown().transform(sanitizeSrc),
@@ -164,7 +171,7 @@ export const recruitmentSchema = z
   });
 export type RecruitmentInput = z.input<typeof recruitmentSchema>;
 
-export interface RecruitmentData extends Omit<z.output<typeof recruitmentSchema>, 'startKey' | 'startDay' | 'startTime'> {
+export interface RecruitmentData extends Omit<z.output<typeof recruitmentSchema>, 'startKey' | 'startDay' | 'startTime' | 'duration'> {
   startsAt: Date;
   endsAt: Date;
 }
@@ -179,7 +186,7 @@ export function buildRecruitment(
 ): { ok: true; data: RecruitmentData } | { ok: false; error: string } {
   const parsed = recruitmentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const { startKey, startDay, startTime, ...v } = parsed.data;
+  const { startKey, startDay, startTime, duration, ...v } = parsed.data;
   const startsAt = resolveStart(startKey, startDay, startTime, now);
   if (!startsAt) {
     return { ok: false, error: startTime ? 'その時刻はすでに過ぎています。開始時刻を選び直してください' : '開始時刻を選んでください' };
@@ -187,7 +194,7 @@ export function buildRecruitment(
   const windowError = validateStartWindow(startsAt, now);
   if (windowError) return { ok: false, error: windowError };
   const title = v.title || autoTitle({ purpose: v.purpose, minRank: v.minRank, capacity: v.capacity });
-  return { ok: true, data: { ...v, title, startsAt, endsAt: autoEnd(startsAt) } };
+  return { ok: true, data: { ...v, title, startsAt, endsAt: autoEnd(startsAt, duration) } };
 }
 
 /** 作成時の開始日時チェック (now を注入できるよう分離) */
@@ -262,13 +269,23 @@ export const adminResolveSchema = z.object({
   unhide: z.boolean(),
 });
 
+const flag = z
+  .unknown()
+  .optional()
+  .transform((v) => v === '1');
+
 export const listFilterSchema = z.object({
   purpose: z.union([z.enum(PURPOSES), z.literal('all')]).catch('all'),
-  soon: z
-    .unknown()
-    .optional()
-    .transform((v) => v === '1'),
+  soon: flag,
+  /** 空きのある募集だけ (満員を出さない) */
+  open: flag,
+  /** 自分のランクで参加できる募集だけ */
+  eligible: flag,
+  vc: z.enum(RECRUIT_VC).optional().catch(undefined),
+  stance: z.enum(STANCES).optional().catch(undefined),
+  sort: z.enum(LIST_SORTS).catch('start'),
 });
+export type ListQuery = z.output<typeof listFilterSchema>;
 
 /** zodのエラーを最初の1件の日本語メッセージにまとめる */
 export function firstError(err: z.ZodError): string {

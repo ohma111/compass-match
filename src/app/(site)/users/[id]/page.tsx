@@ -1,5 +1,6 @@
 import { ProfileSeat } from '@/components/Lineup';
 import Link from '@/components/Link';
+import { ChevronLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { getRegisteredViewer } from '@/lib/auth';
 import { SignInGate } from '@/components/GateScreens';
@@ -9,15 +10,24 @@ import { PROFILE_SELECT } from '@/lib/profile-columns';
 import { MOOD_TAG_LABELS, PLAY_ROLE_LABELS, PROFILE_VC_LABELS, PURPOSE_LABELS, rankLabel } from '@/lib/constants';
 import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
-import { RoleIcon } from '@/components/RoleIcon';
+import { RoleIcon, isAllRounder } from '@/components/RoleIcon';
 import { FollowButton } from '@/components/FollowButton';
 import { blockUserAction } from '@/app/actions';
 import type { Profile } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function UserPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const { id } = await params;
+  // 募集の席から開いたときは、その募集へ戻るリンクを出す
+  const from = (await searchParams).from;
+  const back = from && uuidSchema.safeParse(from).success ? `/recruitments/${from}` : null;
   if (!uuidSchema.safeParse(id).success) notFound();
   const viewer = await getRegisteredViewer();
   if (!viewer) return <SignInGate title="プロフィール" lead="プロフィールを作成すると表示されます。" />;
@@ -37,11 +47,22 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
+      {back && (
+        <Link href={back} className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-slate hover:text-ink">
+          <ChevronLeft className="size-4" aria-hidden />
+          募集に戻る
+        </Link>
+      )}
       <section className="flex items-center gap-6">
         <ProfileSeat id={p.id} roles={p.play_roles} rank={p.rank_band} avatar={p.avatar ?? null} />
         <div className="min-w-0">
           <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{p.display_name}</h1>
-          <p className="mt-1 text-sm font-bold">{rankLabel(p.rank_band)}</p>
+          {p.rank_band && (
+            <p className="mt-1 text-sm font-bold">
+              <span className="font-medium text-slate">現在のランク </span>
+              {rankLabel(p.rank_band)}
+            </p>
+          )}
         </div>
       </section>
       <dl className="grid grid-cols-[6.5em_1fr] gap-y-3 border-y-2 border-ink py-4 text-sm">
@@ -49,7 +70,9 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
         <dd className="flex flex-wrap gap-x-3">
           {p.play_roles.length === 0
             ? '―'
-            : p.play_roles.map((r) => (
+            : isAllRounder(p.play_roles)
+              ? 'オールラウンダー'
+              : p.play_roles.map((r) => (
                 <span key={r} className="inline-flex items-center gap-1">
                   <RoleIcon role={r} className="size-3.5" />
                   {PLAY_ROLE_LABELS[r]}

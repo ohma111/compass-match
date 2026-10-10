@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { MessageCircle, SendHorizontal } from 'lucide-react';
-import { sendMessageAction } from '@/app/actions';
+import { Bell, BellOff, MessageCircle, SendHorizontal } from 'lucide-react';
+import { sendMessageAction, setChatMuteAction } from '@/app/actions';
+import { playChime, primeChime } from '@/lib/chime';
 import { getBrowserClient } from '@/lib/supabase/client';
 import { formatJstTime } from '@/lib/time';
 import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '@/lib/moderation/banned';
@@ -18,6 +19,7 @@ export function ChatRoom({
   names,
   blockedIds = [],
   open,
+  muted: initialMuted = false,
 }: {
   recruitmentId: string;
   viewerId: string;
@@ -26,6 +28,8 @@ export function ChatRoom({
   /** ブロックしている方の発言は中身を出さない */
   blockedIds?: string[];
   open: boolean;
+  /** この募集のチャットの通知 (プッシュと効果音) を止めている */
+  muted?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   // ページが更新されたら (15秒ごとのロビーの更新など)、サーバーから来たメッセージも取り込む
@@ -37,6 +41,38 @@ export function ChatRoom({
   const [pending, start] = useTransition();
   const [reportingId, setReportingId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [muted, setMuted] = useState(initialMuted);
+  const [muteBusy, startMute] = useTransition();
+  const [muteError, setMuteError] = useState<string | null>(null);
+
+  // ほかの方の新しい発言が届いたら短い音を鳴らす (通知を止めた募集・画面が見えていないときは鳴らさない)
+  const seen = useRef<Set<string> | null>(null);
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
+  useEffect(() => primeChime(), []);
+  useEffect(() => {
+    if (!seen.current) {
+      seen.current = new Set(messages.map((m) => m.id));
+      return;
+    }
+    let fresh = false;
+    for (const m of messages) {
+      if (seen.current.has(m.id)) continue;
+      seen.current.add(m.id);
+      if (m.user_id !== viewerId && !blockedIds.includes(m.user_id)) fresh = true;
+    }
+    if (fresh && !mutedRef.current && document.visibilityState === 'visible') playChime();
+  }, [messages, viewerId, blockedIds]);
+
+  function toggleMute() {
+    const next = !muted;
+    setMuteError(null);
+    startMute(async () => {
+      const r = await setChatMuteAction(recruitmentId, next);
+      if (r.ok) setMuted(next);
+      else setMuteError(r.error);
+    });
+  }
 
   // 新しい発言の合図 (Realtime の Broadcast)。合図には中身を載せず、受け取った側が RLS のとおりに読み直す。
   // 前は postgres_changes (DB の変更を Realtime が読み続ける) で、混雑時に DB の CPU の大半を使っていた。
@@ -126,8 +162,18 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <span className="text-xs text-slate">募集終了の90分後に消えます</span>
+        <button
+          type="button"
+          onClick={toggleMute}
+          disabled={muteBusy}
+          aria-pressed={!muted}
+          className="-my-2 inline-flex min-h-11 items-center gap-1.5 px-1 text-[13px] font-bold text-ink-2"
+        >
+          {muted ? <BellOff className="size-4" aria-hidden /> : <Bell className="size-4" aria-hidden />}
+          {muted ? '通知・音: オフ' : '通知・音: オン'}
+        </button>
       </div>
+      <p className="text-xs text-slate">募集終了の90分後に消えます{muteError ? ` / ${muteError}` : ''}</p>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
         {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだメッセージはありません</p>}
         {messages.map((m) => {
@@ -175,7 +221,7 @@ export function ChatRoom({
               enterKeyHint="send"
               autoComplete="off"
               className="input"
-              placeholder="20文字まで"
+              placeholder={`${LIMITS.message}文字まで`}
               aria-label="メッセージ"
             />
             <button

@@ -154,6 +154,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     joinMode: fd.get('joinMode') ?? '',
     minRank: fd.get('minRank') ?? '',
     vc: fd.get('vc') ?? 'any',
+    duration: fd.get('duration') ?? undefined,
     tags: formStrings(fd, 'tags'),
     title: fd.get('title') ?? '',
     src: await srcFromCookie(fd.get('src')),
@@ -208,8 +209,31 @@ export async function setRoomCodeAction(recruitmentId: string, roomCode: string)
   const supabase = await createClient();
   const { error } = await supabase.rpc('set_room_code', { p_recruitment_id: id.data, p_room_code: code });
   if (error) return fail(toUserMessage(error));
+  pushLater();
   revalidatePath(`/recruitments/${id.data}`);
   return { ok: true, message: '部屋番号を更新しました' };
+}
+
+/** 募集者が募集の時間を延ばす (30分か1時間。開始から6時間まで) */
+export async function extendRecruitmentAction(recruitmentId: string, minutes: number): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success || (minutes !== 30 && minutes !== 60)) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('extend_recruitment', { p_recruitment_id: id.data, p_minutes: minutes });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: minutes === 60 ? '1時間延長しました' : '30分延長しました' };
+}
+
+/** この募集のチャットの通知を止める / 戻す */
+export async function setChatMuteAction(recruitmentId: string, muted: boolean): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_chat_mute', { p_recruitment_id: id.data, p_on: Boolean(muted) });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true, message: muted ? 'この募集のチャットの通知を止めました' : 'この募集のチャットの通知を戻しました' };
 }
 
 // ---------------------------------------------------------------------

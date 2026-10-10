@@ -121,8 +121,12 @@ export const RECRUIT_STATUS_LABELS = {
 } as const;
 export type RecruitStatus = keyof typeof RECRUIT_STATUS_LABELS;
 
-/** 終了時刻は入力させず、開始 + この時間で自動設定する */
+/** 終了時刻は入力させず、開始 + 選んだ時間で自動設定する (既定は1時間) */
 export const DEFAULT_DURATION_MIN = 60;
+/** 募集の時間の選択肢 (分)。DB の制約は開始から6時間まで */
+export const DURATIONS = [60, 120, 180] as const;
+export type Duration = (typeof DURATIONS)[number];
+export const DURATION_LABELS: Record<Duration, string> = { 60: '1時間', 120: '2時間', 180: '3時間' };
 
 export const LIMITS = {
   displayName: 20,
@@ -131,7 +135,7 @@ export const LIMITS = {
   maxCharacters: 3,
   title: 40, // 「ひとこと」(タイトル)
   note: 200,
-  message: 20,
+  message: 50,
   reportReason: 500,
   feedback: 1000,
   roomCode: 4,
@@ -168,7 +172,11 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   blocked_joined: 'ブロックしている方が参加しました',
   filled: 'メンバーがそろいました',
   announcement: '運営からのお知らせ',
+  room_code: '部屋番号が変わりました',
 };
+
+/** Discord のユーザー名の見つけ方 (表示名と間違えやすい) */
+export const DISCORD_HINT = 'Discord アプリで自分のアイコンを押すと、名前の下に出る半角英数字の名前です (表示名ではありません)。';
 
 /** 運営者のゲーム内の応援コード (フッターに表示) */
 export const SUPPORT_CODE = 'C-KtAo';

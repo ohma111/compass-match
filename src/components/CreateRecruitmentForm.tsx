@@ -15,6 +15,10 @@ import {
   RANK_MIN_LABELS,
   RECRUIT_VC,
   STANCES,
+  DURATIONS,
+  DISCORD_HINT,
+  DURATION_LABELS,
+  type Duration,
   STANCE_LABELS,
   type Stance,
   type JoinMode,
@@ -53,6 +57,7 @@ interface Choices {
   minRank: RankBand | '';
   vc: RecruitVc;
   tags: MoodTag[];
+  duration: Duration;
 }
 interface Draft extends Choices {
   title: string;
@@ -69,6 +74,7 @@ const DEFAULTS: Choices = {
   minRank: '',
   vc: 'any',
   tags: [],
+  duration: 60,
 };
 
 /** localStorage の値を検証して取り込む (壊れた値・古い値は無視) */
@@ -85,6 +91,7 @@ function sanitize(raw: unknown): Partial<Draft> {
   if (JOIN_MODES.includes(r.joinMode as JoinMode)) out.joinMode = r.joinMode as JoinMode;
   if (r.minRank === '' || RANK_BANDS.includes(r.minRank as RankBand)) out.minRank = r.minRank as RankBand | '';
   if (RECRUIT_VC.includes(r.vc as RecruitVc)) out.vc = r.vc as RecruitVc;
+  if (DURATIONS.includes(r.duration as Duration)) out.duration = r.duration as Duration;
   if (Array.isArray(r.tags)) out.tags = r.tags.filter((t): t is MoodTag => MOOD_TAGS.includes(t as MoodTag));
   if (typeof r.title === 'string') out.title = r.title.slice(0, LIMITS.title);
   return out;
@@ -315,7 +322,7 @@ export function CreateRecruitmentForm({
             <span>開始</span>
             {startAt && (
               <span className="text-[13px] font-medium text-slate tabular-nums">
-                {startPreview(startAt, now)}〜{formatJstTime(autoEnd(startAt))}
+                {startPreview(startAt, now)}〜{formatJstTime(autoEnd(startAt, c.duration))}
               </span>
             )}
           </legend>
@@ -326,6 +333,26 @@ export function CreateRecruitmentForm({
             hm={c.startTime}
             onChange={(k, d, hm) => setC((prev) => ({ ...prev, startKey: k, startDay: d, startTime: hm }))}
           />
+          <input type="hidden" name="duration" value={c.duration} />
+          <div className="mt-3 flex items-center gap-3">
+            <span className="shrink-0 text-[13px] font-bold text-ink-2">募集の時間</span>
+            <div className="grid flex-1 grid-cols-3 gap-2" role="radiogroup" aria-label="募集の時間">
+              {DURATIONS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  role="radio"
+                  aria-checked={c.duration === d}
+                  onClick={() => set('duration', d)}
+                  className={`inline-flex min-h-11 items-center justify-center border-2 text-sm font-bold transition-colors ${
+                    c.duration === d ? 'border-ink bg-ink text-white' : 'border-ink/25 bg-sheet text-ink-2 hover:border-ink'
+                  }`}
+                >
+                  {DURATION_LABELS[d]}
+                </button>
+              ))}
+            </div>
+          </div>
         </fieldset>
 
         {/* 人数 */}
@@ -413,6 +440,7 @@ export function CreateRecruitmentForm({
                     placeholder="例: compass_taro"
                     aria-invalid={discord.length > 0 && !discordOk}
                   />
+                  <p className="hint">{DISCORD_HINT}</p>
                   <p className="hint">参加が決まったメンバーにだけ表示されます。プロフィールの連絡先にも保存します。</p>
                 </div>
               ) : (

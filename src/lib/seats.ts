@@ -25,7 +25,7 @@ export function seatsFor(
       roles: r.owner?.play_roles ?? [],
       avatar: r.owner?.avatar ?? null,
       you: Boolean(opts.viewerId && opts.viewerId === r.owner_id),
-      href: opts.linkProfiles ? `/users/${r.owner_id}` : undefined,
+      href: opts.linkProfiles ? `/users/${r.owner_id}?from=${r.id}` : undefined,
     },
   ];
   const approved = opts.approved ?? [];
@@ -39,7 +39,7 @@ export function seatsFor(
         roles: p.profile?.play_roles ?? [],
         avatar: p.profile?.avatar ?? null,
         you: p.user_id === opts.viewerId,
-        href: opts.linkProfiles ? `/users/${p.user_id}` : undefined,
+        href: opts.linkProfiles ? `/users/${p.user_id}?from=${r.id}` : undefined,
         enter: Boolean(opts.enterUserId && p.user_id === opts.enterUserId),
       });
     }

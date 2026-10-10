@@ -84,6 +84,9 @@ export function RecruitmentCard({
           </h3>
           {/* 1行に収まらない札は次の行に回して隠す (途中で切れた札を見せない) */}
           <p className="mt-1.5 flex h-5 min-w-0 flex-wrap items-center gap-x-2.5 overflow-hidden text-[12px] leading-5 font-bold whitespace-nowrap text-slate">
+            {(isOwner || myState === 'approved' || myState === 'pending') && (
+              <span className="shrink-0 bg-ink px-1 font-black text-white">{isOwner ? 'あなたの募集' : myState === 'pending' ? '承認待ち' : '参加中'}</span>
+            )}
             <span className="shrink-0 font-mono text-[13px] font-black text-ink">
               {Math.min(r.capacity, r.approved_count + 1)}/{r.capacity}
             </span>

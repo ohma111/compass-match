@@ -479,10 +479,10 @@ exception when others then
   if sqlerrm not like '%使えない言葉%' then raise exception 'ASSERT FAILED: wrong banned error: %', sqlerrm; end if;
 end $t$;
 do $t$ begin
-  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), repeat('あ', 21));
-  raise exception 'ASSERT FAILED: 21 chars accepted';
+  perform public.send_message((select id from public.recruitments where title = '匿名の募集'), repeat('あ', 51));
+  raise exception 'ASSERT FAILED: 51 chars accepted';
 exception when others then
-  if sqlerrm not like '%20文字%' then raise exception 'ASSERT FAILED: wrong length error: %', sqlerrm; end if;
+  if sqlerrm not like '%50文字%' then raise exception 'ASSERT FAILED: wrong length error: %', sqlerrm; end if;
 end $t$;
 select public.send_message((select id from public.recruitments where title = '匿名の募集'), 'よろしく');
 do $t$ begin
@@ -503,8 +503,8 @@ end $t$;
 -- 募集の参加が確定したので、募集者 (AN) といっしょに遊んだ人になっている
 select pg_temp.assert((select count(*) from public.play_mates where mate_id = :AN) = 1, 'play mate recorded for joiner');
 select pg_temp.assert((select count(*) from public.play_mates where user_id <> :U2) = 0, 'only own play mates visible');
--- いっしょに遊んだ人は自動で通知の対象。止めて戻すこともできる
-select pg_temp.assert((select active from public.follows where follower_id = :U2 and followee_id = :AN), 'play mate auto followed');
+-- v14: いっしょに遊んだ人は自動では通知の対象にしない。ベルでオン・オフできる
+select pg_temp.assert(not exists (select 1 from public.follows where follower_id = :U2 and followee_id = :AN), 'play mate not auto followed');
 select public.set_follow(:AN, false);
 select pg_temp.assert(not (select active from public.follows where follower_id = :U2 and followee_id = :AN), 'follow turned off');
 select public.set_follow(:AN, true);
@@ -662,6 +662,91 @@ select pg_temp.assert((select target_owner from public.admin_report_summary() wh
 select pg_temp.assert((select target_label from public.admin_report_summary() where '暴言' = any(reasons)) = '通報される発言', 'admin sees body of deleted message');
 select pg_temp.assert((select owner_name from public.admin_report_summary() where '暴言' = any(reasons)) = 'A以下さん', 'admin sees owner name');
 reset role;
+
+-- v14: 部屋番号の送り直しは弾かない / メンバーも部屋番号を変えられ、ほかのメンバーに通知 / 延長 / チャットの通知を止める / お気に入り通知の抑制
+select pg_temp.assert(not exists (select 1 from public.follows where follower_id = :LR and followee_id = :U4), 'v14: joiner not auto followed');
+update public.messages set created_at = now() - interval '1 hour' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '1234');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '5678');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '9012');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), 'ok');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '4321');
+reset role;
+-- 分けて送った電話番号は今までどおり弾く (0901 / 2345 / 678)
+update public.messages set created_at = now() - interval '1 hour' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '0901');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '2345');
+reset role;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = 'S5以上'), '678')$$, 'v14: split phone number still blocked');
+reset role;
+update public.messages set created_at = now() - interval '1 hour' where user_id = :LR;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), repeat('あ', 50));
+reset role;
+-- 部屋番号: メンバー (LR) が変える → 募集者 (U4) に通知。メンバーでない方は変えられない
+delete from public.notifications where user_id = :U4;
+select pg_temp.as_user(:LR);
+select public.set_room_code((select id from public.recruitments where title = 'S5以上'), '1111');
+select pg_temp.assert(public.get_room_info((select id from public.recruitments where title = 'S5以上')) ->> 'updated_by' = :LR, 'v14: room info has updater');
+select public.set_room_code((select id from public.recruitments where title = 'S5以上'), '2222');
+select pg_temp.expect_error($$select public.extend_recruitment((select id from public.recruitments where title = 'S5以上'), 60)$$, 'v14: member cannot extend');
+reset role;
+select pg_temp.assert((select count(*) from public.notifications where user_id = :U4 and kind = 'room_code') = 1, 'v14: owner notified once (unread replaced)');
+select pg_temp.assert((select count(*) from public.notifications where user_id = :LR and kind = 'room_code') = 0, 'v14: updater not notified');
+select pg_temp.as_user(:U2);
+select pg_temp.expect_error($$select public.set_room_code((select id from public.recruitments where title = 'S5以上'), '3333')$$, 'v14: non-member cannot set room code');
+select pg_temp.assert(public.get_room_info((select id from public.recruitments where title = 'S5以上')) is null, 'v14: non-member gets no room info');
+reset role;
+-- 延長
+select pg_temp.as_user(:U4);
+select pg_temp.expect_error($$select public.extend_recruitment((select id from public.recruitments where title = 'S5以上'), 90)$$, 'v14: only 30 or 60');
+select public.extend_recruitment((select id from public.recruitments where title = 'S5以上'), 60);
+reset role;
+select pg_temp.assert((select ends_at - starts_at from public.recruitments where title = 'S5以上') = interval '2 hours', 'v14: extended by 1 hour');
+-- チャットの通知を止めると、新着メッセージの通知はプッシュの対象にならない
+select pg_temp.as_user(:U4);
+select public.set_chat_mute((select id from public.recruitments where title = 'S5以上'), true);
+reset role;
+delete from public.notifications where user_id = :U4;
+update public.messages set created_at = created_at - interval '10 seconds' where user_id = :LR;
+select pg_temp.as_user(:LR);
+select public.send_message((select id from public.recruitments where title = 'S5以上'), '止めた部屋');
+reset role;
+select pg_temp.assert((select pushed_at is not null from public.notifications where user_id = :U4 and kind = 'new_message'), 'v14: muted chat not pushed');
+select pg_temp.as_user(:U4);
+select pg_temp.assert((select count(*) from public.chat_mutes) = 1, 'v14: own mute visible');
+select public.set_chat_mute((select id from public.recruitments where title = 'S5以上'), false);
+select pg_temp.assert((select count(*) from public.chat_mutes) = 0, 'v14: mute removed');
+reset role;
+-- お気に入りの募集通知: 同じ方の募集は3時間に1回まで
+select pg_temp.as_user(:LR);
+select public.set_follow(:U4, true);
+reset role;
+select pg_temp.as_user(:U4);
+select public.create_recruitment('お気に入り1', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun');
+select public.create_recruitment('お気に入り2', 'enjoy', now() + interval '30 minutes', now() + interval '90 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun');
+reset role;
+select pg_temp.assert((select count(*) from public.notifications where user_id = :LR and kind = 'followed_posted') = 1, 'v14: same followee notified once per 3 hours');
 
 select 'ALL RLS TESTS PASSED' as result;
 

@@ -29,7 +29,7 @@ Supabase Free (DB 500MB・通信 5GB・月間アクティブ 5万人) と Vercel
 ## 本番の設定(済み)
 | 場所 | 設定 |
 | --- | --- |
-| Supabase (リージョン: ソウル) | migrations 1〜16 適用済み (17・19・20 は未適用。どれも独立なので順不同で流してよい) / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
+| Supabase (リージョン: ソウル) | migrations 1〜16 適用済み (17・19・20・21・22 は未適用。どれも独立なので順不同で流してよい) / Allow anonymous sign-ins ON / Confirm email OFF / パスワード最小8文字 / Discord プロバイダ有効 / Site URL・Redirect URLs に本番と localhost |
 | Vercel (Hobby・無料) | 環境変数 `NEXT_PUBLIC_SUPABASE_URL` `NEXT_PUBLIC_SUPABASE_ANON_KEY` `NEXT_PUBLIC_SITE_URL` `NEXT_PUBLIC_FEATURE_AVAILABLE_NOW=false` `NOW_LIST_MIN_USERS=30` `SUPABASE_SERVICE_ROLE_KEY`(サーバー専用) / 関数リージョン `icn1`(ソウル、`vercel.json`) |
 | GitHub | `ohma111/compass-match`(非公開)。main に push すると Vercel が自動で公開 |
 

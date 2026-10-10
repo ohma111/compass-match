@@ -10,7 +10,15 @@ import { siteUrl } from '@/lib/env';
 import { authStateOf, getSessionClaims } from '@/lib/auth';
 import { sanitizeSrc } from '@/lib/src-param';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
-import type { MemberContact, Message, Participation } from '@/lib/types';
+import type { MemberContact, Message, Participation, RoomInfo } from '@/lib/types';
+
+/** 部屋番号と、最後に変えた方・時刻。migration 22 の get_room_info がなければ番号だけ読む */
+async function readRoomInfo(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<RoomInfo | null> {
+  const info = await supabase.rpc('get_room_info', { p_recruitment_id: id });
+  if (!info.error) return (info.data as RoomInfo | null) ?? null;
+  const rc = await supabase.rpc('get_room_code', { p_recruitment_id: id });
+  return rc.data ? { code: rc.data as string, updated_at: null, updated_by: null } : null;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +52,7 @@ export default async function RecruitmentDetailPage({
   const supabase = await createClient();
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
-  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks] = await Promise.all([
+  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks, mute] = await Promise.all([
     (signedIn ? getRecruitment(id) : getRecruitmentPublic(id)).catch(() => null),
     getViewerSafe(),
     signedIn
@@ -54,7 +62,7 @@ export default async function RecruitmentDetailPage({
           .eq('recruitment_id', id)
           .order('created_at', { ascending: true })
       : null,
-    signedIn ? supabase.rpc('get_room_code', { p_recruitment_id: id }) : null,
+    signedIn ? readRoomInfo(supabase, id).catch(() => null) : null,
     signedIn ? supabase.rpc('get_member_contacts', { p_recruitment_id: id }) : null,
     signedIn
       ? supabase
@@ -66,13 +74,15 @@ export default async function RecruitmentDetailPage({
       : null,
     signedIn ? blockedRecruitmentIds([id]) : Promise.resolve(new Set<string>()),
     signedIn && claims ? supabase.from('blocks').select('blocked_id').eq('blocker_id', claims.userId) : null,
+    // チャットの通知を止めているか (表がなければ止めていない扱い)
+    signedIn ? supabase.from('chat_mutes').select('recruitment_id').eq('recruitment_id', id).maybeSingle() : null,
   ]);
   if (!r) notFound();
   const isOwner = viewer?.userId === r.owner_id;
 
   let participations: Participation[] = [];
   let myState: JoinState = 'none';
-  let roomCode: string | null = null;
+  let room: RoomInfo | null = null;
   let contacts: MemberContact[] = [];
   let messages: Message[] = [];
 
@@ -82,7 +92,7 @@ export default async function RecruitmentDetailPage({
   }
 
   if (viewer && (isOwner || myState === 'approved')) {
-    roomCode = (rc?.data as string | null) ?? null;
+    room = rc ?? null;
     contacts = (ct?.data as MemberContact[] | null) ?? [];
     messages = (ms?.data as Message[] | null) ?? [];
   }
@@ -95,7 +105,9 @@ export default async function RecruitmentDetailPage({
       viewerId={viewer?.userId ?? null}
       participations={participations}
       myState={myState}
-      roomCode={roomCode}
+      room={room}
+      chatMuted={Boolean(mute?.data)}
+      anonymous={Boolean(claims?.isAnonymous)}
       contacts={contacts}
       messages={messages}
       src={sanitizeSrc(sp.src)}

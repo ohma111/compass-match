@@ -68,3 +68,10 @@ export interface MemberContact {
 }
 
 export type ActionResult<T = undefined> = { ok: true; data?: T; message?: string } | { ok: false; error: string };
+
+/** 部屋番号と、最後に変えた方・時刻 (参加が確定したメンバーだけ) */
+export interface RoomInfo {
+  code: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+}

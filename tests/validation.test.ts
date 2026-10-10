@@ -123,6 +123,12 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(r.data.stance).toBe('win');
     expect(r.data.src).toBe('guild');
   });
+  it('募集の時間は 1・2・3時間から選べ、ほかの値は1時間になる', () => {
+    const two = build({ duration: '120' });
+    expect(two.ok && two.data.endsAt.toISOString()).toBe('2026-10-01T14:00:00.000Z');
+    const bad = build({ duration: '600' });
+    expect(bad.ok && bad.data.endsAt.toISOString()).toBe('2026-10-01T13:00:00.000Z');
+  });
   it('keeps a custom title (ひとこと)', () => {
     const r = build({ title: '  1戦だけ!  ' });
     expect(r.ok && r.data.title).toBe('1戦だけ!');
@@ -181,9 +187,9 @@ describe('validateStartWindow', () => {
 
 describe('messageSchema', () => {
   const id = '10000000-0000-4000-8000-000000000001';
-  it('accepts up to 20 chars and rejects banned words', () => {
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(20) }).success).toBe(true);
-    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(21) }).success).toBe(false);
+  it('accepts up to 50 chars and rejects banned words', () => {
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(50) }).success).toBe(true);
+    expect(messageSchema.safeParse({ recruitmentId: id, body: 'あ'.repeat(51) }).success).toBe(false);
     expect(messageSchema.safeParse({ recruitmentId: id, body: '何歳ですか' }).success).toBe(false);
   });
   it('rejects empty, URLs and control chars', () => {
@@ -209,9 +215,11 @@ describe('report / feedback / filters', () => {
     expect(feedbackSchema.parse({ body: 'ok', page: '/recruitments' }).page).toBe('/recruitments');
   });
   it('feed filters fall back to all', () => {
-    expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ purpose: 'all', soon: false });
-    expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ purpose: 'rank', soon: true });
-    expect(listFilterSchema.parse({})).toEqual({ purpose: 'all', soon: false });
+    const base = { open: false, eligible: false, vc: undefined, stance: undefined, sort: 'start' };
+    expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ ...base, purpose: 'all', soon: false });
+    expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ ...base, purpose: 'rank', soon: true });
+    expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
+    expect(listFilterSchema.parse({ open: '1', vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, open: true, vc: 'on' });
   });
 });
 

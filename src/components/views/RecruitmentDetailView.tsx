@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import { ChevronLeft, Lock } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
-import { formatJst, formatJstRange } from '@/lib/time';
+import { formatJst, formatJstRange, formatJstTime } from '@/lib/time';
 import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
@@ -15,8 +15,9 @@ import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
 import { RoomCodePanel } from '@/components/RoomCodePanel';
 import { IntentRunner } from '@/components/IntentRunner';
-import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction } from '@/app/actions';
-import type { MemberContact, Message, Participation, Recruitment } from '@/lib/types';
+import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, extendRecruitmentAction } from '@/app/actions';
+import { CopyButton } from '@/components/CopyButton';
+import type { MemberContact, Message, Participation, Recruitment, RoomInfo } from '@/lib/types';
 
 export interface RecruitmentDetailViewProps {
   r: Recruitment;
@@ -25,7 +26,11 @@ export interface RecruitmentDetailViewProps {
   viewerId: string | null;
   participations: Participation[];
   myState: JoinState;
-  roomCode: string | null;
+  room: RoomInfo | null;
+  /** この募集のチャットの通知を止めている */
+  chatMuted?: boolean;
+  /** 匿名のアカウント (引き継ぎコードをまだ作っていない) */
+  anonymous?: boolean;
   contacts: MemberContact[];
   messages: Message[];
   src: string | null;
@@ -47,7 +52,8 @@ function shareData(r: Recruitment, base: string): { text: string; url: string } 
 }
 
 export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
-  const { r, now, auth, viewerId, participations, myState, roomCode, contacts, messages, src } = props;
+  const { r, now, auth, viewerId, participations, myState, room, contacts, messages, src } = props;
+  const roomCode = room?.code ?? null;
   const id = r.id;
   const status = effectiveStatus(r.status, r.ends_at, now);
   const isOwner = viewerId === r.owner_id;
@@ -72,6 +78,8 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
   const left = remainingSlots(r.capacity, r.approved_count);
+  // 開始から6時間までは延ばせる (DB の制約と同じ)
+  const extendable = new Date(r.ends_at).getTime() < new Date(r.starts_at).getTime() + 6 * 3600_000;
   const justJoined = Boolean(props.justJoined && myState === 'approved');
   const seats = seatsFor(r, {
     approved,
@@ -81,6 +89,19 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
     enterUserId: justJoined ? viewerId : null,
   });
   const stamp = justJoined ? (left === 0 ? '満員' : '参加確定') : null;
+  const roomPanel = (floating: boolean) => (
+    <RoomCodePanel
+      key={floating ? 'm' : 'd'}
+      recruitmentId={id}
+      code={roomCode}
+      isOwner={isOwner}
+      canEdit={active && !r.hidden_at}
+      updatedAt={room?.updated_at ?? null}
+      updatedByName={room?.updated_by ? (nameOf.get(room.updated_by) ?? null) : null}
+      updatedByMe={Boolean(room?.updated_by && room.updated_by === viewerId)}
+      floating={floating}
+    />
+  );
 
   const LOCKED = (
     <section className="border-2 border-dashed border-ink/50 p-5 text-ink-2" aria-label="メンバー限定">
@@ -134,7 +155,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、スマホでは時刻のすぐ下に出す */}
           {isMember && (
             <div className="mt-6 lg:hidden">
-              <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} />
+              {roomPanel(true)}
             </div>
           )}
           <h1 id="r-title" className="mt-5 border-t-2 border-ink pt-4 text-[22px] leading-snug font-black break-words lg:text-[28px]">
@@ -168,7 +189,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               vcOn={r.vc === 'on'}
             />
           )}
-          {isMember ? <RoomCodePanel recruitmentId={id} code={roomCode} isOwner={isOwner} /> : active && LOCKED}
+          {isMember ? roomPanel(false) : active && LOCKED}
           {active && !r.hidden_at && (
             <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full" />
           )}
@@ -209,8 +230,12 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             <div className="mt-2 space-y-2 lg:mx-auto lg:max-w-md">
               {myState === 'pending' && <p className="text-center text-[13px] text-slate">募集者の承認待ちです</p>}
               {(myState === 'pending' || myState === 'approved') && active && (
-                <ActionButton action={cancelParticipationAction.bind(null, id)} className="btn-ghost btn-sm w-full" confirm={myState === 'pending' ? '申請を取り消しますか？' : '参加を取り消しますか？'}>
-                  {myState === 'pending' ? '申請を取り消す' : '参加を取り消す'}
+                <ActionButton
+                  action={cancelParticipationAction.bind(null, id)}
+                  className="btn-outline w-full"
+                  confirm={myState === 'pending' ? '申請を取り消しますか？' : 'この募集から抜けますか？ 部屋番号とチャットが見られなくなります。'}
+                >
+                  {myState === 'pending' ? '申請を取り消す' : '参加をやめて抜ける'}
                 </ActionButton>
               )}
             </div>
@@ -248,7 +273,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                 {pending.map((p) => (
                   <li key={p.id} className="sheet space-y-3 p-4">
                     <div className="flex items-baseline justify-between gap-3">
-                      <Link href={`/users/${p.user_id}`} className="truncate font-bold underline-offset-4 hover:underline">
+                      <Link href={`/users/${p.user_id}?from=${id}`} className="truncate font-bold underline-offset-4 hover:underline">
                         {p.profile?.display_name ?? '(非表示のユーザー)'}
                       </Link>
                       {p.profile && <span className="shrink-0 text-xs text-slate">{rankLabel(p.profile.rank_band)}</span>}
@@ -269,15 +294,34 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               </ul>
             </section>
           )}
+          {isMember && active && props.anonymous && (
+            <section className="border-2 border-ink p-4" aria-labelledby="keep-title">
+              <h2 id="keep-title" className="text-[15px] font-black">この部屋に別の端末やアプリから戻るには</h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
+                今のプロフィールは、このブラウザにだけ保存されています。X や Discord のアプリ内ブラウザ、ホーム画面に追加したアプリで開くと、別の人として扱われます。引き継ぎコードを作っておくと、どこからでもログインして戻れます。
+              </p>
+              <Link href="/me#transfer-title" className="btn-primary mt-3 w-full">
+                引き継ぎコードを作る
+              </Link>
+            </section>
+          )}
           {isMember && (
             <section className="space-y-2" aria-labelledby="contacts-title">
               <h2 id="contacts-title" className="section-title">{isOwner ? '参加者の連絡先' : '募集者の連絡先'}</h2>
               {contacts.length === 0 && <p className="text-sm text-slate">ありません</p>}
+              {contacts.some((c) => c.contact_discord && c.user_id !== viewerId) && (
+                <p className="text-[12px] text-slate">Discord のフレンド追加: アプリの「フレンドに追加」に、コピーしたユーザー名を貼り付けてください。</p>
+              )}
               <ul className="space-y-1 text-sm">
                 {contacts.map((c) => (
                   <li key={c.user_id} className="flex flex-wrap gap-x-3">
                     <span className="font-bold">{c.display_name}</span>
-                    {c.contact_discord && <span className="break-all text-ink-2">Discord {c.contact_discord}</span>}
+                    {c.contact_discord && (
+                      <span className="inline-flex flex-wrap items-center gap-2 break-all text-ink-2">
+                        Discord {c.contact_discord}
+                        {c.user_id !== viewerId && <CopyButton text={c.contact_discord} label="ユーザー名をコピー" small />}
+                      </span>
+                    )}
                     {c.contact_x && <span className="break-all text-ink-2">X @{c.contact_x}</span>}
                     {c.contact_ingame && <span className="break-all text-ink-2">ゲーム内 {c.contact_ingame}</span>}
                     {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先は登録されていません</span>}
@@ -290,8 +334,21 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             {active && !r.hidden_at && (
               <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full lg:hidden" />
             )}
+            {isOwner && active && extendable && (
+              <div className="space-y-1">
+                <p className="text-[13px] font-bold">募集の時間を延ばす <span className="font-medium text-slate">(今は {formatJstTime(r.ends_at)} まで)</span></p>
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionButton action={extendRecruitmentAction.bind(null, id, 30)} className="btn-outline w-full">
+                    30分延長
+                  </ActionButton>
+                  <ActionButton action={extendRecruitmentAction.bind(null, id, 60)} className="btn-outline w-full">
+                    1時間延長
+                  </ActionButton>
+                </div>
+              </div>
+            )}
             {isOwner && active && (
-              <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消しますか？">
+              <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消しますか？ 参加者にも通知されます。">
                 募集を取り消す
               </ActionButton>
             )}
@@ -312,6 +369,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               names={Object.fromEntries(nameOf)}
               blockedIds={props.blockedIds ?? []}
               open={chatOpen && !restricted}
+              muted={Boolean(props.chatMuted)}
             />
           </div>
         )}
