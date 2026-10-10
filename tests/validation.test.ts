@@ -103,6 +103,7 @@ const baseRecruit = {
   tags: ['serious', 'serious'],
   title: '',
   src: 'guild',
+  ownerRoles: ['gunner'],
 };
 
 function build(over: Record<string, unknown> = {}, now = NOW) {
@@ -151,11 +152,16 @@ describe('buildRecruitment (tap-based create)', () => {
   });
   it('バトルアリーナの承認制はデキレとコラボ数が必須。それ以外の募集では捨てる', () => {
     expect(build({ joinMode: 'approval' }).ok).toBe(false);
-    const ok = build({ joinMode: 'approval', ownerDeck: '230', ownerCollab: '４０', minDeck: '200', minCollab: '' });
-    expect(ok.ok && [ok.data.ownerDeck, ok.data.ownerCollab, ok.data.minDeck, ok.data.minCollab]).toEqual([230, 40, 200, null]);
+    const ok = build({ joinMode: 'approval', ownerDeck: '230', ownerCollab: '０', minDeck: '200', minCollab: '' });
+    expect(ok.ok && [ok.data.ownerDeck, ok.data.ownerCollab, ok.data.minDeck, ok.data.minCollab]).toEqual([230, 0, 200, null]);
     expect(build({ joinMode: 'approval', ownerDeck: '235', ownerCollab: '40' }).ok).toBe(false);
     const free = build({ purpose: 'enjoy', ownerDeck: '230', ownerCollab: '40' });
     expect(free.ok && free.data.ownerDeck).toBe(null);
+  });
+  it('自分が使うロールは必須', () => {
+    expect(build({ ownerRoles: [] }).ok).toBe(false);
+    const ok = build({ ownerRoles: ['tank', 'sprinter'] });
+    expect(ok.ok && ok.data.ownerRoles).toEqual(['tank', 'sprinter']);
   });
   it('2固定でも可は3人のバトルアリーナ・フリーバトルだけ', () => {
     const three = build({ capacity: '3', duoOk: 'on', wantedRoles: ['tank', 'tank'] });
@@ -230,11 +236,11 @@ describe('report / feedback / filters', () => {
     expect(feedbackSchema.parse({ body: 'ok', page: '/recruitments' }).page).toBe('/recruitments');
   });
   it('feed filters fall back to all', () => {
-    const base = { open: false, eligible: false, vc: undefined, stance: undefined, sort: 'start' };
+    const base = { eligible: false, vc: undefined, stance: undefined, sort: 'start' };
     expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ ...base, purpose: 'all', soon: false });
     expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ ...base, purpose: 'rank', soon: true });
     expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
-    expect(listFilterSchema.parse({ open: '1', vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, open: true, vc: 'on' });
+    expect(listFilterSchema.parse({ vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, vc: 'on' });
   });
 });
 

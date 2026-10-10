@@ -15,7 +15,7 @@ import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
 import { RoomCodePanel } from '@/components/RoomCodePanel';
 import { IntentRunner } from '@/components/IntentRunner';
-import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, extendRecruitmentAction } from '@/app/actions';
+import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, extendRecruitmentAction, keepRecruitmentAction, setDuoPlayingAction } from '@/app/actions';
 import { CopyButton } from '@/components/CopyButton';
 import type { MemberContact, Message, Participation, Recruitment, RoomInfo } from '@/lib/types';
 
@@ -79,8 +79,12 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   for (const p of approved) if (p.profile) nameOf.set(p.user_id, p.profile.display_name);
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
+  // チャットは参加が確定していなくても、プロフィールのある方なら使える (部屋番号はメンバーだけ)
+  const chatVisible = isMember || (auth === 'ready' && active && !r.hidden_at);
   const left = remainingSlots(r.capacity, r.approved_count);
   // 開始から6時間までは延ばせる (DB の制約と同じ)
+  // 2固定中にできる: バトルアリーナ・フリーバトルの3人募集で、参加者が1人以上
+  const duoAble = (r.purpose === 'rank' || r.purpose === 'enjoy') && r.capacity === 3 && r.approved_count >= 1;
   const extendable = new Date(r.ends_at).getTime() < new Date(r.starts_at).getTime() + 6 * 3600_000;
   const justJoined = Boolean(props.justJoined && myState === 'approved');
   const seats = seatsFor(r, {
@@ -109,7 +113,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
     <section className="border-2 border-dashed border-ink/50 p-5 text-ink-2" aria-label="メンバー限定">
       <p className="flex items-center gap-2 font-bold">
         <Lock className="size-4" aria-hidden />
-        {myState === 'pending' ? '承認されると、部屋番号とチャットが表示されます' : '参加すると、部屋番号とチャットが表示されます'}
+        {myState === 'pending' ? '承認されると、部屋番号が表示されます' : '参加すると、部屋番号が表示されます'}
       </p>
     </section>
   );
@@ -126,6 +130,22 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           <p className="alert-ok font-bold">募集を出しました</p>
         )}
         {r.hidden_at && <p className="alert-error">通報で非表示になっています</p>}
+        {isOwner && active && r.close_check_at && (
+          <section className="border-2 border-signal bg-sheet p-4" role="alert" aria-labelledby="close-check-title">
+            <h2 id="close-check-title" className="text-[16px] font-black">募集を続けますか？</h2>
+            <p className="mt-1 text-[13px] text-ink-2">
+              {formatJstTime(new Date(new Date(r.close_check_at).getTime() + 5 * 60_000))} までに操作がないと、募集は取り消されます。
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <ActionButton action={keepRecruitmentAction.bind(null, id)} className="btn-primary w-full">
+                続ける
+              </ActionButton>
+              <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-outline w-full">
+                取り消す
+              </ActionButton>
+            </div>
+          </section>
+        )}
         {auth === 'ready' && !isOwner && <IntentRunner recruitmentId={id} canJoin={join.ok} src={src} />}
       </div>
 
@@ -169,6 +189,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             <VcBadge vc={r.vc} />
             {r.min_rank && <span className="text-xs font-bold text-ink-2">ランク条件 {RANK_MIN_LABELS[r.min_rank]}</span>}
             <span className="inline-flex items-center gap-3 text-xs"><DuoAndRoles r={r} /></span>
+            {r.duo_playing && <span className="bg-ink px-1.5 text-xs font-black text-white">2固定中</span>}
             <MoodTags tags={r.tags} />
           </div>
           <DeckInfo r={r} className="mt-2 text-[13px] text-ink-2" />
@@ -343,6 +364,11 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             {active && !r.hidden_at && (
               <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full lg:hidden" />
             )}
+            {isOwner && active && duoAble && (
+              <ActionButton action={setDuoPlayingAction.bind(null, id, !r.duo_playing)} className={r.duo_playing ? 'btn-outline w-full' : 'btn-primary w-full'}>
+                {r.duo_playing ? '2固定中を外す' : '2固定中にする (2人で遊びながら@1を待つ)'}
+              </ActionButton>
+            )}
             {isOwner && active && extendable && (
               <div className="space-y-1">
                 <p className="text-[13px] font-bold">募集の時間を延ばす <span className="font-medium text-slate">(今は {formatJstTime(r.ends_at)} まで)</span></p>
@@ -369,13 +395,14 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
           </div>
         </div>
 
-        {isMember && (
+        {chatVisible && (
           <div className="lg:col-span-7">
             <ChatRoom
               recruitmentId={id}
               viewerId={viewerId!}
               initialMessages={messages}
-              names={Object.fromEntries(nameOf)}
+              names={{ ...Object.fromEntries(messages.flatMap((m) => (m.author ? [[m.user_id, m.author.display_name]] : []))), ...Object.fromEntries(nameOf) }}
+              member={isMember}
               blockedIds={props.blockedIds ?? []}
               open={chatOpen && !restricted}
               muted={Boolean(props.chatMuted)}

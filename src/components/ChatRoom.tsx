@@ -20,6 +20,7 @@ export function ChatRoom({
   blockedIds = [],
   open,
   muted: initialMuted = false,
+  member = true,
 }: {
   recruitmentId: string;
   viewerId: string;
@@ -30,6 +31,8 @@ export function ChatRoom({
   open: boolean;
   /** この募集のチャットの通知 (プッシュと効果音) を止めている */
   muted?: boolean;
+  /** 参加が確定したメンバー (通知の切り替えはメンバーだけ) */
+  member?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   // ページが更新されたら (15秒ごとのロビーの更新など)、サーバーから来たメッセージも取り込む
@@ -94,14 +97,14 @@ export function ChatRoom({
       try {
         let q = supabase
           .from('messages')
-          .select('id, recruitment_id, user_id, body, created_at')
+          .select('id, recruitment_id, user_id, body, created_at, author:profiles!messages_user_id_fkey(display_name)')
           .eq('recruitment_id', recruitmentId)
           .order('created_at', { ascending: true })
           .limit(50);
         // 時刻はサーバーと端末で少しずれるので、最後の発言の1分前から取り直す (id で重複を除く)
         if (lastAtRef.current) q = q.gte('created_at', new Date(Date.parse(lastAtRef.current) - 60_000).toISOString());
         const { data } = await q;
-        if (data?.length) setMessages((prev) => mergeMessages(prev, data as Message[]));
+        if (data?.length) setMessages((prev) => mergeMessages(prev, data as unknown as Message[]));
       } finally {
         fetching = false;
       }
@@ -162,7 +165,7 @@ export function ChatRoom({
           <MessageCircle className="size-4" aria-hidden />
           チャット
         </h2>
-        <button
+        {member && <button
           type="button"
           onClick={toggleMute}
           disabled={muteBusy}
@@ -171,7 +174,7 @@ export function ChatRoom({
         >
           {muted ? <BellOff className="size-4" aria-hidden /> : <Bell className="size-4" aria-hidden />}
           {muted ? '通知・音: オフ' : '通知・音: オン'}
-        </button>
+        </button>}
       </div>
       <p className="text-xs text-slate">募集終了の90分後に消えます{muteError ? ` / ${muteError}` : ''}</p>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
@@ -181,7 +184,7 @@ export function ChatRoom({
           return (
             <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
               <div className="mb-0.5 flex items-center text-xs text-slate">
-                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? '参加者')}</span>
+                <span className="font-bold">{mine ? 'あなた' : (names[m.user_id] ?? m.author?.display_name ?? 'ユーザー')}</span>
                 <span className="ml-1.5 tabular-nums">{formatJstTime(m.created_at)}</span>
                 {!mine && (
                   <button

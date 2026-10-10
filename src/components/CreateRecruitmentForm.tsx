@@ -43,7 +43,7 @@ import { Lineup, type Seat } from '@/components/Lineup';
 import { RankPicker } from '@/components/RankPicker';
 import { RoleIcon } from '@/components/RoleIcon';
 
-const collabOk = (v: string) => /^\d{1,4}$/.test(v) && Number(v) >= 1;
+const collabOk = (v: string) => /^\d{1,4}$/.test(v);
 import { useEnsureProfile } from '@/components/ProfileSheet';
 import { useEnsureRank } from '@/components/RankSheet';
 
@@ -72,6 +72,8 @@ interface Choices {
   duoOk: boolean;
   /** ほしいロール (任意) */
   wantedRoles: PlayRole[];
+  /** あなたが使うロール (必須。一覧に出す) */
+  ownerRoles: PlayRole[];
   /** バトルアリーナの承認制: あなたのデキレ・コラボ数と、参加の条件 */
   ownerDeck: number | '';
   ownerCollab: string;
@@ -96,6 +98,7 @@ const DEFAULTS: Choices = {
   duration: 60,
   duoOk: false,
   wantedRoles: [],
+  ownerRoles: [],
   ownerDeck: '',
   ownerCollab: '',
   minDeck: '',
@@ -118,6 +121,7 @@ function sanitize(raw: unknown): Partial<Draft> {
   if (RECRUIT_VC.includes(r.vc as RecruitVc)) out.vc = r.vc as RecruitVc;
   if (DURATIONS.includes(r.duration as Duration)) out.duration = r.duration as Duration;
   if (typeof r.duoOk === 'boolean') out.duoOk = r.duoOk;
+  if (Array.isArray(r.ownerRoles)) out.ownerRoles = r.ownerRoles.filter((x): x is PlayRole => PLAY_ROLES.includes(x as PlayRole));
   if (Array.isArray(r.wantedRoles)) out.wantedRoles = r.wantedRoles.filter((x): x is PlayRole => PLAY_ROLES.includes(x as PlayRole));
   // 自分のデキレ・コラボ数は前回の値を使う (条件は毎回選ぶ)
   if (isDeckLevel(r.ownerDeck)) out.ownerDeck = r.ownerDeck;
@@ -150,6 +154,7 @@ export function CreateRecruitmentForm({
   src,
   ownerName,
   discord: initialDiscord = '',
+  ownerRoles: profileRoles = [],
 }: {
   auth: 'guest' | 'no-profile' | 'ready';
   serverNow: string;
@@ -158,6 +163,8 @@ export function CreateRecruitmentForm({
   discord?: string;
   /** プレビューの席に出す自分の名前 (未ログインなら「あなた」) */
   ownerName?: string | null;
+  /** プロフィールの得意ロール (使うロールの初期値) */
+  ownerRoles?: PlayRole[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -187,6 +194,7 @@ export function CreateRecruitmentForm({
     const last = sanitize(readJson(LAST_KEY));
     // 開始時刻は前回の値を引き継がない (毎回「今すぐ」から)
     let next: Choices = { ...DEFAULTS, ...last, startKey: 'now', startDay: 'today', startTime: '' };
+    if (next.ownerRoles.length === 0) next.ownerRoles = profileRoles;
     if (auth === 'ready' && takeIntent((i) => i.kind === 'post')) {
       const draft = sanitize(readJson(DRAFT_KEY));
       next = { ...next, ...draft };
@@ -206,6 +214,7 @@ export function CreateRecruitmentForm({
   const ready = Boolean(startAt) && !titleError;
   const [needStance, setNeedStance] = useState(false);
   const [needDeck, setNeedDeck] = useState(false);
+  const [needRoles, setNeedRoles] = useState(false);
   const deckOn = asksDeck(c.purpose, c.joinMode);
   const duoOn = canDuo(c.purpose, capacity);
 
@@ -228,6 +237,12 @@ export function CreateRecruitmentForm({
       e.preventDefault();
       setNeedStance(true);
       document.getElementById('stance')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+    if (c.ownerRoles.length === 0) {
+      e.preventDefault();
+      setNeedRoles(true);
+      document.getElementById('owner-roles')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
     if (deckOn && (!c.ownerDeck || !collabOk(c.ownerCollab))) {
@@ -355,6 +370,33 @@ export function CreateRecruitmentForm({
           </div>
         </fieldset>
 
+        {/* あなたが使うロール */}
+        <fieldset id="owner-roles">
+          <legend className={legend}>
+            <span>あなたが使うロール</span>
+            <span className="text-[13px] font-medium text-slate">複数可</span>
+          </legend>
+          <div className="grid grid-cols-2 gap-2">
+            {PLAY_ROLES.map((role) => (
+              <label key={role} className="pick">
+                <input
+                  type="checkbox"
+                  name="ownerRoles"
+                  value={role}
+                  checked={c.ownerRoles.includes(role)}
+                  onChange={(e) => set('ownerRoles', e.target.checked ? [...c.ownerRoles, role] : c.ownerRoles.filter((x) => x !== role))}
+                  className="sr-only"
+                />
+                <RoleIcon role={role} className="size-4" />
+                {PLAY_ROLE_LABELS[role]}
+              </label>
+            ))}
+          </div>
+          {needRoles && c.ownerRoles.length === 0 && (
+            <p className="mt-2 text-[13px] font-bold text-signal-deep" role="alert">あなたが使うロールを選んでください</p>
+          )}
+        </fieldset>
+
         {/* 開始 */}
         <fieldset>
           <legend className={legend}>
@@ -418,7 +460,7 @@ export function CreateRecruitmentForm({
           {duoOn && (
             <label className="pick mt-2 w-full">
               <input type="checkbox" name="duoOk" checked={c.duoOk} onChange={(e) => set('duoOk', e.target.checked)} className="sr-only" />
-              2固定でも可 (2人でも遊ぶ)
+              2固定でも可
             </label>
           )}
         </fieldset>
@@ -474,7 +516,7 @@ export function CreateRecruitmentForm({
                   onChange={(e) => set('ownerCollab', e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4))}
                   inputMode="numeric"
                   className="input"
-                  placeholder="例: 30"
+                  placeholder="例: 3"
                   aria-invalid={needDeck && !collabOk(c.ownerCollab)}
                 />
               </label>

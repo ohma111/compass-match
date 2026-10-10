@@ -68,7 +68,7 @@ export default async function RecruitmentDetailPage({
     signedIn
       ? supabase
           .from('messages')
-          .select('id, recruitment_id, user_id, body, created_at')
+          .select('id, recruitment_id, user_id, body, created_at, author:profiles!messages_user_id_fkey(display_name)')
           .eq('recruitment_id', id)
           .order('created_at', { ascending: true })
           .limit(200)
@@ -110,8 +110,9 @@ export default async function RecruitmentDetailPage({
   if (viewer && (isOwner || myState === 'approved')) {
     room = rc ?? null;
     contacts = (ct?.data as MemberContact[] | null) ?? [];
-    messages = (ms?.data as Message[] | null) ?? [];
   }
+  // チャットはプロフィールのある方なら読める (見てよいかは DB の RLS が決める)
+  if (viewer?.profile) messages = (ms?.data as unknown as Message[] | null) ?? [];
 
   return (
     <RecruitmentDetailView

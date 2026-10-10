@@ -47,6 +47,12 @@ export interface Recruitment {
   owner_collab?: number | null;
   min_deck_level?: number | null;
   min_collab?: number | null;
+  /** v16: 募集者が使うロール */
+  owner_roles?: PlayRole[];
+  /** v16: 2固定中 (2人で遊びながら、もう1人を待つ) */
+  duo_playing?: boolean;
+  /** v16: 募集者に「続けますか」を聞いた時刻 (5分で取り消し) */
+  close_check_at?: string | null;
   owner?: (Pick<Profile, 'id' | 'display_name' | 'rank_band'> & { play_roles?: Profile['play_roles']; avatar?: Avatar | null }) | null;
 }
 
@@ -68,6 +74,8 @@ export interface Message {
   user_id: string;
   body: string;
   created_at: string;
+  /** 送った方の表示名 (参加者でない方の発言もあるため) */
+  author?: { display_name: string } | null;
 }
 
 export interface MemberContact {

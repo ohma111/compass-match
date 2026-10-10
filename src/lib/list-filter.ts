@@ -16,18 +16,17 @@ export const LIST_SORT_LABELS: Record<ListSort, string> = {
 export interface ListView {
   purpose: Purpose | 'all';
   soon: boolean;
-  open: boolean;
   eligible: boolean;
   vc?: RecruitVc;
   stance?: Stance;
   sort: ListSort;
 }
 
-export const DEFAULT_VIEW: ListView = { purpose: 'all', soon: false, open: false, eligible: false, sort: 'start' };
+export const DEFAULT_VIEW: ListView = { purpose: 'all', soon: false, eligible: false, sort: 'start' };
 
 /** 目的・30分以内以外の条件を使っているか (時間割の区切りを出すか、空のときの文言) */
 export function hasExtraFilter(v: ListView): boolean {
-  return v.open || v.eligible || Boolean(v.vc) || Boolean(v.stance) || v.sort !== 'start';
+  return v.eligible || Boolean(v.vc) || Boolean(v.stance) || v.sort !== 'start';
 }
 
 export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
@@ -35,7 +34,6 @@ export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
   const p = new URLSearchParams();
   if (n.purpose !== 'all') p.set('purpose', n.purpose);
   if (n.soon) p.set('soon', '1');
-  if (n.open) p.set('open', '1');
   if (n.eligible) p.set('eligible', '1');
   if (n.vc) p.set('vc', n.vc);
   if (n.stance) p.set('stance', n.stance);
@@ -51,7 +49,8 @@ export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
  */
 export function applyListView(items: Recruitment[], v: ListView, myRank: RankBand | null | undefined, now: Date = new Date()): Recruitment[] {
   let out = items.filter((r) => {
-    if (v.open && (r.status === 'full' || isFull(r.capacity, r.approved_count))) return false;
+    // 満員の募集は出さない (自分の募集・参加中の募集は一覧の上の「参加中・自分の募集」に出る)
+    if (r.status === 'full' || isFull(r.capacity, r.approved_count)) return false;
     if (v.eligible && myRank && !meetsMinRank(myRank, r.min_rank)) return false;
     if (v.vc && r.vc !== v.vc) return false;
     if (v.stance && r.stance !== v.stance) return false;

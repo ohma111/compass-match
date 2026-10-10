@@ -123,7 +123,7 @@ function DeckSheet({
   const [collab, setCollab] = useState(() => readLast().collab);
   const n = Number(collab);
   const d = deck === '' ? null : deck;
-  const valid = d !== null && /^\d{1,4}$/.test(collab) && n >= 1;
+  const valid = d !== null && /^\d{1,4}$/.test(collab) && n >= 0;
   const short = valid && ((minDeck != null && d! < minDeck) || (minCollab != null && n < minCollab));
   const cond = [minDeck != null ? `デキレ${minDeck}以上` : null, minCollab != null ? `コラボ${minCollab}以上` : null].filter(Boolean).join('・');
 
@@ -156,7 +156,7 @@ function DeckSheet({
               onChange={(e) => setCollab(e.target.value.normalize('NFKC').replace(/\D/g, '').slice(0, 4))}
               inputMode="numeric"
               className="input text-lg font-bold"
-              placeholder="例: 30"
+              placeholder="例: 3"
             />
           </label>
         </div>

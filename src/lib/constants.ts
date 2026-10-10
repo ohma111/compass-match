@@ -174,7 +174,8 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   announcement: '運営からのお知らせ',
   room_code: '部屋番号が変わりました',
   starting: '予定時刻になりました',
-  auto_closed: '人がそろわなかったため、募集を終了しました',
+  auto_closed: '確認がなかったため、募集を取り消しました',
+  close_check: '募集を続けますか？ 5分以内に操作がないと取り消されます',
 };
 
 /** v15: デキレ (240 が上で10ずつ下がる) */

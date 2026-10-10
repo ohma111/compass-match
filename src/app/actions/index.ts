@@ -157,6 +157,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     duration: fd.get('duration') ?? undefined,
     duoOk: fd.get('duoOk') ?? undefined,
     wantedRoles: formStrings(fd, 'wantedRoles'),
+    ownerRoles: formStrings(fd, 'ownerRoles'),
     ownerDeck: fd.get('ownerDeck') ?? undefined,
     ownerCollab: fd.get('ownerCollab') ?? undefined,
     minDeck: fd.get('minDeck') ?? undefined,
@@ -194,6 +195,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     p_owner_collab: v.ownerCollab,
     p_min_deck_level: v.minDeck,
     p_min_collab: v.minCollab,
+    p_owner_roles: v.ownerRoles,
   });
   if (error) return fail(toUserMessage(error));
   pushLater();
@@ -237,6 +239,29 @@ export async function extendRecruitmentAction(recruitmentId: string, minutes: nu
   return { ok: true, message: minutes === 60 ? '1時間延長しました' : '30分延長しました' };
 }
 
+/** 55分の確認に「続ける」と答える (ここから55分後にまた確かめる) */
+export async function keepRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('keep_recruitment', { p_recruitment_id: id.data });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  return { ok: true, message: '募集を続けます' };
+}
+
+/** 2固定中にする / 戻す */
+export async function setDuoPlayingAction(recruitmentId: string, on: boolean): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_duo_playing', { p_recruitment_id: id.data, p_on: Boolean(on) });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: on ? '2固定中にしました' : '2固定中を外しました' };
+}
+
 /** この募集のチャットの通知を止める / 戻す */
 export async function setChatMuteAction(recruitmentId: string, muted: boolean): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
@@ -257,7 +282,7 @@ export async function requestJoinAction(
 ): Promise<ActionResult<{ joined: boolean }>> {
   const id = uuidSchema.safeParse(recruitmentId);
   if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
-  if (deck && (!isDeckLevel(deck.deck) || !Number.isInteger(deck.collab) || deck.collab < 1 || deck.collab > COLLAB_MAX)) {
+  if (deck && (!isDeckLevel(deck.deck) || !Number.isInteger(deck.collab) || deck.collab < 0 || deck.collab > COLLAB_MAX)) {
     return fail('デキレとコラボ数を選び直してください');
   }
   const supabase = await createClient();

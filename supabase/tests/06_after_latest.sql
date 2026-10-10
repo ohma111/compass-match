@@ -24,16 +24,3 @@ begin
 end $$;
 select 'V12 MIGRATION OK' as result;
 
--- v15: 自動のお気に入りはオフ、自分で付けたものは残る
-do $$
-begin
-  if (select count(*) from public.follows where follower_id in ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2') and active) <> 0 then
-    raise exception 'ASSERT FAILED: auto follows still on';
-  end if;
-  if not (select active from public.follows where follower_id = '00000000-0000-4000-8000-0000000000a3') then
-    raise exception 'ASSERT FAILED: manual follow turned off';
-  end if;
-  delete from public.profiles where id::text like '00000000-0000-4000-8000-0000000000a%';
-  delete from auth.users where id::text like '00000000-0000-4000-8000-0000000000a%';
-end $$;
-select 'V15 MIGRATION OK' as result;

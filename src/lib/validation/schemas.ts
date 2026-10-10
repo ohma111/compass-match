@@ -141,14 +141,14 @@ export const recoverSchema = z.object({
   password: passwordSchema,
 });
 
-/** 空欄は null。デキレは 120〜240 の10刻み、コラボ数は1〜9999 (それ以外も null にして、必須の判定で弾く) */
+/** 空欄は null。デキレは 120〜240 の10刻み、コラボ数は0〜9999 (それ以外も null にして、必須の判定で弾く) */
 const optDeck = z.unknown().optional().transform((v) => {
   const n = Number(v);
   return v !== '' && v != null && isDeckLevel(n) ? n : null;
 });
 const optCollab = z.unknown().optional().transform((v) => {
   const n = Number(typeof v === 'string' ? v.normalize('NFKC') : v);
-  return v !== '' && v != null && Number.isInteger(n) && n >= 1 && n <= COLLAB_MAX ? n : null;
+  return v !== '' && v != null && Number.isInteger(n) && n >= 0 && n <= COLLAB_MAX ? n : null;
 });
 
 /** 募集作成(タップ式)の入力。開始時刻はチップのキーで受け取り、サーバーの現在時刻で解決する */
@@ -175,6 +175,7 @@ export const recruitmentSchema = z
     src: z.unknown().transform(sanitizeSrc),
     duoOk: z.unknown().optional().transform((v) => v === 'on' || v === true),
     wantedRoles: uniqueArray(PLAY_ROLES).catch([]),
+    ownerRoles: uniqueArray(PLAY_ROLES).catch([]),
     ownerDeck: optDeck,
     ownerCollab: optCollab,
     minDeck: optDeck,
@@ -215,6 +216,7 @@ export function buildRecruitment(
   if (windowError) return { ok: false, error: windowError };
   const title = v.title || autoTitle({ purpose: v.purpose, minRank: v.minRank, capacity: v.capacity });
   // デキレ・コラボ数はバトルアリーナの承認制だけ (そのときは自分の値が必須)。2固定はバトルアリーナ・フリーバトルの3人募集だけ
+  if (v.ownerRoles.length === 0) return { ok: false, error: 'あなたが使うロールを選んでください' };
   const deck = asksDeck(v.purpose, v.joinMode);
   if (deck && (v.ownerDeck === null || v.ownerCollab === null)) return { ok: false, error: 'あなたのデキレとコラボ数を入力してください' };
   const extra = {
@@ -307,8 +309,6 @@ const flag = z
 export const listFilterSchema = z.object({
   purpose: z.union([z.enum(PURPOSES), z.literal('all')]).catch('all'),
   soon: flag,
-  /** 空きのある募集だけ (満員を出さない) */
-  open: flag,
   /** 自分のランクで参加できる募集だけ */
   eligible: flag,
   vc: z.enum(RECRUIT_VC).optional().catch(undefined),

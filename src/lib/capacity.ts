@@ -38,10 +38,10 @@ export function slotDots(capacity: number, approvedCount: number): boolean[] {
   return Array.from({ length: capacity }, (_, i) => i < filled);
 }
 
-/** 一覧・詳細の短い表示。「@1人」(あと1人) / 「満員」 */
+/** 一覧・詳細の短い表示「@1人」(あと1人)。満員は一覧に出さないので空 */
 export function leftLabel(capacity: number, approvedCount: number): string {
   const left = remainingSlots(capacity, approvedCount);
-  return left > 0 ? `@${left}人` : '満員';
+  return left > 0 ? `@${left}人` : '';
 }
 
 /** 読み上げ用。例: 「3人中2人・あと1人」 */

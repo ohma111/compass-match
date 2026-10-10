@@ -98,7 +98,6 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
   const soonSwitch = (
     <div className="flex flex-wrap gap-x-5">
       {toggle(filter.soon, listHref(filter, { soon: !filter.soon }), '30分以内')}
-      {toggle(filter.open, listHref(filter, { open: !filter.open }), '空きあり')}
       {canEligible && toggle(filter.eligible, listHref(filter, { eligible: !filter.eligible }), '参加できるランク')}
     </div>
   );

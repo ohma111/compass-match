@@ -155,11 +155,11 @@ export function LobbyLineup(props: {
             {props.stamp}
           </p>
         ) : (
-          <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`${props.capacity}人中${props.occupied}人${props.left > 0 ? `、あと${props.left}人` : '、満員'}`}>
-            <span className={`px-2 text-[18px] leading-8 font-black ${props.left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>
-              {props.left > 0 ? `@${props.left}人` : '満員'}
-            </span>
-          </p>
+          props.left > 0 ? (
+            <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`あと${props.left}人`}>
+              <span className="bg-signal px-2 text-[18px] leading-8 font-black text-ink">@{props.left}人</span>
+            </p>
+          ) : null
         )}
       </div>
       <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} tall />

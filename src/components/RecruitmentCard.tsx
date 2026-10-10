@@ -1,11 +1,12 @@
 import Link from '@/components/Link';
 import type { Recruitment } from '@/lib/types';
 import { canRequestJoin, effectiveStatus, leftLabel, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
-import { STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel } from '@/lib/constants';
+import { PLAY_ROLE_LABELS, STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { DeckInfo, DuoAndRoles, MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
 import { Lineup } from './Lineup';
+import { RoleIcon } from './RoleIcon';
 import { JoinButton, joinExtraOf, type AuthState } from './JoinButton';
 
 /**
@@ -78,6 +79,13 @@ export function RecruitmentCard({
               {r.owner?.display_name ?? '―'}
               {r.owner && <span className="text-slate"> {rankLabel(r.owner.rank_band)}</span>}
             </span>
+            {r.owner_roles && r.owner_roles.length > 0 && (
+              <span className="flex shrink-0 items-center gap-0.5 text-ink" aria-label={`募集者のロール: ${r.owner_roles.map((x) => PLAY_ROLE_LABELS[x]).join('・')}`}>
+                {r.owner_roles.map((x) => (
+                  <RoleIcon key={x} role={x} className="size-3.5" />
+                ))}
+              </span>
+            )}
           </p>
           <h3
             id={titleId}
@@ -90,7 +98,8 @@ export function RecruitmentCard({
             {(isOwner || myState === 'approved' || myState === 'pending') && (
               <span className="shrink-0 bg-ink px-1 font-black text-white">{isOwner ? 'あなたの募集' : myState === 'pending' ? '承認待ち' : '参加中'}</span>
             )}
-            <span className={`shrink-0 px-1 font-black ${left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>{leftLabel(r.capacity, r.approved_count)}</span>
+            {left > 0 && <span className="shrink-0 bg-signal px-1 font-black text-ink">{leftLabel(r.capacity, r.approved_count)}</span>}
+            {r.duo_playing && <span className="shrink-0 bg-ink px-1 font-black text-white">2固定中</span>}
             {r.stance && <span className="shrink-0 text-ink">{STANCE_LABELS[r.stance]}</span>}
             <span className="shrink-0">{JOIN_MODE_LABELS[r.join_mode]}</span>
             <span className="shrink-0">{RECRUIT_VC_LABELS[r.vc]}</span>
