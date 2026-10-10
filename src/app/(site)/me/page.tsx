@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { RECRUIT_BASE_COLUMNS } from '@/lib/queries';
 import { MeView, type Mate } from '@/components/views/MeView';
 import { accountKindOf, isTransferEmail } from '@/lib/transfer';
+import { monetization } from '@/lib/plan';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
 
@@ -88,6 +89,7 @@ export default async function MePage() {
       joined={joined}
       mates={mates}
       favorites={favorites}
+      plus={monetization.plus && viewer.plus ? { until: viewer.plusUntil } : undefined}
       now={now}
     />
   );

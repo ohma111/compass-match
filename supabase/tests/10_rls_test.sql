@@ -663,5 +663,57 @@ select pg_temp.assert((select target_label from public.admin_report_summary() wh
 select pg_temp.assert((select owner_name from public.admin_report_summary() where '暴言' = any(reasons)) = 'A以下さん', 'admin sees owner name');
 reset role;
 
+-- v14: 有料版 (Plus) の課金状態。本人は自分の行を読めるだけで、書けない。付け外しは管理者の RPC だけ
+select pg_temp.as_user(:U4);
+select pg_temp.expect_error($$insert into public.entitlements (user_id, status) values ('00000000-0000-4000-8000-000000000004', 'manual')$$, 'user cannot grant self plus');
+select pg_temp.expect_error($$select public.admin_set_plus('00000000-0000-4000-8000-000000000004', now() + interval '30 days')$$, 'non-admin cannot set plus');
+select pg_temp.expect_error($$select private.has_plus('00000000-0000-4000-8000-000000000004')$$, 'user cannot call private.has_plus');
+select pg_temp.assert((public.viewer_header() ->> 'plus')::boolean = false, 'no plus by default');
+reset role;
+select pg_temp.as_user(:ADM);
+select public.admin_set_plus(:U4, now() + interval '30 days');
+select pg_temp.expect_error($$select public.admin_set_plus('00000000-0000-4000-8000-000000000004', now() - interval '1 day')$$, 'until must be in the future');
+select pg_temp.assert((select (r ->> 'plus')::boolean from jsonb_array_elements(public.admin_list_users(:U4, 1) -> 'rows') r) = true, 'admin list shows plus');
+reset role;
+select pg_temp.as_user(:U4);
+select pg_temp.assert((public.viewer_header() ->> 'plus')::boolean = true, 'viewer_header plus after grant');
+select pg_temp.assert((public.viewer_header() ->> 'plus_until') is not null, 'viewer_header plus_until');
+select pg_temp.expect_error($$update public.entitlements set current_period_end = now() + interval '10 years'$$, 'user cannot extend own plus');
+select pg_temp.expect_error($$delete from public.entitlements$$, 'user cannot delete entitlements');
+reset role;
+select pg_temp.as_user(:U5);
+select pg_temp.assert((select count(*) from public.entitlements) = 0, 'others cannot read entitlements');
+select pg_temp.assert((public.viewer_header() ->> 'plus')::boolean = false, 'other user not plus');
+reset role;
+select pg_temp.as_user(null);
+select pg_temp.expect_error('select * from public.entitlements', 'anon cannot read entitlements');
+reset role;
+-- 期限切れ・支払い失敗の猶予・解約
+update public.entitlements set current_period_end = now() - interval '1 minute' where user_id = :U4;
+select pg_temp.assert(not private.has_plus(:U4), 'expired manual plus');
+update public.entitlements set status = 'past_due', current_period_end = now() - interval '2 days' where user_id = :U4;
+select pg_temp.assert(private.has_plus(:U4), 'past_due within grace');
+update public.entitlements set current_period_end = now() - interval '4 days' where user_id = :U4;
+select pg_temp.assert(not private.has_plus(:U4), 'past_due after grace');
+update public.entitlements set status = 'canceled', current_period_end = now() + interval '5 days' where user_id = :U4;
+select pg_temp.assert(not private.has_plus(:U4), 'canceled is not plus');
+-- 決済で付いた行は管理者でも手動で変えない
+update public.entitlements set status = 'active', provider = 'stripe', current_period_end = now() + interval '20 days' where user_id = :U4;
+select pg_temp.as_user(:ADM);
+select pg_temp.expect_error($$select public.admin_set_plus('00000000-0000-4000-8000-000000000004', null)$$, 'admin cannot override stripe plus');
+reset role;
+delete from public.entitlements where user_id = :U4;
+-- 有効な Plus の方は60日操作なしでも自動削除の対象にしない (募集などの別の理由で外れないよう、新しい方で確かめる)
+insert into auth.users (id) values ('00000000-0000-4000-8000-0000000000e1');
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values ('00000000-0000-4000-8000-0000000000e1', '払っている方', 'a', now(), 't');
+update public.profiles set last_seen_at = now() - interval '90 days' where id = '00000000-0000-4000-8000-0000000000e1';
+select pg_temp.assert(exists (select 1 from private.inactive_user_ids() x where x = '00000000-0000-4000-8000-0000000000e1'), 'inactive user without plus is listed');
+insert into public.entitlements (user_id, status, provider, current_period_end) values ('00000000-0000-4000-8000-0000000000e1', 'active', 'stripe', now() + interval '20 days');
+select pg_temp.assert(not exists (select 1 from private.inactive_user_ids() x where x = '00000000-0000-4000-8000-0000000000e1'), 'plus user not inactive-deleted');
+update public.entitlements set status = 'canceled' where user_id = '00000000-0000-4000-8000-0000000000e1';
+select pg_temp.assert(exists (select 1 from private.inactive_user_ids() x where x = '00000000-0000-4000-8000-0000000000e1'), 'canceled user can be inactive-deleted');
+delete from auth.users where id = '00000000-0000-4000-8000-0000000000e1';
+select pg_temp.assert(not exists (select 1 from public.entitlements where user_id = '00000000-0000-4000-8000-0000000000e1'), 'entitlement removed with account');
+
 select 'ALL RLS TESTS PASSED' as result;
 

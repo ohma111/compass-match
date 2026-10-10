@@ -130,6 +130,13 @@
 - 募集ごとの共有画像は CDN に5分 (失敗時30秒)、proxy の対象外。robots.txt で `/?purpose=` `/?soon=` を外した。
 - 案のまま: 操作のあとの router.refresh の重複 (ActionButton など。revalidatePath だけで画面は更新される)、staleTimes.dynamic。実数は Vercel の Usage / Observability で見る。
 
+## 2026-10-10 (有料版・広告の土台、ブランチ claude/monetization-foundation)
+- 設計と判断材料は Claude Doc「JOIN COMPASS 有料版・広告の設計」。運営者の合意待ち (価格・機能・広告の有無)。
+- 入れたもの (どれも既定 OFF・本番の見た目は変わらない): migration 22 (public.entitlements・private.has_plus・viewer_header に plus / plus_until・有効な Plus の方を60日の自動削除から外す・admin_set_plus・admin_list_users に Plus)。`src/lib/plan.ts` (判定と環境変数)、`AdSlot` (一覧の一番下とユーザーページの一番下だけ。カード・ボタン・チャットの間には置かない)、管理画面のユーザーに「Plus を30日付ける / 外す」、マイページに Plus の期限。
+- 環境変数: NEXT_PUBLIC_FEATURE_PLUS / NEXT_PUBLIC_FEATURE_ADS / NEXT_PUBLIC_ADSENSE_CLIENT / NEXT_PUBLIC_ADSENSE_SLOT_LIST / NEXT_PUBLIC_ADSENSE_SLOT_PROFILE。
+- **migration 22 は本番未適用。** viewer_header を作り直すので migration 20 の後でも前でも流せる。
+- 決済 (Stripe) はまだつないでいない。広告・決済を始めると Vercel Hobby の規約上 Pro ($20/月) が要る (寄付の依頼は Hobby のままでよい)。AdSense は vercel.app では申請できないので独自ドメインが要る。
+
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
 - 実機 (iPhone Safari) で文字の折り返しを見る。

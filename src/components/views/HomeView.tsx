@@ -18,6 +18,8 @@ export interface HomeViewProps {
   auth: AuthState;
   viewerId?: string | null;
   filter: { purpose: Purpose | 'all'; soon: boolean };
+  /** 一覧の下に出す広告枠 (出さないときは null) */
+  ad?: React.ReactNode;
   now: Date;
   loadError?: boolean;
   availableNow?: boolean;
@@ -46,7 +48,7 @@ function href(purpose: Purpose | 'all', soon: boolean) {
 }
 
 /** ホーム = 今夜の時間割。募集を開始時刻の順に、時刻を左に置いて並べる */
-export function HomeView({ items, states, blocked = [], auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
+export function HomeView({ items, states, blocked = [], auth, viewerId, filter, now, loadError, availableNow, ad = null }: HomeViewProps) {
   const filtered = filter.purpose !== 'all' || filter.soon;
   const d = jstParts(now);
   const dateLine = `${String(d.month).padStart(2, '0')}.${String(d.day).padStart(2, '0')} ${WEEKDAYS[d.weekday]}`;
@@ -172,6 +174,7 @@ export function HomeView({ items, states, blocked = [], auth, viewerId, filter, 
             ))}
           </div>
         )}
+        {ad}
       </section>
     </div>
   );

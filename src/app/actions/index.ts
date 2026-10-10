@@ -605,6 +605,18 @@ export async function adminDeleteUserAction(userId: string): Promise<ActionResul
   return { ok: true, message: 'アカウントを削除しました' };
 }
 
+/** 管理者が Plus を手動で付ける (days 日) / 外す (null)。決済で付いた Plus は DB 側で拒否する */
+export async function adminSetPlusAction(userId: string, days: number | null): Promise<ActionResult> {
+  if (!uuidSchema.safeParse(userId).success) return fail('操作できませんでした');
+  if (days !== null && !(Number.isInteger(days) && days >= 1 && days <= 366)) return fail('日数は1〜366で指定してください');
+  const until = days === null ? null : new Date(Date.now() + days * 86_400_000).toISOString();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('admin_set_plus', { p_user: userId, p_until: until });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath('/admin');
+  return { ok: true, message: days === null ? 'Plus を外しました' : `Plus を${days}日付けました` };
+}
+
 /** 管理画面のユーザー一覧で選んだ人をまとめて BAN / 削除する。守られているアカウント・管理者は DB 側で拒否され、件数に入らない */
 export async function adminBulkUsersAction(userIds: string[], op: 'ban' | 'delete'): Promise<ActionResult> {
   const ids = Array.isArray(userIds) ? [...new Set(userIds)] : [];

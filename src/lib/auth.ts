@@ -10,6 +10,10 @@ export interface Viewer {
   userId: string;
   profile: Profile | null;
   isAdmin: boolean;
+  /** 有料版 (Plus) が有効か。DB の private.has_plus と同じ条件で viewer_header が返す */
+  plus: boolean;
+  /** Plus の期限 (期限なし・Plus でなければ null) */
+  plusUntil: string | null;
 }
 
 /** プロフィール取得の失敗。「プロフィールなし」とは区別する (初回登録へ戻さない) */
@@ -63,9 +67,10 @@ export const getViewerHeader = cache(async (): Promise<ViewerHeader | null> => {
   const supabase = await createClient();
   const rpc = await supabase.rpc('viewer_header');
   if (!rpc.error && rpc.data) {
-    const d = rpc.data as { profile: Profile | null; is_admin: boolean; unread: number; has_discord: boolean };
+    const d = rpc.data as { profile: Profile | null; is_admin: boolean; unread: number; has_discord: boolean; plus?: boolean; plus_until?: string | null };
+    const plus = d.plus === true;
     return {
-      viewer: { userId: claims.userId, profile: d.profile ?? null, isAdmin: Boolean(d.is_admin) },
+      viewer: { userId: claims.userId, profile: d.profile ?? null, isAdmin: Boolean(d.is_admin), plus, plusUntil: plus ? (d.plus_until ?? null) : null },
       unread: Number(d.unread) || 0,
       hasDiscord: Boolean(d.has_discord),
     };
@@ -83,6 +88,9 @@ export const getViewerHeader = cache(async (): Promise<ViewerHeader | null> => {
       userId: claims.userId,
       profile: (profileRes.data as unknown as Profile | null) ?? null,
       isAdmin: (rolesRes.data ?? []).some((r: { role: string }) => r.role === 'admin'),
+      // migration 22 の前は Plus の方はいない
+      plus: false,
+      plusUntil: null,
     },
     unread: unreadRes.count ?? 0,
     hasDiscord: Boolean((contactRes.data as { contact_discord: string | null } | null)?.contact_discord),

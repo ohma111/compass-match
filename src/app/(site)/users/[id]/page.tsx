@@ -13,6 +13,8 @@ import { RoleIcon } from '@/components/RoleIcon';
 import { FollowButton } from '@/components/FollowButton';
 import { blockUserAction } from '@/app/actions';
 import type { Profile } from '@/lib/types';
+import { adSlotId, monetization, shouldShowAds } from '@/lib/plan';
+import { AdSlot } from '@/components/AdSlot';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +99,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
       )}
+      {shouldShowAds(viewer) && <AdSlot placement="profile" client={monetization.adsenseClient} slot={adSlotId('profile')} />}
     </div>
   );
 }

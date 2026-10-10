@@ -13,8 +13,10 @@ import {
   adminDeleteUserAction,
   adminResolveAction,
   adminRunCleanupAction,
+  adminSetPlusAction,
   adminUserAction,
 } from '@/app/actions';
+import { monetization } from '@/lib/plan';
 import { PURPOSE_LABELS } from '@/lib/constants';
 import { APPEAL_PAGE, maintenanceNotice, type SiteStatus } from '@/lib/site-status';
 import { AnnounceForm, MaintenanceForm } from './AdminForms';
@@ -224,7 +226,7 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
   if (error || !data) return <p className="alert-error">データを取得できませんでした</p>;
   const res = data as {
     total: number;
-    rows: { id: string; display_name: string; rank_band: string | null; hidden_at: string | null; banned_at: string | null; created_at: string; last_seen_at: string | null; is_anonymous: boolean; is_admin: boolean }[];
+    rows: { id: string; display_name: string; rank_band: string | null; hidden_at: string | null; banned_at: string | null; created_at: string; last_seen_at: string | null; is_anonymous: boolean; is_admin: boolean; plus?: boolean; plus_until?: string | null; plus_provider?: string | null }[];
   };
   const rows = res.rows;
   return (
@@ -254,6 +256,7 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
               <span className="chip">{u.is_anonymous ? '匿名' : '引き継ぎ・Discord'}</span>
               {u.banned_at && <span className="chip text-danger">BAN中</span>}
               {u.hidden_at && <span className="chip">通報で非表示</span>}
+              {u.plus && <span className="chip">Plus{u.plus_until ? ` 〜${formatJst(u.plus_until)}` : ''}{u.plus_provider === 'manual' ? ' (手動)' : ''}</span>}
               <span className="ml-auto text-xs text-muted">
                 登録 {formatJst(u.created_at)}
                 {u.last_seen_at ? `・最終操作 ${formatJst(u.last_seen_at)}` : ''}
@@ -276,6 +279,13 @@ async function UsersTab({ supabase, q, page }: { supabase: SB; q: string; page: 
               >
                 削除
               </ActionButton>
+              {monetization.plus && u.plus_provider !== 'stripe' && (
+                u.plus ? (
+                  <ActionButton action={adminSetPlusAction.bind(null, u.id, null)} className="btn-ghost btn-sm" confirm="Plus を外しますか？">Plus を外す</ActionButton>
+                ) : (
+                  <ActionButton action={adminSetPlusAction.bind(null, u.id, 30)} className="btn-ghost btn-sm" confirm="Plus を30日付けますか？">Plus を30日付ける</ActionButton>
+                )
+              )}
             </div>
           </li>
         ))}
