@@ -5,7 +5,7 @@ import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { PurposeMark } from '@/components/Tags';
 import { NowLine } from '@/components/NowLine';
 import { PURPOSES, PURPOSE_LABELS, RECRUIT_VC_LABELS, RECRUIT_VC, STANCES, STANCE_LABELS } from '@/lib/constants';
-import { LIST_SORTS, LIST_SORT_LABELS, hasExtraFilter, listHref, type ListView } from '@/lib/list-filter';
+import { LIST_SORTS, LIST_SORT_LABELS, hasExtraFilter, isFullRecruitment, listHref, type ListView } from '@/lib/list-filter';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
 import type { AuthState } from '@/components/JoinButton';
@@ -13,6 +13,8 @@ import { formatJstTime, isSameJstDay, jstParts } from '@/lib/time';
 
 export interface HomeViewProps {
   items: Recruitment[];
+  /** OPEN の件数 (満員を含む。省略時は items の数) */
+  openCount?: number;
   /** 絞り込む前の件数 */
   total?: number;
   /** 自分の募集・参加中 (申請中を含む) の募集 */
@@ -46,11 +48,15 @@ function dayLabel(iso: string): string {
 
 
 /** ホーム = 今夜の時間割。募集を開始時刻の順に、時刻を左に置いて並べる */
-export function HomeView({ items, total, myRooms = [], canEligible = false, states, blocked = [], auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
+export function HomeView({ items, openCount, total, myRooms = [], canEligible = false, states, blocked = [], auth, viewerId, filter, now, loadError, availableNow }: HomeViewProps) {
   const filtered = filter.purpose !== 'all' || filter.soon || hasExtraFilter(filter);
   // 開始時刻の順のときだけ、時間割の区切り (いまの線・日付) を入れる
   const timetable = filter.sort === 'start';
   const extraCount = [filter.vc, filter.stance, filter.sort !== 'start' ? filter.sort : undefined].filter(Boolean).length;
+  const count = openCount ?? items.length;
+  // 満員の募集は一番下にまとまっている。その先頭に見出しを入れ、時間割の区切りは入れない
+  const fullFrom = items.findIndex(isFullRecruitment);
+  const fullCount = fullFrom < 0 ? 0 : items.length - fullFrom;
   const d = jstParts(now);
   const dateLine = `${String(d.month).padStart(2, '0')}.${String(d.day).padStart(2, '0')} ${WEEKDAYS[d.weekday]}`;
 
@@ -100,6 +106,7 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
     <div className="flex flex-wrap gap-x-5">
       {toggle(filter.soon, listHref(filter, { soon: !filter.soon }), '30分以内')}
       {canEligible && toggle(filter.eligible, listHref(filter, { eligible: !filter.eligible }), '参加できるランク')}
+      {toggle(!filter.hideFull, listHref(filter, { hideFull: !filter.hideFull }), '満員の募集')}
     </div>
   );
   const more = (
@@ -148,12 +155,12 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
             <span className="sr-only">募集中のパーティ</span>
           </h1>
           <p className="flex items-baseline gap-1.5 pb-0.5 lg:hidden" aria-live="polite">
-            <span className="type-time text-[34px]">{loadError ? '―' : String(items.length).padStart(2, '0')}</span>
+            <span className="type-time text-[34px]">{loadError ? '―' : String(count).padStart(2, '0')}</span>
             <span className="type-tag text-slate">OPEN</span>
           </p>
         </div>
         <p className="mt-4 hidden items-baseline gap-2 lg:flex" aria-live="polite">
-          <span className="type-time text-[44px]">{loadError ? '―' : String(items.length).padStart(2, '0')}</span>
+          <span className="type-time text-[44px]">{loadError ? '―' : String(count).padStart(2, '0')}</span>
           <span className="type-tag text-slate">OPEN</span>
         </p>
         <div className="mt-4 space-y-2 lg:mt-6 lg:space-y-4">
@@ -226,11 +233,16 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
 
         {items.length > 0 && (
           <div className="border-b-2 border-ink">
-            {items.map((r, i) => (
+            {items.map((r, i) => {
+              const inFull = fullFrom >= 0 && i >= fullFrom;
+              return (
               <Fragment key={r.id}>
                 {/* 予定の募集が上、始まっている募集 (NOW) が下。その境目に「今」の線 */}
-                {timetable && new Date(r.starts_at) <= now && (i === 0 || new Date(items[i - 1].starts_at) > now) && <NowLine serverNow={now.toISOString()} />}
-                {timetable && dayChanges(items, i, now) && (
+                {timetable && !inFull && new Date(r.starts_at) <= now && (i === 0 || new Date(items[i - 1].starts_at) > now) && <NowLine serverNow={now.toISOString()} />}
+                {i === fullFrom && (
+                  <p className="type-tag mt-6 border-t-4 border-ink bg-ink py-1 pl-2 text-white">満員 {fullCount}</p>
+                )}
+                {timetable && !inFull && dayChanges(items, i, now) && (
                   <p className="type-tag border-t-4 border-ink bg-ink py-1 pl-2 text-white">{dayLabel(r.starts_at)}</p>
                 )}
                 <RecruitmentCard
@@ -242,10 +254,11 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
                 blockedHere={blocked.includes(r.id)}
                 busyElsewhere={myRooms.some((x) => x.id !== r.id)}
                 index={i}
-                repeatTime={timetable && i > 0 && items[i - 1].starts_at === r.starts_at}
+                repeatTime={timetable && i > 0 && i !== fullFrom && items[i - 1].starts_at === r.starts_at}
                 />
               </Fragment>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

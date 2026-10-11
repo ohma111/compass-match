@@ -236,11 +236,12 @@ describe('report / feedback / filters', () => {
     expect(feedbackSchema.parse({ body: 'ok', page: '/recruitments' }).page).toBe('/recruitments');
   });
   it('feed filters fall back to all', () => {
-    const base = { eligible: false, vc: undefined, stance: undefined, sort: 'start' };
+    const base = { eligible: false, vc: undefined, stance: undefined, sort: 'start', nofull: false };
     expect(listFilterSchema.parse({ purpose: 'gender', soon: 'yes' })).toEqual({ ...base, purpose: 'all', soon: false });
     expect(listFilterSchema.parse({ purpose: 'rank', soon: '1' })).toEqual({ ...base, purpose: 'rank', soon: true });
     expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
     expect(listFilterSchema.parse({ vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, vc: 'on' });
+    expect(listFilterSchema.parse({ nofull: '1' }).nofull).toBe(true);
   });
 });
 

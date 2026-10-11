@@ -9,12 +9,13 @@ import { CoverView } from '@/components/views/CoverView';
 import { COVER_SEEN_COOKIE } from '@/lib/cover';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
-import { applyListView, hasExtraFilter } from '@/lib/list-filter';
+import { applyListView, hasExtraFilter, type ListView } from '@/lib/list-filter';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const filter = listFilterSchema.parse(await searchParams);
+  const { nofull, ...query } = listFilterSchema.parse(await searchParams);
+  const filter: ListView = { ...query, hideFull: nofull };
   const now = new Date();
   let items: Recruitment[] = [];
   let states: Record<string, JoinState> = {};
@@ -52,9 +53,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     : [];
   const myRank = viewer?.profile?.rank_band ?? null;
   const shown = applyListView(items, filter, myRank, now);
+  // OPEN の件数は満員も数える (満員を隠していても)
+  const openCount = filter.hideFull ? applyListView(items, { ...filter, hideFull: false }, myRank, now).length : shown.length;
   return (
     <HomeView
       items={shown}
+      openCount={openCount}
       total={items.length}
       myRooms={myRooms}
       canEligible={Boolean(myRank)}
