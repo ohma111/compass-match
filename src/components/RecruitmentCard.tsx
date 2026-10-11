@@ -7,7 +7,8 @@ import { DeckInfo, DuoAndRoles, MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
 import { Lineup } from './Lineup';
 import { RoleIcon } from './RoleIcon';
-import { JoinButton, joinExtraOf, type AuthState } from './JoinButton';
+import { JoinButton, type AuthState } from './JoinButton';
+import { joinExtraOf } from '@/lib/join-extra';
 
 /**
  * 時間割の1行。左に開始時刻、右に「目的・募集者・条件」の札、タイトル、席と参加ボタン。

@@ -6,7 +6,7 @@ import { isPreviewEnabled } from '@/lib/preview';
 import { AppShell } from '@/components/AppShell';
 import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
-import { DEFAULT_VIEW } from '@/lib/list-filter';
+import { DEFAULT_VIEW, applyListView } from '@/lib/list-filter';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { TransferView } from '@/components/views/AuthViews';
@@ -15,7 +15,7 @@ import { GuestMeView } from '@/components/views/GuestMeView';
 import { CoverView } from '@/components/views/CoverView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
 import { BanScreen, MaintenancePlanned, MaintenanceScreen } from '@/components/GateScreens';
-import { ME_ID, people, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
+import { ME_ID, people, detail, detailBrowse, detailOwner, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'プレビュー', robots: { index: false } };
@@ -84,7 +84,8 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'home';
       body = (
         <HomeView
-          items={screen === 'home' ? [...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : []}
+          items={screen === 'home' ? applyListView(feed(now), DEFAULT_VIEW, 's6', now) : []}
+          canEligible
           states={homeStates()}
           auth="ready"
           viewerId={ME_ID}
@@ -95,8 +96,46 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       break;
     case 'new':
       active = 'new';
-      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" />;
+      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" ownerRoles={['tank', 'gunner']} />;
       break;
+    case 'detail-owner': {
+      const d = detailOwner(now);
+      body = (
+        <RecruitmentDetailView
+          r={d.r}
+          now={now}
+          auth="ready"
+          viewerId={ME_ID}
+          participations={d.participations}
+          myState="none"
+          room={{ code: '4821', updated_at: new Date(now.getTime() - 20 * 60_000).toISOString(), updated_by: ME_ID }}
+          contacts={[]}
+          messages={d.messages}
+          src={null}
+          siteUrl="http://localhost:3000"
+        />
+      );
+      break;
+    }
+    case 'detail-browse': {
+      const d = detailBrowse(now);
+      body = (
+        <RecruitmentDetailView
+          r={d.r}
+          now={now}
+          auth="ready"
+          viewerId={ME_ID}
+          participations={[]}
+          myState="none"
+          room={null}
+          contacts={[]}
+          messages={d.messages.map((m) => ({ ...m, author: { display_name: Object.values(people).find((p) => p.id === m.user_id)?.display_name ?? '' } }))}
+          src={null}
+          siteUrl="http://localhost:3000"
+        />
+      );
+      break;
+    }
     case 'detail':
     case 'detail-joined': {
       const joined = screen === 'detail-joined';

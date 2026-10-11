@@ -57,6 +57,7 @@ function rec(
     hidden_at: null,
     created_at: at(now, -20),
     owner: { id: owner.id, display_name: owner.display_name, rank_band: owner.rank_band, play_roles: owner.play_roles },
+    owner_roles: owner.play_roles,
     ...partial,
   };
 }
@@ -65,8 +66,9 @@ export function feed(now: Date): Recruitment[] {
   const at22 = (jstClock(now, 22).getTime() - now.getTime()) / min;
   const at23 = (jstClock(now, 23).getTime() - now.getTime()) / min;
   return [
-    rec(now, 1, people.taro, { title: 'ランク S5〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's5', vc: 'on', tags: ['serious'] }, 8),
-    rec(now, 2, people.mio, { title: 'まったりバトアリ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['beginner_welcome', 'relaxed'], vc: 'off' }, -12),
+    rec(now, 1, people.taro, { title: 'ランク S5〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's5', vc: 'on', tags: ['serious'], wanted_roles: ['tank'] }, 8),
+    rec(now, 2, people.mio, { title: 'まったりフリバ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 1, tags: ['beginner_welcome', 'relaxed'], vc: 'off', duo_ok: true, duo_playing: true }, -12),
+    rec(now, 7, people.kei, { title: 'バトアリ 承認制 本気で', purpose: 'rank', capacity: 3, approved_count: 0, join_mode: 'approval', stance: 'win', owner_deck_level: 230, owner_collab: 3, min_deck_level: 200, min_collab: 1 }, 20),
     rec(now, 3, people.kei, { title: '大会前の連携練習 タンクほしい', purpose: 'tournament', capacity: 3, approved_count: 1, join_mode: 'approval', vc: 'on', tags: ['practice'], min_rank: 's5' }, at22),
     rec(now, 4, people.shiro, { title: 'カスタム 3vs3 やりたい人', purpose: 'custom', capacity: 6, approved_count: 3, tags: ['relaxed', 'quiet_ok'] }, 40),
     rec(now, 5, people.natsu, { title: 'フリーバトル 22時から', purpose: 'enjoy', capacity: 3, approved_count: 2, tags: ['relaxed'] }, at22),
@@ -105,7 +107,7 @@ export function detail(now: Date, joined: boolean) {
     r,
     participations,
     myState: (joined ? 'approved' : 'none') as JoinState,
-    roomCode: joined ? '48213' : null,
+    roomCode: joined ? '4821' : null,
     messages,
     contacts,
   };
@@ -128,4 +130,38 @@ export function meProfile(now: Date): Profile {
 
 export function myRecruitments(now: Date): Recruitment[] {
   return [rec(now, 9, people.me, { title: 'フリーバトルの募集', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['relaxed'] }, 25)];
+}
+
+/** 募集詳細 (募集者の画面): 開始から55分たって「募集を続けますか？」が出ている */
+export function detailOwner(now: Date) {
+  const r: Recruitment = {
+    ...rec(now, 10, people.me, { title: 'フリーバトル 一緒に遊べる方', purpose: 'enjoy', capacity: 3, approved_count: 1, duo_ok: true }, -55),
+    close_check_at: at(now, 0),
+  };
+  const participations: Participation[] = [
+    {
+      id: 'd0000000-0000-4000-8000-000000000010',
+      recruitment_id: r.id,
+      user_id: people.natsu.id,
+      status: 'approved',
+      created_at: at(now, -30),
+      profile: { id: people.natsu.id, display_name: people.natsu.display_name, rank_band: people.natsu.rank_band, play_roles: people.natsu.play_roles, vc: 'yes', tags: [] },
+    },
+  ];
+  const messages: Message[] = [
+    { id: 'o1', recruitment_id: r.id, user_id: people.natsu.id, body: 'もう1人来るまで2人で回しませんか？', created_at: at(now, -4) },
+    { id: 'o2', recruitment_id: r.id, user_id: people.me.id, body: 'いいですね、2固定にします！', created_at: at(now, -3) },
+  ];
+  return { r, participations, messages };
+}
+
+/** 募集詳細 (まだ参加していない方): バトルアリーナの承認制。参加前でもチャットで話せる */
+export function detailBrowse(now: Date) {
+  const r = feed(now).find((x) => x.owner_deck_level != null)!;
+  const messages: Message[] = [
+    { id: 'b1', recruitment_id: r.id, user_id: people.kei.id, body: 'S6以上のタンクさん歓迎です', created_at: at(now, -5) },
+    { id: 'b2', recruitment_id: r.id, user_id: people.shiro.id, body: 'ガンナーでも大丈夫ですか？', created_at: at(now, -2) },
+    { id: 'b3', recruitment_id: r.id, user_id: people.kei.id, body: '大丈夫です！申請どうぞ', created_at: at(now, -1) },
+  ];
+  return { r, messages };
 }

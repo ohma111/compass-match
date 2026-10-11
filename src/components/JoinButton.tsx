@@ -10,7 +10,8 @@ import { useEnsureProfile } from './ProfileSheet';
 import { useCurrentRank, useEnsureRank, useRankNow } from './RankSheet';
 import { useEnsureDiscord } from './DiscordSheet';
 import { useJoinAsk, type DeckAnswer } from './JoinAskSheet';
-import type { Recruitment } from '@/lib/types';
+import type { JoinExtra } from '@/lib/join-extra';
+export type { JoinExtra } from '@/lib/join-extra';
 
 export type AuthState = 'guest' | 'no-profile' | 'ready' | 'restricted';
 
@@ -26,20 +27,6 @@ export interface JoinControl {
  * そのあと詳細ページで自動的に参加を再開する (IntentRunner)。
  * 文字のボタンと、ロビーの空き席の両方から同じものを使う。
  */
-/** v15: デキレを聞く募集の条件と、ほかの募集に参加中・募集中か */
-export interface JoinExtra {
-  deck?: { minDeck: number | null; minCollab: number | null } | null;
-  busyElsewhere?: boolean;
-}
-
-/** 募集から JoinExtra を作る */
-export function joinExtraOf(r: Pick<Recruitment, 'owner_deck_level' | 'min_deck_level' | 'min_collab'>, busyElsewhere = false): JoinExtra {
-  return {
-    deck: r.owner_deck_level != null ? { minDeck: r.min_deck_level ?? null, minCollab: r.min_collab ?? null } : null,
-    busyElsewhere,
-  };
-}
-
 export function useJoin(recruitmentId: string, auth: AuthState, src?: string | null, minRank?: RankBand | null, vcOn = false, extra: JoinExtra = {}): JoinControl {
   const ask = useJoinAsk();
   const router = useRouter();

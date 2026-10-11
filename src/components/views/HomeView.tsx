@@ -88,6 +88,7 @@ export function HomeView({ items, total, myRooms = [], canEligible = false, stat
   );
   const option = (on: boolean, to: string, label: string) => (
     <Link
+      key={label}
       href={to}
       aria-current={on ? 'true' : undefined}
       className={`inline-flex min-h-10 items-center border-2 px-3 text-[13px] font-bold ${on ? 'border-ink bg-ink text-white' : 'border-ink/25 text-ink-2 hover:border-ink'}`}
