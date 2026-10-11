@@ -50,7 +50,7 @@ export interface RecruitmentDetailViewProps {
 function shareData(r: Recruitment, base: string): { text: string; url: string } {
   const url = `${base}/recruitments/${r.id}?src=x`;
   const left = remainingSlots(r.capacity, r.approved_count);
-  const text = `#コンパス ${PURPOSE_LABELS[r.purpose]}募集「${r.title}」\n${formatJst(r.starts_at)}〜${left > 0 ? ` あと${left}人` : ''}\n`;
+  const text = `#コンパス ${PURPOSE_LABELS[r.purpose]}募集「${r.title}」\n${formatJst(r.starts_at)}〜${left > 0 ? ` @${left}人` : ''}\n`;
   return { text, url };
 }
 
