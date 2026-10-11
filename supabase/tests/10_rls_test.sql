@@ -720,7 +720,7 @@ select pg_temp.as_user(:U4);
 select pg_temp.expect_error($$select public.extend_recruitment((select id from public.recruitments where title = 'S5以上'), 90)$$, 'v14: only 30 or 60');
 select public.extend_recruitment((select id from public.recruitments where title = 'S5以上'), 60);
 reset role;
-select pg_temp.assert((select ends_at - starts_at from public.recruitments where title = 'S5以上') = interval '2 hours', 'v14: extended by 1 hour');
+select pg_temp.assert((select ends_at - starts_at from public.recruitments where title = 'S5以上') = interval '90 minutes', 'v17: extension stops at 90 minutes');
 -- チャットの通知を止めると、新着メッセージの通知はプッシュの対象にならない
 select pg_temp.as_user(:U4);
 select public.set_chat_mute((select id from public.recruitments where title = 'S5以上'), true);
