@@ -195,7 +195,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   }
 
   return (
-    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active} sheetOpen={sheetOpen}>
+    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active} sheetOpen={sheetOpen} rankReady={signedIn} currentRank={signedIn ? "s6" : null} discordReady={signedIn}>
       {body}
     </AppShell>
   );
