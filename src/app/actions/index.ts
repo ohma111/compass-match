@@ -229,6 +229,18 @@ export async function setRoomCodeAction(recruitmentId: string, roomCode: string)
 }
 
 /** 募集者が募集の時間を延ばす (30分か1時間。開始から6時間まで) */
+/** 募集者が部屋を閉じる (固定を解散する) */
+export async function dissolveRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('dissolve_recruitment', { p_recruitment_id: id.data });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: '固定を解散しました' };
+}
+
 export async function extendRecruitmentAction(recruitmentId: string, minutes: number): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
   if (!id.success || (minutes !== 30 && minutes !== 60)) return fail('操作できませんでした。ページを再読み込みしてください');

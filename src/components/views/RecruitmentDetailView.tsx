@@ -16,7 +16,7 @@ import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
 import { RoomCodePanel } from '@/components/RoomCodePanel';
 import { IntentRunner } from '@/components/IntentRunner';
-import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, extendRecruitmentAction, keepRecruitmentAction, setDuoPlayingAction } from '@/app/actions';
+import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, dissolveRecruitmentAction, keepRecruitmentAction, setDuoPlayingAction } from '@/app/actions';
 import { CopyButton } from '@/components/CopyButton';
 import type { MemberContact, Message, Participation, Recruitment, RoomInfo } from '@/lib/types';
 
@@ -89,7 +89,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   // 開始から6時間までは延ばせる (DB の制約と同じ)
   // 2固定中にできる: バトルアリーナ・フリーバトルの3人募集で、参加者が1人以上
   const duoAble = (r.purpose === 'rank' || r.purpose === 'enjoy') && r.capacity === 3 && r.approved_count >= 1;
-  const extendable = new Date(r.ends_at).getTime() < new Date(r.starts_at).getTime() + 6 * 3600_000;
   const justJoined = Boolean(props.justJoined && myState === 'approved');
   const seats = seatsFor(r, {
     approved,
@@ -373,18 +372,10 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                 {r.duo_playing ? '2固定中を外す' : '2固定中にする (2人で遊びながら@1を待つ)'}
               </ActionButton>
             )}
-            {isOwner && active && extendable && (
-              <div className="space-y-1">
-                <p className="text-[13px] font-bold">募集の時間を延ばす <span className="font-medium text-slate">(今は {formatJstTime(r.ends_at)} まで)</span></p>
-                <div className="grid grid-cols-2 gap-2">
-                  <ActionButton action={extendRecruitmentAction.bind(null, id, 30)} className="btn-outline w-full">
-                    30分延長
-                  </ActionButton>
-                  <ActionButton action={extendRecruitmentAction.bind(null, id, 60)} className="btn-outline w-full">
-                    1時間延長
-                  </ActionButton>
-                </div>
-              </div>
+            {isOwner && active && (
+              <ActionButton action={dissolveRecruitmentAction.bind(null, id)} className="btn-primary w-full" confirm="固定を解散して部屋を閉じますか？">
+                固定を解散する
+              </ActionButton>
             )}
             {isOwner && active && (
               <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消しますか？ 参加者にも通知されます。">

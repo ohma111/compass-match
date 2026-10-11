@@ -17,7 +17,6 @@ import {
   STANCES,
   DURATIONS,
   DISCORD_HINT,
-  DURATION_LABELS,
   type Duration,
   DECK_LEVELS,
   PLAY_ROLES,
@@ -95,7 +94,7 @@ const DEFAULTS: Choices = {
   minRank: '',
   vc: 'any',
   tags: [],
-  duration: 60,
+  duration: 300,
   duoOk: false,
   wantedRoles: [],
   ownerRoles: [],
@@ -415,25 +414,6 @@ export function CreateRecruitmentForm({
             onChange={(k, d, hm) => setC((prev) => ({ ...prev, startKey: k, startDay: d, startTime: hm }))}
           />
           <input type="hidden" name="duration" value={c.duration} />
-          <div className="mt-3 flex items-center gap-3">
-            <span className="shrink-0 text-[13px] font-bold text-ink-2">募集の時間</span>
-            <div className="grid flex-1 grid-cols-3 gap-2" role="radiogroup" aria-label="募集の時間">
-              {DURATIONS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  role="radio"
-                  aria-checked={c.duration === d}
-                  onClick={() => set('duration', d)}
-                  className={`inline-flex min-h-11 items-center justify-center border-2 text-sm font-bold transition-colors ${
-                    c.duration === d ? 'border-ink bg-ink text-white' : 'border-ink/25 bg-sheet text-ink-2 hover:border-ink'
-                  }`}
-                >
-                  {DURATION_LABELS[d]}
-                </button>
-              ))}
-            </div>
-          </div>
         </fieldset>
 
         {/* 人数 */}

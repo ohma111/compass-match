@@ -122,11 +122,12 @@ export const RECRUIT_STATUS_LABELS = {
 export type RecruitStatus = keyof typeof RECRUIT_STATUS_LABELS;
 
 /** 終了時刻は入力させず、開始 + 選んだ時間で自動設定する (既定は1時間) */
-export const DEFAULT_DURATION_MIN = 60;
+export const DEFAULT_DURATION_MIN = 300;
 /** 募集の時間の選択肢 (分)。DB の制約は開始から6時間まで */
-export const DURATIONS = [60, 120, 180] as const;
+/** 募集 (部屋) は開始から5時間で必ず閉じる。利用者は選べない */
+export const DURATIONS = [300] as const;
 export type Duration = (typeof DURATIONS)[number];
-export const DURATION_LABELS: Record<Duration, string> = { 60: '1時間', 120: '2時間', 180: '3時間' };
+export const DURATION_LABELS: Record<Duration, string> = { 300: '5時間' };
 
 export const LIMITS = {
   displayName: 20,
