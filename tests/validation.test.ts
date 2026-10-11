@@ -111,12 +111,12 @@ function build(over: Record<string, unknown> = {}, now = NOW) {
 }
 
 describe('buildRecruitment (tap-based create)', () => {
-  it('resolves the start chip in JST, sets end = start + 5h and auto title', () => {
+  it('resolves the start chip in JST, sets end = start + 90min and auto title', () => {
     const r = build();
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.data.startsAt.toISOString()).toBe('2026-10-01T12:00:00.000Z');
-    expect(r.data.endsAt.toISOString()).toBe('2026-10-01T17:00:00.000Z');
+    expect(r.data.endsAt.toISOString()).toBe('2026-10-01T13:30:00.000Z');
     expect(r.data.title).toBe('バトルアリーナ S5↑の募集');
     expect(r.data.capacity).toBe(2);
     expect(r.data.joinMode).toBe('instant');
@@ -124,9 +124,9 @@ describe('buildRecruitment (tap-based create)', () => {
     expect(r.data.stance).toBe('win');
     expect(r.data.src).toBe('guild');
   });
-  it('募集は開始から5時間で閉じ、時間は選べない', () => {
+  it('募集は開始から90分で閉じ、時間は選べない', () => {
     const two = build({ duration: '120' });
-    expect(two.ok && two.data.endsAt.toISOString()).toBe('2026-10-01T17:00:00.000Z');
+    expect(two.ok && two.data.endsAt.toISOString()).toBe('2026-10-01T13:30:00.000Z');
   });
   it('keeps a custom title (ひとこと)', () => {
     const r = build({ title: '  1戦だけ!  ' });

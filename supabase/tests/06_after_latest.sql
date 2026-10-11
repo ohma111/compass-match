@@ -91,7 +91,7 @@ end $$;
 select 'V14 MIGRATION OK' as result;
 
 
--- v17: 5時間で閉じる・解散・90分で発言が消える
+-- v17: 90分で閉じる・解散・90分で発言が消える
 do $$
 declare
   u uuid := '20000000-0000-4000-8000-0000000000f1';
@@ -100,10 +100,10 @@ begin
   insert into auth.users (id) values (u);
   insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values (u, '部屋の人', 's1', now(), 't');
   insert into public.recruitments (owner_id, title, purpose, starts_at, ends_at, capacity, join_mode)
-    values (u, 'v17', 'enjoy', now(), now() + interval '5 hours', 3, 'instant') returning id into r;
-  update public.recruitments set ends_at = starts_at + interval '6 hours' where id = r;
-  if (select ends_at - starts_at from public.recruitments where id = r) <> interval '5 hours' then
-    raise exception 'ASSERT FAILED: room longer than 5h';
+    values (u, 'v17', 'enjoy', now(), now() + interval '90 minutes', 3, 'instant') returning id into r;
+  update public.recruitments set ends_at = starts_at + interval '3 hours' where id = r;
+  if (select ends_at - starts_at from public.recruitments where id = r) <> interval '90 minutes' then
+    raise exception 'ASSERT FAILED: room longer than 90min';
   end if;
   insert into public.messages (recruitment_id, user_id, body, created_at) values (r, u, '古い', now() - interval '91 minutes'), (r, u, '新しい', now());
   perform private.purge_old_messages();

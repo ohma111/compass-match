@@ -94,7 +94,7 @@ const DEFAULTS: Choices = {
   minRank: '',
   vc: 'any',
   tags: [],
-  duration: 300,
+  duration: 90,
   duoOk: false,
   wantedRoles: [],
   ownerRoles: [],

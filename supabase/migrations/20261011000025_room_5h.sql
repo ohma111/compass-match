@@ -1,20 +1,20 @@
 -- =====================================================================
 -- v17: 部屋 (募集) の時間
---   1) 募集は開始から5時間で必ず閉じる (利用者は時間を選べない・延長もしない)
+--   1) 募集は開始から90分で必ず閉じる (利用者は時間を選べない・延長もしない)
 --   2) チャットは送ってから90分で消える (部屋が開いている間も)
 --   3) 募集者が「固定を解散する」で部屋を閉じる (dissolve_recruitment)
 -- SQL Editor に貼って1回実行する。2回実行しても壊れない。
 -- =====================================================================
 
--- 1) 終了は開始から5時間まで (延長・2固定中の自動延長もここで止まる)
+-- 1) 終了は開始から90分まで (延長・2固定中の自動延長もここで止まる)
 create or replace function private.clamp_room_end()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
 begin
-  if new.ends_at > new.starts_at + interval '5 hours' then
-    new.ends_at := new.starts_at + interval '5 hours';
+  if new.ends_at > new.starts_at + interval '90 minutes' then
+    new.ends_at := new.starts_at + interval '90 minutes';
   end if;
   return new;
 end;
