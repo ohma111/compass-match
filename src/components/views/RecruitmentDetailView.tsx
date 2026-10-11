@@ -354,7 +354,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                       </span>
                     )}
                     {c.contact_x && <span className="break-all text-ink-2">X @{c.contact_x}</span>}
-                    {c.contact_ingame && <span className="break-all text-ink-2">ゲーム内 {c.contact_ingame}</span>}
+                    {c.contact_ingame && <span className="break-all text-ink-2">プレイヤー名 {c.contact_ingame}</span>}
                     {!c.contact_discord && !c.contact_x && !c.contact_ingame && <span className="text-slate">連絡先は登録されていません</span>}
                   </li>
                 ))}

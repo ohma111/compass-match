@@ -128,7 +128,7 @@
 - リンクは `@/components/Link` (prefetch={false} が既定) を使う。`next/link` を直接 import するとテスト (tests/proxy-matcher.test.ts) で落ちる。押したときに1回だけ読む。
 - proxy はログイン Cookie (`sb-<ref>-auth-token` / `.0`)・`?src=`・メンテナンス中も開くページ (/transfer /auth /terms /privacy) のときだけ動く。ref は `src/lib/supabase-ref.ts` に固定し、`NEXT_PUBLIC_SUPABASE_URL` と違うと next.config.ts がビルドを止める。Supabase のプロジェクトを変えるときは supabase-ref.ts と proxy.ts の matcher を両方直す。未ログインの方は x-pathname を自分で付けるとメンテナンスの画面を避けて閲覧だけはできる (書き込みは DB で止まる)。
 - 募集ごとの共有画像は CDN に5分 (失敗時30秒)、proxy の対象外。robots.txt で `/?purpose=` `/?soon=` を外した。
-- 案のまま: 操作のあとの router.refresh の重複 (ActionButton など。revalidatePath だけで画面は更新される)、staleTimes.dynamic。実数は Vercel の Usage / Observability で見る。
+- 案のまま: staleTimes.dynamic。実数は Vercel の Usage / Observability で見る。(router.refresh の重複は 10/11 に外した)
 
 ## 2026-10-10 夜 (v14 フィードバック対応・無料版)
 - 一覧と原因の調査結果は Claude Doc「JOIN COMPASS フィードバック対応 (v14)」。
@@ -168,6 +168,13 @@
 - migration 24 (本番適用済み 10/11)。
 - 本番への適用 (10/11): 17〜24 をまとめた `docs/sql/apply-17-24.sql` を運営者が SQL Editor で1回流した (18 は PR #6 の分。単体で流し直すと自動お気に入りが戻るので流さない)。PR #11 をマージし、run.mjs (作成画面の「使うロール」に対応) が本番で通った。
 - 使い方の動画 (v14〜v16、縦2分10秒、ナレーションなし): 開発用プレビュー (/dev/preview) のダミーデータを録画して HyperFrames で組んだ。動画に出すユーザー名は「正義・ルチアーノルド・タダ雄美」(運営者の指定、src/lib/fixtures.ts)。BGM は numpy で合成 (低いドローン + 控えめな拍)。
+
+## 2026-10-11 (調査スレッドからの引き継ぎ・運営者の了承)
+- 表記「ゲーム内ID」→「プレイヤー名」(プロフィール編集・募集の連絡先・入力エラー・プライバシーポリシー)。DB の列 contact_ingame と既存の値はそのまま。
+- 登録シート (ProfileSheet): getUser() が通信エラー・5xx・429 のときは匿名アカウントを作らない (前は作っていたので、障害の直後に押すと今のログインが上書きされ戻れなくなった)。AuthSessionMissingError と、ユーザーが消えている (403 など) ときだけ作る。
+- チャットの発言でページ全体を描き直さない: LobbyLineup の変化の確認から最新の発言を外した。ChatRoom は Broadcast がつながっていない間だけ20秒ごとに発言を読み直す。
+- 操作のあとの router.refresh を外した (ActionButton・JoinButton の申請・RoomCodePanel・AvatarPicker)。どれも Server Action の revalidatePath が今のページを含むので、その応答で画面が更新される。ProfileSheet・RankSheet・IntentRunner・EnterListLink はログイン状態や移動が絡むので残した。手元のサーバー (本番 DB) で run.mjs が通った。
+- チャットの部屋番号まわりの検査 (「1234ok」「1234 gg」、0で始まる番号の3回の貼り直し) は運営者の判断待ち。
 
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。

@@ -80,7 +80,6 @@ export function useJoin(recruitmentId: string, auth: AuthState, src?: string | n
         router.push(`${detail}?joined=1`);
       } else {
         setDone('申請しました');
-        router.refresh();
       }
     });
   }

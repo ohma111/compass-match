@@ -94,7 +94,7 @@ export const profileSchema = z.object({
     .string()
     .optional()
     .transform((s) => (s ?? '').trim())
-    .pipe(z.string().max(20, 'ゲーム内IDは20文字以内で入力してください').refine((s) => !containsUrl(s), NO_URL))
+    .pipe(z.string().max(20, 'プレイヤー名は20文字以内で入力してください').refine((s) => !containsUrl(s), NO_URL))
     .transform((s) => (s === '' ? null : s)),
   agreeTerms: z.boolean(),
   src: z.unknown().transform(sanitizeSrc),

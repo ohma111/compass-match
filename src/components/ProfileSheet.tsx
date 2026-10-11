@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { ArrowRight, X } from 'lucide-react';
 import { createProfileAction } from '@/app/actions';
 import { getBrowserClient } from '@/lib/supabase/client';
+import { isAuthRetryableFetchError, isAuthSessionMissingError } from '@supabase/supabase-js';
 import { LIMITS, PLAY_ROLES, PLAY_ROLE_LABELS, RANK_BANDS, RANK_BANDS_DESC, RANK_LABELS, type PlayRole, type RankBand } from '@/lib/constants';
 import { containsUrl } from '@/lib/validation/url';
 import { Lineup } from './Lineup';
@@ -111,7 +112,13 @@ export function ProfileStartForm({
     setError(null);
     try {
       const supabase = getBrowserClient();
-      const { data } = await supabase.auth.getUser();
+      const { data, error: userErr } = await supabase.auth.getUser();
+      // 通信エラー・混雑 (5xx・429) のときは作らない。作ると今のログインが新しい匿名アカウントで上書きされ、元に戻れなくなる
+      if (!data.user && userErr && !isAuthSessionMissingError(userErr) && (isAuthRetryableFetchError(userErr) || !userErr.status || userErr.status >= 500 || userErr.status === 429)) {
+        setError('混み合っています。1分ほど待ってから、もう一度お試しください');
+        setPending(false);
+        return;
+      }
       if (!data.user) {
         // 接続元ごとの回数制限が利用者ごとに効くよう、ブラウザから直接作る
         const { error: err } = await supabase.auth.signInAnonymously();
