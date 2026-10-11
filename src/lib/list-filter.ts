@@ -20,13 +20,20 @@ export interface ListView {
   vc?: RecruitVc;
   stance?: Stance;
   sort: ListSort;
+  /** 満員の募集を出さない (既定は出す。一覧の一番下にまとめる) */
+  hideFull: boolean;
 }
 
-export const DEFAULT_VIEW: ListView = { purpose: 'all', soon: false, eligible: false, sort: 'start' };
+export const DEFAULT_VIEW: ListView = { purpose: 'all', soon: false, eligible: false, sort: 'start', hideFull: false };
+
+/** 満員の募集 */
+export function isFullRecruitment(r: Recruitment): boolean {
+  return r.status === 'full' || isFull(r.capacity, r.approved_count);
+}
 
 /** 目的・30分以内以外の条件を使っているか (時間割の区切りを出すか、空のときの文言) */
 export function hasExtraFilter(v: ListView): boolean {
-  return v.eligible || Boolean(v.vc) || Boolean(v.stance) || v.sort !== 'start';
+  return v.eligible || Boolean(v.vc) || Boolean(v.stance) || v.sort !== 'start' || v.hideFull;
 }
 
 export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
@@ -38,6 +45,7 @@ export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
   if (n.vc) p.set('vc', n.vc);
   if (n.stance) p.set('stance', n.stance);
   if (n.sort !== 'start') p.set('sort', n.sort);
+  if (n.hideFull) p.set('nofull', '1');
   const s = p.toString();
   return s ? `/?${s}` : '/';
 }
@@ -45,12 +53,12 @@ export function listHref(v: ListView, patch: Partial<ListView> = {}): string {
 /**
  * 一覧に条件を当てて並べ替える。eligible は自分のランクが分かるときだけ効く。
  * 既定の並び (start) は、時刻を決めた「これからの募集」を上に (開始が近い順)、始まっている募集 (NOW) をその下に
- * (古い順) 置く。あとから出た「今すぐ」に人が流れて、先に時刻を決めた募集に人が来ないという声への対応 (v15)。
+ * (古い順) 置く。満員の募集はどの並び順でも一番下にまとめる (v17)。あとから出た「今すぐ」に人が流れて、先に時刻を決めた募集に人が来ないという声への対応 (v15)。
  */
 export function applyListView(items: Recruitment[], v: ListView, myRank: RankBand | null | undefined, now: Date = new Date()): Recruitment[] {
   let out = items.filter((r) => {
-    // 満員の募集は出さない (自分の募集・参加中の募集は一覧の上の「参加中・自分の募集」に出る)
-    if (r.status === 'full' || isFull(r.capacity, r.approved_count)) return false;
+    // 満員の募集は切り替えで隠せる (出すときは一番下にまとめる)
+    if (v.hideFull && isFullRecruitment(r)) return false;
     if (v.eligible && myRank && !meetsMinRank(myRank, r.min_rank)) return false;
     if (v.vc && r.vc !== v.vc) return false;
     if (v.stance && r.stance !== v.stance) return false;
@@ -66,5 +74,6 @@ export function applyListView(items: Recruitment[], v: ListView, myRank: RankBan
     const rv = (r: Recruitment) => (r.owner?.rank_band ? rankValue(r.owner.rank_band) : -1);
     out = [...out].sort((a, b) => rv(b) - rv(a));
   }
-  return out;
+  // 満員は並び順に関係なく一番下へ (それぞれの中の順は保つ)
+  return [...out.filter((r) => !isFullRecruitment(r)), ...out.filter(isFullRecruitment)];
 }

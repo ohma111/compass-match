@@ -314,6 +314,8 @@ export const listFilterSchema = z.object({
   vc: z.enum(RECRUIT_VC).optional().catch(undefined),
   stance: z.enum(STANCES).optional().catch(undefined),
   sort: z.enum(LIST_SORTS).catch('start'),
+  /** 満員の募集を出さない (?nofull=1) */
+  nofull: flag,
 });
 export type ListQuery = z.output<typeof listFilterSchema>;
 
