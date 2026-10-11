@@ -23,3 +23,4 @@ begin
   delete from auth.users where id::text like '00000000-0000-4000-8000-0000000001%' or id = '00000000-0000-4000-8000-0000000000f0';
 end $$;
 select 'V12 MIGRATION OK' as result;
+

@@ -278,10 +278,10 @@ try {
       await step('片付け: B が参加を取り消す', async () => {
         const p = B.page;
         await p.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-        const btn = p.getByRole('button', { name: '参加を取り消す' });
+        const btn = p.getByRole('button', { name: '参加をやめて抜ける' });
         if (await btn.count()) {
           await btn.click();
-          await p.getByRole('group').getByRole('button', { name: '参加を取り消す' }).click();
+          await p.getByRole('group').getByRole('button', { name: '参加をやめて抜ける' }).click();
           await p.getByRole('button', { name: /参加する/ }).first().waitFor({ timeout: 15_000 });
         }
         await snap(p, 'cleanup-B-left');

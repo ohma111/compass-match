@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, useTransition } from 'react';
 import { X } from 'lucide-react';
 import { saveDiscordAction } from '@/app/actions';
+import { DISCORD_HINT } from '@/lib/constants';
 
 /**
  * VC ありの募集に参加するとき、Discord のユーザー名がまだなければこのシートで聞く。
@@ -83,6 +84,7 @@ function Sheet({ onDone, onCancel }: { onDone: () => void; onCancel: () => void 
             placeholder="例: compass_taro"
             aria-label="Discord のユーザー名"
           />
+          <p className="hint">{DISCORD_HINT}</p>
           <p className="hint">参加が決まったメンバーにだけ表示されます。プロフィールの連絡先にも保存します。</p>
           {error && <p className="alert-error" role="alert">{error}</p>}
           <button className="btn-primary btn-lg w-full" disabled={pending || !valid}>

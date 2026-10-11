@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lineup, type Seat } from './Lineup';
-import { JoinButton, useJoin, type AuthState } from './JoinButton';
+import { JoinButton, useJoin, type AuthState, type JoinExtra } from './JoinButton';
 import { meetsMinRank, type JoinMode, type RankBand } from '@/lib/constants';
 import { useCurrentRank } from './RankSheet';
 import { getBrowserClient } from '@/lib/supabase/client';
@@ -60,10 +60,11 @@ export function LobbyLineup(props: {
   warnBlocked?: boolean;
   minRank?: RankBand | null;
   vcOn?: boolean;
+  extra?: JoinExtra;
 }) {
   const router = useRouter();
   const myRank = useCurrentRank();
-  const control = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn);
+  const control = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn, props.extra);
   const prevOccupied = useRef(props.occupied);
   const [entering, setEntering] = useState<number[]>([]);
 
@@ -154,15 +155,11 @@ export function LobbyLineup(props: {
             {props.stamp}
           </p>
         ) : (
-          <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`${props.capacity}人中${props.occupied}人${props.left > 0 ? `、あと${props.left}人` : '、満員'}`}>
-            <span className="type-time text-[30px] leading-none text-ink">
-              {props.occupied}
-              <span className="text-[20px] text-slate">/{props.capacity}</span>
-            </span>
-            <span className={`px-2 text-[15px] leading-7 font-black ${props.left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>
-              {props.left > 0 ? `あと${props.left}人` : '満員'}
-            </span>
-          </p>
+          props.left > 0 ? (
+            <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`あと${props.left}人`}>
+              <span className="bg-signal px-2 text-[18px] leading-8 font-black text-ink">@{props.left}人</span>
+            </p>
+          ) : null
         )}
       </div>
       <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} tall />

@@ -8,7 +8,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { AVATARS, TERMS_VERSION } from '@/lib/constants';
+import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
@@ -154,6 +154,14 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     joinMode: fd.get('joinMode') ?? '',
     minRank: fd.get('minRank') ?? '',
     vc: fd.get('vc') ?? 'any',
+    duration: fd.get('duration') ?? undefined,
+    duoOk: fd.get('duoOk') ?? undefined,
+    wantedRoles: formStrings(fd, 'wantedRoles'),
+    ownerRoles: formStrings(fd, 'ownerRoles'),
+    ownerDeck: fd.get('ownerDeck') ?? undefined,
+    ownerCollab: fd.get('ownerCollab') ?? undefined,
+    minDeck: fd.get('minDeck') ?? undefined,
+    minCollab: fd.get('minCollab') ?? undefined,
     tags: formStrings(fd, 'tags'),
     title: fd.get('title') ?? '',
     src: await srcFromCookie(fd.get('src')),
@@ -181,6 +189,13 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
     p_src: v.src,
     p_join_mode: v.joinMode,
     p_stance: v.stance,
+    p_duo_ok: v.duoOk,
+    p_wanted_roles: v.wantedRoles,
+    p_owner_deck_level: v.ownerDeck,
+    p_owner_collab: v.ownerCollab,
+    p_min_deck_level: v.minDeck,
+    p_min_collab: v.minCollab,
+    p_owner_roles: v.ownerRoles,
   });
   if (error) return fail(toUserMessage(error));
   pushLater();
@@ -212,19 +227,69 @@ export async function setRoomCodeAction(recruitmentId: string, roomCode: string)
   return { ok: true, message: '部屋番号を更新しました' };
 }
 
+/** 募集者が募集の時間を延ばす (30分か1時間。開始から6時間まで) */
+export async function extendRecruitmentAction(recruitmentId: string, minutes: number): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success || (minutes !== 30 && minutes !== 60)) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('extend_recruitment', { p_recruitment_id: id.data, p_minutes: minutes });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: minutes === 60 ? '1時間延長しました' : '30分延長しました' };
+}
+
+/** 55分の確認に「続ける」と答える (ここから55分後にまた確かめる) */
+export async function keepRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('keep_recruitment', { p_recruitment_id: id.data });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  return { ok: true, message: '募集を続けます' };
+}
+
+/** 2固定中にする / 戻す */
+export async function setDuoPlayingAction(recruitmentId: string, on: boolean): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_duo_playing', { p_recruitment_id: id.data, p_on: Boolean(on) });
+  if (error) return fail(toUserMessage(error));
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: on ? '2固定中にしました' : '2固定中を外しました' };
+}
+
+/** この募集のチャットの通知を止める / 戻す */
+export async function setChatMuteAction(recruitmentId: string, muted: boolean): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('set_chat_mute', { p_recruitment_id: id.data, p_on: Boolean(muted) });
+  if (error) return fail(toUserMessage(error));
+  return { ok: true, message: muted ? 'この募集のチャットの通知を止めました' : 'この募集のチャットの通知を戻しました' };
+}
+
 // ---------------------------------------------------------------------
 // 参加
 // ---------------------------------------------------------------------
 export async function requestJoinAction(
   recruitmentId: string,
   src?: string | null,
+  deck?: { deck: number; collab: number } | null,
 ): Promise<ActionResult<{ joined: boolean }>> {
   const id = uuidSchema.safeParse(recruitmentId);
   if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  if (deck && (!isDeckLevel(deck.deck) || !Number.isInteger(deck.collab) || deck.collab < 0 || deck.collab > COLLAB_MAX)) {
+    return fail('デキレとコラボ数を選び直してください');
+  }
   const supabase = await createClient();
   const { data, error } = await supabase.rpc('request_join', {
     p_recruitment_id: id.data,
     p_src: await srcFromCookie(src),
+    ...(deck ? { p_deck_level: deck.deck, p_collab: deck.collab } : {}),
   });
   if (error) return fail(toUserMessage(error));
   pushLater();

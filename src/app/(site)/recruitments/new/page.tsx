@@ -29,6 +29,7 @@ export default async function NewRecruitmentPage({ searchParams }: { searchParam
       src={sanitizeSrc(sp.src) ?? ''}
       ownerName={viewer?.profile?.display_name ?? null}
       discord={discord}
+      ownerRoles={viewer?.profile?.play_roles ?? []}
     />
   );
 }

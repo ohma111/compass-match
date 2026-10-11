@@ -3,6 +3,7 @@ import { useActionState, useEffect, useState } from 'react';
 import { adminAnnounceAction, adminSetMaintenanceAction } from '@/app/actions';
 import { FormMessage } from '@/components/FormMessage';
 import type { SiteStatus } from '@/lib/site-status-shared';
+import { keepForm } from '@/lib/use-keep-form';
 
 /** ISO → 日本時間の「YYYY-MM-DDTHH:mm」(datetime-local の値) */
 function toJstInput(iso: string | null): string {
@@ -13,7 +14,7 @@ function toJstInput(iso: string | null): string {
 export function MaintenanceForm({ status }: { status: SiteStatus | null }) {
   const [state, action, pending] = useActionState(adminSetMaintenanceAction, null);
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={keepForm(action)} className="space-y-4">
       <label className="flex min-h-12 cursor-pointer items-center gap-3 border-2 border-ink/25 bg-sheet px-3 has-[:checked]:border-signal has-[:checked]:bg-signal/10">
         <input type="checkbox" name="manualOn" defaultChecked={status?.manual_on ?? false} className="size-5 accent-[var(--color-signal)]" />
         <span className="font-bold">今すぐメンテナンスにする</span>

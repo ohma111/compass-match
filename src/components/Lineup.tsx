@@ -137,7 +137,7 @@ export function Lineup({
                     {s.roles && s.roles.length > 1 && (
                       <span className="flex gap-1 pb-0.5 opacity-75">
                         {s.roles.slice(1).map((r) => (
-                          <RoleIcon key={r} role={r} className="size-4" />
+                          <RoleIcon key={r} role={r} className="size-3.5" framed />
                         ))}
                       </span>
                     )}
