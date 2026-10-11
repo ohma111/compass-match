@@ -125,6 +125,9 @@ try {
     await p.getByRole('radio', { name: '今すぐ' }).click();
     await p.locator('label', { hasText: 'あと1人' }).click();
     await p.locator('label', { hasText: '早い者勝ち' }).click();
+    // v16: 募集者が使うロールは必須 (プロフィールの得意ロールが初期値。新しい試験用アカウントは未設定)
+    const ar = p.locator('#owner-roles input[value="attacker"]');
+    if (!(await ar.isChecked())) await p.locator('#owner-roles label', { hasText: 'アタッカー' }).click();
     await snap(p, 'A-new');
     await p.getByRole('button', { name: /^募集する/ }).first().click();
     await fillSheet(p, 'テストA');

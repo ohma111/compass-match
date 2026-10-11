@@ -96,7 +96,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       break;
     case 'new':
       active = 'new';
-      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" ownerRoles={['tank', 'gunner']} />;
+      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="正義" ownerRoles={["attacker", "gunner"]} />;
       break;
     case 'detail-owner': {
       const d = detailOwner(now);
