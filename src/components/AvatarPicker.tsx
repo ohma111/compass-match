@@ -1,6 +1,5 @@
 'use client';
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { Shuffle } from 'lucide-react';
 import { setAvatarAction } from '@/app/actions';
 import { AVATARS, AVATAR_LABELS, type Avatar } from '@/lib/constants';
@@ -8,7 +7,6 @@ import { AvatarIcon } from './Avatar';
 
 /** プロフィールのアイコンを選ぶ。押したらすぐ保存する */
 export function AvatarPicker({ initial }: { initial: Avatar | null }) {
-  const router = useRouter();
   const [value, setValue] = useState<Avatar | null>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -24,7 +22,6 @@ export function AvatarPicker({ initial }: { initial: Avatar | null }) {
         setError(r.error);
         return;
       }
-      router.refresh();
     });
   }
   const cell = (on: boolean) =>

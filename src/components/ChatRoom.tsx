@@ -79,7 +79,7 @@ export function ChatRoom({
 
   // 新しい発言の合図 (Realtime の Broadcast)。合図には中身を載せず、受け取った側が RLS のとおりに読み直す。
   // 前は postgres_changes (DB の変更を Realtime が読み続ける) で、混雑時に DB の CPU の大半を使っていた。
-  // 合図が届かない環境でも、LobbyLineup の20秒ごとの確認で新しい発言があれば描き直す。
+  // 合図が届かない (つながっていない) 間は、20秒ごとに発言だけを読み直す (ページ全体は描き直さない)。
   const channelRef = useRef<ReturnType<ReturnType<typeof getBrowserClient>['channel']> | null>(null);
   const lastAtRef = useRef<string | null>(null);
   lastAtRef.current = messages.length ? messages[messages.length - 1].created_at : null;
@@ -109,14 +109,21 @@ export function ChatRoom({
         fetching = false;
       }
     };
+    let connected = false;
     const channel = supabase
       .channel(`chat:${recruitmentId}`)
       .on('broadcast', { event: 'new' }, () => {
         void pull();
       })
-      .subscribe();
+      .subscribe((status) => {
+        connected = status === 'SUBSCRIBED';
+      });
     channelRef.current = channel;
+    const fallback = window.setInterval(() => {
+      if (!connected && document.visibilityState === 'visible') void pull();
+    }, 20_000);
     return () => {
+      window.clearInterval(fallback);
       channelRef.current = null;
       supabase.removeChannel(channel);
     };

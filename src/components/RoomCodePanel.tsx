@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { Pencil } from 'lucide-react';
 import { setRoomCodeAction } from '@/app/actions';
 import { CopyButton } from '@/components/CopyButton';
@@ -33,7 +32,6 @@ export function RoomCodePanel({
   /** 画面の外に出たら下に小さく出す (スマホ用。1ページに1つだけ) */
   floating?: boolean;
 }) {
-  const router = useRouter();
   const [editing, setEditing] = useState(isOwner && canEdit && !code);
   const [value, setValue] = useState(code ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +69,6 @@ export function RoomCodePanel({
         return;
       }
       setEditing(false);
-      router.refresh();
     });
   }
 

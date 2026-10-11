@@ -127,7 +127,7 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
           <input id="contactX" name="contactX" maxLength={16} defaultValue={contacts?.contact_x ?? ''} className="input" placeholder="@は省略できます" autoCapitalize="off" autoComplete="off" />
         </div>
         <div>
-          <label className="label" htmlFor="contactIngame">ゲーム内ID / プレイヤー名</label>
+          <label className="label" htmlFor="contactIngame">プレイヤー名</label>
           <input id="contactIngame" name="contactIngame" maxLength={20} defaultValue={contacts?.contact_ingame ?? ''} className="input" autoComplete="off" />
         </div>
       </fieldset>
