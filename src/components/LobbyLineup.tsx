@@ -2,14 +2,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lineup, type Seat } from './Lineup';
-import { JoinButton, useJoin, type AuthState } from './JoinButton';
+import { JoinButton, useJoin, type AuthState, type JoinExtra } from './JoinButton';
 import { meetsMinRank, type JoinMode, type RankBand } from '@/lib/constants';
 import { useCurrentRank } from './RankSheet';
 import { getBrowserClient } from '@/lib/supabase/client';
 
 /**
  * 募集の「今の状態」を短い文字列にする。変わっていればページを描き直す。
- * 参加者・募集者は Supabase に直接 (RLS のとおり、申請中の行・部屋番号・発言も)。
+ * 参加者・募集者は Supabase に直接 (RLS のとおり、申請中の行・部屋番号も)。
+ * チャットはここでは見ない (ChatRoom が発言だけを読み直す。発言のたびに全員のページを描き直さないため)。
  * それ以外の方は人数と状態だけでよいので、CDN に10秒置いた /api/live を読む (何人いても DB は10秒に1回)。
  */
 async function liveSignature(recruitmentId: string, member: boolean): Promise<string> {
@@ -19,15 +20,13 @@ async function liveSignature(recruitmentId: string, member: boolean): Promise<st
     return JSON.stringify(await res.json());
   }
   const db = getBrowserClient();
-  const [rec, parts, room, msg] = await Promise.all([
+  const [rec, parts, room] = await Promise.all([
     db.from('recruitments').select('approved_count, status, hidden_at').eq('id', recruitmentId).maybeSingle(),
     db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id'),
     db.rpc('get_room_code', { p_recruitment_id: recruitmentId }),
-    // チャットは Realtime で届くが、つながらない環境のために最新の発言も見る
-    db.from('messages').select('id').eq('recruitment_id', recruitmentId).order('created_at', { ascending: false }).limit(1),
   ]);
   if (rec.error) throw rec.error;
-  return JSON.stringify([rec.data, parts.error ? null : parts.data, room.error ? null : room.data, msg.error ? null : msg.data]);
+  return JSON.stringify([rec.data, parts.error ? null : parts.data, room.error ? null : room.data]);
 }
 
 /** 席の状態を見に行く間隔 (画面が見えているときだけ) */
@@ -60,10 +59,11 @@ export function LobbyLineup(props: {
   warnBlocked?: boolean;
   minRank?: RankBand | null;
   vcOn?: boolean;
+  extra?: JoinExtra;
 }) {
   const router = useRouter();
   const myRank = useCurrentRank();
-  const control = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn);
+  const control = useJoin(props.recruitmentId, props.auth, props.src, props.minRank, props.vcOn, props.extra);
   const prevOccupied = useRef(props.occupied);
   const [entering, setEntering] = useState<number[]>([]);
 
@@ -154,15 +154,11 @@ export function LobbyLineup(props: {
             {props.stamp}
           </p>
         ) : (
-          <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`${props.capacity}人中${props.occupied}人${props.left > 0 ? `、あと${props.left}人` : '、満員'}`}>
-            <span className="type-time text-[30px] leading-none text-ink">
-              {props.occupied}
-              <span className="text-[20px] text-slate">/{props.capacity}</span>
-            </span>
-            <span className={`px-2 text-[15px] leading-7 font-black ${props.left > 0 ? 'bg-signal text-ink' : 'bg-ink text-white'}`}>
-              {props.left > 0 ? `あと${props.left}人` : '満員'}
-            </span>
-          </p>
+          props.left > 0 ? (
+            <p className="flex items-baseline gap-2.5" aria-live="polite" aria-label={`あと${props.left}人`}>
+              <span className="bg-signal px-2 text-[18px] leading-8 font-black text-ink">@{props.left}人</span>
+            </p>
+          ) : null
         )}
       </div>
       <Lineup seats={seats} size="lg" label={props.label} joinSeat={seatJoin} tall />

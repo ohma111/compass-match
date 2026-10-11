@@ -4,7 +4,7 @@ import { PushToggle } from '@/components/PushToggle';
 import Link from '@/components/Link';
 import { ChevronRight, Pencil, Shield, ShieldBan, UserRound } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
-import { RoleIcon } from '@/components/RoleIcon';
+import { RoleIcon, isAllRounder } from '@/components/RoleIcon';
 import { SignOutButton } from '@/components/SignOutButton';
 import { TransferIssue } from '@/components/TransferForms';
 import type { AccountKind } from '@/lib/transfer';
@@ -54,8 +54,8 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
           <div className="min-w-0">
             <h1 className="font-black tracking-[-0.01em] truncate text-[24px] leading-tight">{profile.display_name}</h1>
             <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-2">
-              <span className="font-bold">{rankLabel(profile.rank_band)}</span>
-              {profile.play_roles.map((r) => (
+              {profile.rank_band && <span className="font-bold"><span className="font-medium text-slate">現在 </span>{rankLabel(profile.rank_band)}</span>}
+              {isAllRounder(profile.play_roles) ? <span>オールラウンダー</span> : profile.play_roles.map((r) => (
                 <span key={r} className="inline-flex items-center gap-1">
                   <RoleIcon role={r} className="size-3.5" />
                   {PLAY_ROLE_LABELS[r]}
@@ -88,11 +88,15 @@ export function MeView({ userId, profile, loginId, accountKind, transferEmail, p
 
         {(accountKind === 'anonymous' || accountKind === 'transfer') && (
           <section className="space-y-3 border-t-2 border-ink pt-6" aria-labelledby="transfer-title">
-            <h2 id="transfer-title" className="section-title">別の端末でも使う</h2>
+            <h2 id="transfer-title" className="section-title scroll-mt-24">引き継ぎコード</h2>
             <p className="text-[13px] leading-relaxed text-slate">
-              このプロフィールは、この端末のブラウザにだけ保存されています。機種変更やブラウザのデータ削除に備えて、引き継ぎコードを作って保存しておいてください。
+              このプロフィールは、このブラウザにだけ保存されています。別の端末、X や Discord のアプリ内ブラウザ、ホーム画面に追加したアプリで開くと、別の人として扱われます。コードを作って保存しておくと、ログインの画面で入力して戻れます。
             </p>
             <TransferIssue email={transferEmail} initialCode={previewTransferCode} />
+            <Link href="/transfer" className="flex min-h-11 items-center gap-1 text-sm font-bold underline underline-offset-4">
+              コードを持っている方: ログイン
+              <ChevronRight className="size-4" aria-hidden />
+            </Link>
           </section>
         )}
 

@@ -125,6 +125,9 @@ try {
     await p.getByRole('radio', { name: '今すぐ' }).click();
     await p.locator('label', { hasText: 'あと1人' }).click();
     await p.locator('label', { hasText: '早い者勝ち' }).click();
+    // v16: 募集者が使うロールは必須 (プロフィールの得意ロールが初期値。新しい試験用アカウントは未設定)
+    const ar = p.locator('#owner-roles input[value="attacker"]');
+    if (!(await ar.isChecked())) await p.locator('#owner-roles label', { hasText: 'アタッカー' }).click();
     await snap(p, 'A-new');
     await p.getByRole('button', { name: /^募集する/ }).first().click();
     await fillSheet(p, 'テストA');
@@ -278,10 +281,10 @@ try {
       await step('片付け: B が参加を取り消す', async () => {
         const p = B.page;
         await p.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-        const btn = p.getByRole('button', { name: '参加を取り消す' });
+        const btn = p.getByRole('button', { name: '参加をやめて抜ける' });
         if (await btn.count()) {
           await btn.click();
-          await p.getByRole('group').getByRole('button', { name: '参加を取り消す' }).click();
+          await p.getByRole('group').getByRole('button', { name: '参加をやめて抜ける' }).click();
           await p.getByRole('button', { name: /参加する/ }).first().waitFor({ timeout: 15_000 });
         }
         await snap(p, 'cleanup-B-left');

@@ -6,6 +6,7 @@ import { isPreviewEnabled } from '@/lib/preview';
 import { AppShell } from '@/components/AppShell';
 import type { TabKey } from '@/components/TabBar';
 import { HomeView } from '@/components/views/HomeView';
+import { DEFAULT_VIEW, applyListView } from '@/lib/list-filter';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
 import { NewRecruitmentView } from '@/components/views/NewRecruitmentView';
 import { TransferView } from '@/components/views/AuthViews';
@@ -14,7 +15,7 @@ import { GuestMeView } from '@/components/views/GuestMeView';
 import { CoverView } from '@/components/views/CoverView';
 import { DetailSkeleton, HomeSkeleton } from '@/components/loading/Skeletons';
 import { BanScreen, MaintenancePlanned, MaintenanceScreen } from '@/components/GateScreens';
-import { ME_ID, people, detail, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
+import { ME_ID, people, detail, detailBrowse, detailOwner, feed, homeStates, meProfile, myRecruitments } from '@/lib/fixtures';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'プレビュー', robots: { index: false } };
@@ -57,7 +58,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       body = (
         <>
           <MaintenancePlanned status={{ active: false, manual_on: false, starts_at: new Date(now.getTime() + 86_400_000).toISOString(), ends_at: new Date(now.getTime() + 86_400_000 + 7200_000).toISOString(), message: '' }} />
-          <HomeView items={feed(now)} states={{}} auth="ready" viewerId={ME_ID} filter={{ purpose: 'all', soon: false }} now={now} />
+          <HomeView items={feed(now)} states={{}} auth="ready" viewerId={ME_ID} filter={DEFAULT_VIEW} now={now} />
         </>
       );
       break;
@@ -75,7 +76,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       unread = 0;
       sheetOpen = true;
       body = (
-        <HomeView items={feed(now)} states={{}} auth="guest" viewerId={null} filter={{ purpose: 'all', soon: false }} now={now} />
+        <HomeView items={feed(now)} states={{}} auth="guest" viewerId={null} filter={DEFAULT_VIEW} now={now} />
       );
       break;
     case 'home':
@@ -83,19 +84,58 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       active = 'home';
       body = (
         <HomeView
-          items={screen === 'home' ? [...feed(now)].sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : []}
+          items={screen === 'home' ? applyListView(feed(now), DEFAULT_VIEW, 's6', now) : []}
+          canEligible
           states={homeStates()}
           auth="ready"
           viewerId={ME_ID}
-          filter={{ purpose: 'all', soon: false }}
+          filter={DEFAULT_VIEW}
           now={now}
         />
       );
       break;
     case 'new':
       active = 'new';
-      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="ゆずぽん" />;
+      body = <NewRecruitmentView auth="ready" serverNow={now.toISOString()} src="" ownerName="正義" ownerRoles={["attacker", "gunner"]} />;
       break;
+    case 'detail-owner': {
+      const d = detailOwner(now);
+      body = (
+        <RecruitmentDetailView
+          r={d.r}
+          now={now}
+          auth="ready"
+          viewerId={ME_ID}
+          participations={d.participations}
+          myState="none"
+          room={{ code: '4821', updated_at: new Date(now.getTime() - 20 * 60_000).toISOString(), updated_by: ME_ID }}
+          contacts={[]}
+          messages={d.messages}
+          src={null}
+          siteUrl="http://localhost:3000"
+        />
+      );
+      break;
+    }
+    case 'detail-browse': {
+      const d = detailBrowse(now);
+      body = (
+        <RecruitmentDetailView
+          r={d.r}
+          now={now}
+          auth="ready"
+          viewerId={ME_ID}
+          participations={[]}
+          myState="none"
+          room={null}
+          contacts={[]}
+          messages={d.messages.map((m) => ({ ...m, author: { display_name: Object.values(people).find((p) => p.id === m.user_id)?.display_name ?? '' } }))}
+          src={null}
+          siteUrl="http://localhost:3000"
+        />
+      );
+      break;
+    }
     case 'detail':
     case 'detail-joined': {
       const joined = screen === 'detail-joined';
@@ -108,7 +148,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           viewerId={ME_ID}
           participations={d.participations}
           myState={d.myState}
-          roomCode={d.roomCode}
+          room={d.roomCode ? { code: d.roomCode, updated_at: null, updated_by: null } : null}
           contacts={d.contacts}
           messages={d.messages}
           src={null}
@@ -155,7 +195,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   }
 
   return (
-    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active} sheetOpen={sheetOpen}>
+    <AppShell unread={unread} signedIn={signedIn} restricted={false} configured active={active} sheetOpen={sheetOpen} rankReady={signedIn} currentRank={signedIn ? "s6" : null} discordReady={signedIn}>
       {body}
     </AppShell>
   );

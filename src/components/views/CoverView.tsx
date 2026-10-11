@@ -4,6 +4,7 @@ import { EnterListLink } from '@/components/EnterListLink';
 import { PURPOSE_LABELS } from '@/lib/constants';
 import { formatJstTime } from '@/lib/time';
 import type { Recruitment } from '@/lib/types';
+import { leftLabel } from '@/lib/capacity';
 
 /**
  * 表紙 (未登録の方が初めて開いたとき)。受付中の数と次の募集を少し見せ、一覧・プロフィール作成・ログインへ。
@@ -55,7 +56,7 @@ export function CoverView({ items, now, loadError }: { items: Recruitment[]; now
                 <PurposeMark purpose={r.purpose} />
                 <span className="truncate">{PURPOSE_LABELS[r.purpose]}</span>
                 <span className="ml-auto shrink-0 font-mono text-[13px] font-black">
-                  {Math.min(r.capacity, r.approved_count + 1)}/{r.capacity}
+                  {leftLabel(r.capacity, r.approved_count)}
                 </span>
               </span>
             </li>

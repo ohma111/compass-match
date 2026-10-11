@@ -12,14 +12,16 @@ const P = (id: string, display_name: string, rank_band: Profile['rank_band'], pl
   play_roles,
 });
 
+const luci = P('f0000000-0000-4000-8000-000000000002', 'ルチアーノルド', 's9', ['gunner', 'sprinter']);
+const tada = P('f0000000-0000-4000-8000-000000000003', 'タダ雄美', 's6', ['tank']);
 export const people = {
-  me: P(ME_ID, 'ゆずぽん', 's6', ['tank', 'gunner']),
-  taro: P('f0000000-0000-4000-8000-000000000002', 'たろう', 's7', ['attacker']),
-  mio: P('f0000000-0000-4000-8000-000000000003', 'みお', 's3', ['tank']),
-  kei: P('f0000000-0000-4000-8000-000000000004', 'Kei', 's9', ['gunner', 'sprinter']),
-  shiro: P('f0000000-0000-4000-8000-000000000005', 'しろくま', 'a', ['sprinter']),
-  natsu: P('f0000000-0000-4000-8000-000000000006', 'なつめ', 's5', ['attacker', 'gunner']),
-  rin: P('f0000000-0000-4000-8000-000000000007', 'りん', 's1', []),
+  me: P(ME_ID, '正義', 's6', ['attacker', 'gunner']),
+  taro: luci,
+  mio: tada,
+  kei: luci,
+  shiro: tada,
+  natsu: luci,
+  rin: tada,
 };
 
 type Person = (typeof people)[keyof typeof people];
@@ -57,20 +59,18 @@ function rec(
     hidden_at: null,
     created_at: at(now, -20),
     owner: { id: owner.id, display_name: owner.display_name, rank_band: owner.rank_band, play_roles: owner.play_roles },
+    owner_roles: owner.play_roles,
     ...partial,
   };
 }
 
 export function feed(now: Date): Recruitment[] {
   const at22 = (jstClock(now, 22).getTime() - now.getTime()) / min;
-  const at23 = (jstClock(now, 23).getTime() - now.getTime()) / min;
   return [
-    rec(now, 1, people.taro, { title: 'ランク S5〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's5', vc: 'on', tags: ['serious'] }, 8),
-    rec(now, 2, people.mio, { title: 'まったりバトアリ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['beginner_welcome', 'relaxed'], vc: 'off' }, -12),
-    rec(now, 3, people.kei, { title: '大会前の連携練習 タンクほしい', purpose: 'tournament', capacity: 3, approved_count: 1, join_mode: 'approval', vc: 'on', tags: ['practice'], min_rank: 's5' }, at22),
-    rec(now, 4, people.shiro, { title: 'カスタム 3vs3 やりたい人', purpose: 'custom', capacity: 6, approved_count: 3, tags: ['relaxed', 'quiet_ok'] }, 40),
+    rec(now, 1, people.taro, { title: 'ランク S5〜 ガチめで回したい', purpose: 'rank', capacity: 3, approved_count: 1, min_rank: 's5', vc: 'on', tags: ['serious'], wanted_roles: ['tank'] }, 8),
+    rec(now, 2, people.mio, { title: 'まったりフリバ、初心者さんも', purpose: 'enjoy', capacity: 3, approved_count: 1, tags: ['beginner_welcome', 'relaxed'], vc: 'off', duo_ok: true, duo_playing: true }, -12),
+    rec(now, 7, people.mio, { title: 'バトアリ 承認制 本気で', purpose: 'rank', capacity: 3, approved_count: 0, join_mode: 'approval', stance: 'win', owner_deck_level: 230, owner_collab: 3, min_deck_level: 200, min_collab: 1 }, 20),
     rec(now, 5, people.natsu, { title: 'フリーバトル 22時から', purpose: 'enjoy', capacity: 3, approved_count: 2, tags: ['relaxed'] }, at22),
-    rec(now, 6, people.rin, { title: 'ランク 聞き専OKです', purpose: 'rank', capacity: 3, approved_count: 0, tags: ['quiet_ok', 'considerate'] }, at23),
   ];
 }
 
@@ -78,7 +78,7 @@ export function homeStates(): Record<string, JoinState> {
   return {};
 }
 
-/** 募集詳細: たろうのランク募集 (あと1人) */
+/** 募集詳細: ランク募集 (あと1人) */
 export function detail(now: Date, joined: boolean) {
   const base = feed(now)[0];
   const r: Recruitment = joined ? { ...base, approved_count: 2, status: 'full' } : base;
@@ -95,17 +95,17 @@ export function detail(now: Date, joined: boolean) {
     ? [
         { id: 'c1', recruitment_id: r.id, user_id: people.taro.id, body: 'よろしくです! 部屋立てました', created_at: at(now, -3) },
         { id: 'c2', recruitment_id: r.id, user_id: people.mio.id, body: 'よろしくお願いします〜 タンク出します', created_at: at(now, -2) },
-        { id: 'c3', recruitment_id: r.id, user_id: people.me.id, body: 'よろしく! ガンナーでいきます', created_at: at(now, -1) },
+        { id: 'c3', recruitment_id: r.id, user_id: people.me.id, body: 'よろしく! アタッカーでいきます', created_at: at(now, -1) },
       ]
     : [];
   const contacts: MemberContact[] = joined
-    ? [{ user_id: people.taro.id, display_name: people.taro.display_name, is_owner: true, contact_discord: 'taro_compass', contact_x: null, contact_ingame: null }]
+    ? [{ user_id: people.taro.id, display_name: people.taro.display_name, is_owner: true, contact_discord: 'lucianold_0000', contact_x: null, contact_ingame: null }]
     : [];
   return {
     r,
     participations,
     myState: (joined ? 'approved' : 'none') as JoinState,
-    roomCode: joined ? '48213' : null,
+    roomCode: joined ? '4821' : null,
     messages,
     contacts,
   };
@@ -128,4 +128,38 @@ export function meProfile(now: Date): Profile {
 
 export function myRecruitments(now: Date): Recruitment[] {
   return [rec(now, 9, people.me, { title: 'フリーバトルの募集', purpose: 'enjoy', capacity: 3, approved_count: 0, tags: ['relaxed'] }, 25)];
+}
+
+/** 募集詳細 (募集者の画面): 開始から55分たって「募集を続けますか？」が出ている */
+export function detailOwner(now: Date) {
+  const r: Recruitment = {
+    ...rec(now, 10, people.me, { title: 'フリーバトル 一緒に遊べる方', purpose: 'enjoy', capacity: 3, approved_count: 1, duo_ok: true }, -55),
+    close_check_at: at(now, 0),
+  };
+  const participations: Participation[] = [
+    {
+      id: 'd0000000-0000-4000-8000-000000000010',
+      recruitment_id: r.id,
+      user_id: people.natsu.id,
+      status: 'approved',
+      created_at: at(now, -30),
+      profile: { id: people.natsu.id, display_name: people.natsu.display_name, rank_band: people.natsu.rank_band, play_roles: people.natsu.play_roles, vc: 'yes', tags: [] },
+    },
+  ];
+  const messages: Message[] = [
+    { id: 'o1', recruitment_id: r.id, user_id: people.natsu.id, body: 'もう1人来るまで2人で回しませんか？', created_at: at(now, -4) },
+    { id: 'o2', recruitment_id: r.id, user_id: people.me.id, body: 'いいですね、2固定にします！', created_at: at(now, -3) },
+  ];
+  return { r, participations, messages };
+}
+
+/** 募集詳細 (まだ参加していない方): バトルアリーナの承認制。参加前でもチャットで話せる */
+export function detailBrowse(now: Date) {
+  const r = feed(now).find((x) => x.owner_deck_level != null)!;
+  const messages: Message[] = [
+    { id: 'b1', recruitment_id: r.id, user_id: people.mio.id, body: 'アタッカーさん歓迎です', created_at: at(now, -5) },
+    { id: 'b2', recruitment_id: r.id, user_id: people.kei.id, body: 'ガンナーでも大丈夫ですか？', created_at: at(now, -2) },
+    { id: 'b3', recruitment_id: r.id, user_id: people.mio.id, body: '大丈夫です！申請どうぞ', created_at: at(now, -1) },
+  ];
+  return { r, messages };
 }

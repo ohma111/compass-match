@@ -63,9 +63,9 @@ export function resolveStart(
   return slotAt(day ?? 'today', hm, now);
 }
 
-/** 終了時刻は開始 + 1時間で自動設定 */
-export function autoEnd(start: Date): Date {
-  return new Date(start.getTime() + DEFAULT_DURATION_MIN * 60_000);
+/** 終了時刻は開始 + 選んだ時間 (既定1時間) で自動設定 */
+export function autoEnd(start: Date, durationMin: number = DEFAULT_DURATION_MIN): Date {
+  return new Date(start.getTime() + durationMin * 60_000);
 }
 
 /**

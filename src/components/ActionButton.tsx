@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import type { ActionResult } from '@/lib/types';
 
 /** Server Action を呼ぶボタン。結果メッセージを下に表示する。
@@ -26,7 +25,6 @@ export function ActionButton({
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   const [asking, setAsking] = useState(false);
-  const router = useRouter();
   // 成功の知らせは少しだけ出して消す (エラーは直すまで残す)
   useEffect(() => {
     if (!result?.ok) return;
@@ -38,7 +36,7 @@ export function ActionButton({
     start(async () => {
       const r = await action();
       setResult(r);
-      if (r.ok) router.refresh();
+      // 画面の更新は Server Action の revalidatePath で届く (router.refresh を重ねるとサーバーでもう1回描く)
     });
   };
   const wide = /\bw-full\b/.test(className);

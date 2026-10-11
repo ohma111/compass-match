@@ -40,7 +40,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   const status = r ? effectiveStatus(r.status, r.ends_at) : null;
   const left = r ? remainingSlots(r.capacity, r.approved_count) : 0;
   const open = status === 'open';
-  const big = !r ? '募集を見る' : open ? `あと${left}人` : status === 'full' ? '満員' : status === 'cancelled' ? '取り消し済み' : '終了しました';
+  const big = !r ? '募集を見る' : open ? `@${left}人` : status === 'full' ? '満員' : status === 'cancelled' ? '取り消し済み' : '終了しました';
   const when = r ? `${formatJst(r.starts_at)} 開始` : '';
   const seats = r && (open || status === 'full') ? `${occupiedSeats(r.capacity, r.approved_count)}/${r.capacity}` : '';
   const rank = r?.min_rank ? RANK_MIN_LABELS[r.min_rank] : '';

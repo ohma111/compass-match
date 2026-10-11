@@ -561,6 +561,7 @@ const TABLE_NAMES: Record<string, string> = {
   'private.protected_users': '削除しないアカウント',
   'public.site_maintenance': 'メンテナンスの設定',
   'public.recruitment_stats_daily': '募集の日ごとの集計',
+  'public.chat_mutes': 'チャットの通知を止めた募集',
 };
 
 /** 無料枠の上限 (2026-10 時点。変わったらここを直す) */

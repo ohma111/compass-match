@@ -5,6 +5,7 @@ import { CopyButton } from './CopyButton';
 import { SUPPORT_CODE } from '@/lib/constants';
 import { RankProvider } from './RankSheet';
 import { DiscordProvider } from './DiscordSheet';
+import { JoinAskProvider } from './JoinAskSheet';
 import type { RankBand } from '@/lib/constants';
 import { Bell, ChevronRight, Plus } from 'lucide-react';
 import { TabBar, type TabKey } from './TabBar';
@@ -50,6 +51,7 @@ export function AppShell({
   return (
     <RankProvider ready={rankReady} current={currentRank}>
       <DiscordProvider ready={discordReady}>
+      <JoinAskProvider>
       <OnboardingProvider initialOpen={sheetOpen}>
       <Suspense fallback={null}>
         <NavProgress />
@@ -151,6 +153,7 @@ export function AppShell({
 
       <TabBar unread={unread} active={active} />
       </OnboardingProvider>
+      </JoinAskProvider>
       </DiscordProvider>
     </RankProvider>
   );
