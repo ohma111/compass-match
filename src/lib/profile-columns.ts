@@ -22,6 +22,8 @@ export const PROFILE_COLUMNS = [
   'rank_confirmed',
   // v11 (20261006000015_v11.sql): 選んだアイコン
   'avatar',
+  // v14 (20261009000018_v14_security.sql): 運営バッジ
+  'is_staff',
 ] as const;
 
 export const PROFILE_SELECT = PROFILE_COLUMNS.join(', ');

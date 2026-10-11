@@ -8,6 +8,7 @@ import { TimeRail } from './TimeRail';
 import { Lineup } from './Lineup';
 import { RoleIcon } from './RoleIcon';
 import { JoinButton, type AuthState } from './JoinButton';
+import { StaffBadge } from '@/components/StaffBadge';
 import { joinExtraOf } from '@/lib/join-extra';
 
 /**
@@ -78,6 +79,7 @@ export function RecruitmentCard({
             <span aria-hidden>/</span>
             <span className="truncate text-ink-2">
               {r.owner?.display_name ?? '―'}
+              {r.owner?.is_staff && <StaffBadge className="ml-1 text-signal-deep" />}
               {r.owner && <span className="text-slate"> {rankLabel(r.owner.rank_band)}</span>}
             </span>
             {r.owner_roles && r.owner_roles.length > 0 && (

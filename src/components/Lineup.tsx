@@ -4,6 +4,7 @@ import { RANK_LABELS, RANK_SHORT, type Avatar, type PlayRole, type RankBand } fr
 import { AvatarIcon } from './Avatar';
 import { RoleIcon } from './RoleIcon';
 import { Emblem } from './Emblem';
+import { StaffBadge } from './StaffBadge';
 
 /**
  * 試合前のチーム編成のように、募集の席を斜めの枠で並べる。
@@ -19,6 +20,8 @@ export interface Seat {
   roles?: PlayRole[];
   /** 選んだアイコン (あればロールより優先) */
   avatar?: Avatar | null;
+  /** 運営の印 */
+  staff?: boolean;
   you?: boolean;
   href?: string;
   /** 参加が確定した直後: 滑り込む動き (prefers-reduced-motion では動かない) */
@@ -143,10 +146,15 @@ export function Lineup({
                     )}
                   </div>
                   <p className="mt-2.5 truncate text-[14px] font-black sm:text-[15px]">{s.name}</p>
-                  {s.rank && (
-                    <p className="font-mono text-[12px] font-bold whitespace-nowrap opacity-85">
-                      <span aria-hidden>{RANK_SHORT[s.rank]}</span>
-                      <span className="sr-only">{RANK_LABELS[s.rank]}</span>
+                  {(s.rank || s.staff) && (
+                    <p className="flex items-center gap-1.5 font-mono text-[12px] font-bold whitespace-nowrap">
+                      {s.rank && (
+                        <span className="opacity-85">
+                          <span aria-hidden>{RANK_SHORT[s.rank]}</span>
+                          <span className="sr-only">{RANK_LABELS[s.rank]}</span>
+                        </span>
+                      )}
+                      {s.staff && <StaffBadge className="font-sans" />}
                     </p>
                   )}
                 </div>

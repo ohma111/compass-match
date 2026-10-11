@@ -48,7 +48,7 @@ describe('profiles column list (v2 「また登録させられる」不具合の
 
   // v5: 席にロールのアイコンを出すため play_roles を足した (20261004000009_v5_usage.sql)
   it('anon embeds of profiles stay within the anon grant (id, display_name, rank_band, play_roles)', () => {
-    expect(grantedProfileColumns('anon').sort()).toEqual(['avatar', 'display_name', 'id', 'play_roles', 'rank_band']);
+    expect(grantedProfileColumns('anon').sort()).toEqual(['avatar', 'display_name', 'id', 'is_staff', 'play_roles', 'rank_band']);
   });
 
   it('the owner embed used by the public list only asks for anon-granted columns', () => {

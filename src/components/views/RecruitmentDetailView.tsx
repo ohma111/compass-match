@@ -78,6 +78,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   const nameOf = new Map<string, string>();
   if (r.owner) nameOf.set(r.owner_id, r.owner.display_name);
   for (const p of approved) if (p.profile) nameOf.set(p.user_id, p.profile.display_name);
+  const staffIds = [r.owner?.is_staff ? r.owner_id : null, ...approved.map((p) => (p.profile?.is_staff ? p.user_id : null))].filter(
+    (v): v is string => Boolean(v),
+  );
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
   // チャットは参加が確定していなくても、プロフィールのある方なら使える (部屋番号はメンバーだけ)
@@ -404,6 +407,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               initialMessages={messages}
               names={{ ...Object.fromEntries(messages.flatMap((m) => (m.author ? [[m.user_id, m.author.display_name]] : []))), ...Object.fromEntries(nameOf) }}
               member={isMember}
+              staffIds={staffIds}
               blockedIds={props.blockedIds ?? []}
               open={chatOpen && !restricted}
               muted={Boolean(props.chatMuted)}
