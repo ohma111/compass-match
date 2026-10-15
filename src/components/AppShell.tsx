@@ -122,9 +122,10 @@ export function AppShell({
           <nav aria-label="サイト情報">
             <ul className="divide-y divide-ink/15 text-[14px] font-bold text-ink lg:flex lg:gap-x-8 lg:divide-y-0 lg:text-xs">
               {[
-                ['/feedback', 'フィードバック'],
+                ['/contact', 'お問い合わせ'],
                 ['/terms', '利用規約'],
                 ['/privacy', 'プライバシーポリシー'],
+                ['/about', '運営者情報'],
               ].map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="flex min-h-12 items-center justify-between lg:min-h-11 lg:hover:underline lg:underline-offset-4">
