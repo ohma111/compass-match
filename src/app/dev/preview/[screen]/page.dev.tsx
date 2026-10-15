@@ -108,7 +108,6 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           viewerId={ME_ID}
           participations={d.participations}
           myState="none"
-          room={{ code: '4821', updated_at: new Date(now.getTime() - 20 * 60_000).toISOString(), updated_by: ME_ID }}
           contacts={[]}
           messages={d.messages}
           src={null}
@@ -127,7 +126,6 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           viewerId={ME_ID}
           participations={[]}
           myState="none"
-          room={null}
           contacts={[]}
           messages={d.messages.map((m) => ({ ...m, author: { display_name: Object.values(people).find((p) => p.id === m.user_id)?.display_name ?? '' } }))}
           src={null}
@@ -148,7 +146,6 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           viewerId={ME_ID}
           participations={d.participations}
           myState={d.myState}
-          room={d.roomCode ? { code: d.roomCode, updated_at: null, updated_by: null } : null}
           contacts={d.contacts}
           messages={d.messages}
           src={null}

@@ -216,18 +216,6 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
   return { ok: true, message: '募集を取り消しました' };
 }
 
-export async function setRoomCodeAction(recruitmentId: string, roomCode: string): Promise<ActionResult> {
-  const id = uuidSchema.safeParse(recruitmentId);
-  const code = typeof roomCode === 'string' ? roomCode.normalize('NFKC').trim() : '';
-  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
-  if (code && !/^[0-9]{4}$/.test(code)) return fail('部屋番号は4桁の数字で入力してください');
-  const supabase = await createClient();
-  const { error } = await supabase.rpc('set_room_code', { p_recruitment_id: id.data, p_room_code: code });
-  if (error) return fail(toUserMessage(error));
-  revalidatePath(`/recruitments/${id.data}`);
-  return { ok: true, message: '部屋番号を更新しました' };
-}
-
 /** 募集者が募集の時間を延ばす (30分か1時間。開始から6時間まで) */
 /** 募集者が部屋を閉じる (固定を解散する) */
 export async function dissolveRecruitmentAction(recruitmentId: string): Promise<ActionResult> {

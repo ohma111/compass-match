@@ -9,7 +9,7 @@ import { getBrowserClient } from '@/lib/supabase/client';
 
 /**
  * 募集の「今の状態」を短い文字列にする。変わっていればページを描き直す。
- * 参加者・募集者は Supabase に直接 (RLS のとおり、申請中の行・部屋番号も)。
+ * 参加者・募集者は Supabase に直接 (RLS のとおり、申請中の行も)。
  * チャットはここでは見ない (ChatRoom が発言だけを読み直す。発言のたびに全員のページを描き直さないため)。
  * それ以外の方は人数と状態だけでよいので、CDN に10秒置いた /api/live を読む (何人いても DB は10秒に1回)。
  */
@@ -20,13 +20,12 @@ async function liveSignature(recruitmentId: string, member: boolean): Promise<st
     return JSON.stringify(await res.json());
   }
   const db = getBrowserClient();
-  const [rec, parts, room] = await Promise.all([
+  const [rec, parts] = await Promise.all([
     db.from('recruitments').select('approved_count, status, hidden_at').eq('id', recruitmentId).maybeSingle(),
     db.from('participations').select('id, status').eq('recruitment_id', recruitmentId).order('id'),
-    db.rpc('get_room_code', { p_recruitment_id: recruitmentId }),
   ]);
   if (rec.error) throw rec.error;
-  return JSON.stringify([rec.data, parts.error ? null : parts.data, room.error ? null : room.data]);
+  return JSON.stringify([rec.data, parts.error ? null : parts.data]);
 }
 
 /** 席の状態を見に行く間隔 (画面が見えているときだけ) */
@@ -78,7 +77,7 @@ export function LobbyLineup(props: {
   }, [props.occupied]);
 
   // 席の自動更新。ページをサーバーで描き直す (Vercel の関数1回) のは、変化があったときだけにする。
-  // 間隔ごとには Supabase に小さな問い合わせ (人数・状態・見えている参加の行・部屋番号) だけを送り、
+  // 間隔ごとには Supabase に小さな問い合わせ (人数・状態・見えている参加の行) だけを送り、
   // 前回と違えば描き直す。参加者・募集者は20秒ごと、それ以外の方は45秒ごと。触らずに置いてあるほど間隔を空ける。
   // 画面が見えていないときは何もせず、戻ってきたら1回だけすぐ確かめる。問い合わせに失敗しても描き直さない。
   const memberRef = useRef(props.joined || props.isOwner);
