@@ -71,15 +71,15 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     {
-      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|ads.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
       has: [{ type: 'cookie', key: 'sb-jjhnmqeukfrknujtkash-auth-token' }],
     },
     {
-      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|ads.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
       has: [{ type: 'cookie', key: 'sb-jjhnmqeukfrknujtkash-auth-token.0' }],
     },
     {
-      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
+      source: '/((?!_next/static|_next/image|api/live/|favicon.ico|icon.svg|manifest.webmanifest|sw.js|robots.txt|ads.txt|sitemap.xml|apple-icon.png|icon-192.png|icon-512.png|badge.png|opengraph-image|recruitments/[^/]+/opengraph-image).*)',
       has: [{ type: 'query', key: 'src' }],
     },
     '/transfer',
