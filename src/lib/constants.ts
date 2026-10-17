@@ -193,6 +193,9 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   starting: '予定時刻になりました',
   auto_closed: '確認がなかったため、募集を取り消しました',
   close_check: '募集を続けますか？ 5分以内に操作がないと取り消されます',
+  owner_changed: '募集者が交代しました',
+  became_owner: 'あなたが募集者になりました',
+  ending_soon: 'まもなく部屋が閉じます',
 };
 
 /** v15: デキレ (240 が上で10ずつ下がる) */

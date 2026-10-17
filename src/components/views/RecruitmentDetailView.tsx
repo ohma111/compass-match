@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { ChevronLeft } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { formatJst, formatJstRange, formatJstTime } from '@/lib/time';
+import { updatedAgo } from '@/lib/account-level';
 import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS, vcNeedsDiscord } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { DeckInfo, DuoAndRoles, JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
@@ -15,7 +16,7 @@ import { ReportButton } from '@/components/ReportButton';
 import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
 import { IntentRunner } from '@/components/IntentRunner';
-import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, dissolveRecruitmentAction, keepRecruitmentAction, setDuoPlayingAction } from '@/app/actions';
+import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, dissolveRecruitmentAction, keepRecruitmentAction, leaveAsOwnerAction, setDuoPlayingAction } from '@/app/actions';
 import { CopyButton } from '@/components/CopyButton';
 import type { MemberContact, Message, Participation, Recruitment } from '@/lib/types';
 
@@ -80,6 +81,8 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   );
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
+  // 終わったあとの10分間は、募集者と参加確定の方だけお礼を送れる (取り消した募集は除く)
+  const thanksOpen = isMember && status === 'ended' && !r.hidden_at && now.getTime() < new Date(r.ends_at).getTime() + 10 * 60_000;
   // チャットは参加が確定していなくても、プロフィールのある方なら使える
   const chatVisible = isMember || (auth === 'ready' && active && !r.hidden_at);
   const left = remainingSlots(r.capacity, r.approved_count);
@@ -273,6 +276,12 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                       </Link>
                       {p.profile && <span className="shrink-0 text-xs text-slate">{rankLabel(p.profile.rank_band)}</span>}
                     </div>
+                    {p.profile?.account_level != null && (
+                      <p className="text-[13px] font-bold">
+                        垢レベル{p.profile.account_level}
+                        {p.profile.account_level_updated_at && <span className="ml-2 text-[11px] font-medium text-slate">{updatedAgo(p.profile.account_level_updated_at, now)}</span>}
+                      </p>
+                    )}
                     {p.deck_level != null && (
                       <p className="text-[13px] font-bold">デキレ{p.deck_level}・コラボ{p.collab}</p>
                     )}
@@ -342,6 +351,15 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                 固定を解散する
               </ActionButton>
             )}
+            {isOwner && active && participations.some((p) => p.status === 'approved') && (
+              <ActionButton
+                action={leaveAsOwnerAction.bind(null, id)}
+                className="btn-outline w-full"
+                confirm="一番早く参加した方が募集者になります。"
+              >
+                抜けて募集者を交代する
+              </ActionButton>
+            )}
             {isOwner && active && (
               <ActionButton action={cancelRecruitmentAction.bind(null, id)} className="btn-danger w-full" confirm="募集を取り消しますか？ 参加者にも通知されます。">
                 募集を取り消す
@@ -365,7 +383,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               member={isMember}
               staffIds={staffIds}
               blockedIds={props.blockedIds ?? []}
-              open={chatOpen && !restricted}
+              open={(chatOpen || thanksOpen) && !restricted}
+              endsAt={r.ends_at}
+              thanks={thanksOpen}
               muted={Boolean(props.chatMuted)}
             />
           </div>
