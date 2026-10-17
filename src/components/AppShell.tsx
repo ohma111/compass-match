@@ -12,6 +12,8 @@ import { TabBar, type TabKey } from './TabBar';
 import { LogoMark } from './LogoMark';
 import { Wordmark } from './Wordmark';
 import { OnboardingProvider } from './ProfileSheet';
+import { SiteMenu } from './SiteMenu';
+import { SITE_LINKS } from '@/lib/site-links';
 
 /**
  * 全画面共通の枠: インクのヘッダー (スマホはサイト名だけ、PCはメニューも) / 本文 / フッター / 下部タブバー (スマホ)
@@ -99,6 +101,9 @@ export function AppShell({
               ログイン
             </Link>
           )}
+          <div className={signedIn ? 'ml-auto -mr-2 lg:ml-0' : '-mr-2'}>
+            <SiteMenu />
+          </div>
         </div>
       </header>
 
@@ -121,13 +126,7 @@ export function AppShell({
         <div className="border-t-2 border-ink pt-2 lg:pt-4">
           <nav aria-label="サイト情報">
             <ul className="divide-y divide-ink/15 text-[14px] font-bold text-ink lg:flex lg:gap-x-8 lg:divide-y-0 lg:text-xs">
-              {[
-                ['/guide', '使い方'],
-                ['/contact', 'お問い合わせ'],
-                ['/terms', '利用規約'],
-                ['/privacy', 'プライバシーポリシー'],
-                ['/about', '運営者情報'],
-              ].map(([href, label]) => (
+              {SITE_LINKS.map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="flex min-h-12 items-center justify-between lg:min-h-11 lg:hover:underline lg:underline-offset-4">
                     {label}

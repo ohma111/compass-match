@@ -49,7 +49,7 @@ export function ActionButton({
             <button type="button" className={className} onClick={run} autoFocus>
               {children}
             </button>
-            <button type="button" className={`btn-outline${/\bbtn-sm\b/.test(className) ? ' btn-sm' : ''}${wide ? ' w-full' : ''}`} onClick={() => setAsking(false)}>
+            <button type="button" className={`min-h-11 px-4 text-sm font-bold text-slate underline underline-offset-4${wide ? ' self-center' : ''}`} onClick={() => setAsking(false)}>
               やめる
             </button>
           </div>
