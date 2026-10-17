@@ -81,7 +81,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   );
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
-  // 終わったあとの10分間は、募集者と参加確定の方だけお礼を送れる (取り消した募集は除く)
+  // 終わったあとの10分の猶予は、募集者と参加確定の方だけ送れる (取り消した募集は除く)
   const thanksOpen = isMember && status === 'ended' && !r.hidden_at && now.getTime() < new Date(r.ends_at).getTime() + 10 * 60_000;
   // チャットは参加が確定していなくても、プロフィールのある方なら使える
   const chatVisible = isMember || (auth === 'ready' && active && !r.hidden_at);

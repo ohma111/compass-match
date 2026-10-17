@@ -116,6 +116,25 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
       );
       break;
     }
+    case 'detail-new-owner': {
+      // 募集者の交代のあと: 残っていた方 (なつ) が募集者になった画面
+      const d = detailOwner(now);
+      const n = people.natsu;
+      const r = { ...d.r, owner_id: n.id, owner: { id: n.id, display_name: n.display_name, rank_band: n.rank_band, play_roles: n.play_roles }, owner_roles: [], approved_count: 0, status: 'open' as const, close_check_at: null };
+      body = (
+        <RecruitmentDetailView r={r} now={now} auth="ready" viewerId={n.id} participations={[]} myState="none" contacts={[]} messages={d.messages} src={null} siteUrl="http://localhost:3000" />
+      );
+      break;
+    }
+    case 'detail-ended': {
+      // 終了して3分: メンバーは10分の猶予の間だけ送れる
+      const d = detailOwner(now);
+      const r = { ...d.r, status: 'ended' as const, ends_at: new Date(now.getTime() - 3 * 60_000).toISOString(), close_check_at: null };
+      body = (
+        <RecruitmentDetailView r={r} now={now} auth="ready" viewerId={ME_ID} participations={d.participations} myState="none" contacts={[]} messages={d.messages} src={null} siteUrl="http://localhost:3000" />
+      );
+      break;
+    }
     case 'detail-browse': {
       const d = detailBrowse(now);
       body = (

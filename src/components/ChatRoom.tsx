@@ -41,7 +41,7 @@ export function ChatRoom({
   member?: boolean;
   /** 部屋が閉じる時刻 (残り10分を切ったら帯を出す) */
   endsAt?: string;
-  /** 終わったあとの10分間 (メンバーだけお礼を送れる) */
+  /** 終わったあとの10分の猶予 (メンバーだけ送れる) */
   thanks?: boolean;
 }) {
   const minutesLeft = useMinutesLeft(open && !thanks ? endsAt : undefined);
@@ -199,6 +199,11 @@ export function ChatRoom({
           あと{minutesLeft}分で閉じます
         </p>
       )}
+      {thanks && (
+        <p className="border-2 border-ink px-3 py-1.5 text-[13px] font-black" role="status">
+          終了後10分の猶予があります
+        </p>
+      )}
       <p className="text-xs text-slate">発言は90分で消えます{muteError ? ` / ${muteError}` : ''}</p>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
         {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだメッセージはありません</p>}
@@ -248,7 +253,7 @@ export function ChatRoom({
               enterKeyHint="send"
               autoComplete="off"
               className="input"
-              placeholder={thanks ? 'お礼を送る' : `${LIMITS.message}文字まで`}
+              placeholder={`${LIMITS.message}文字まで`}
               aria-label="メッセージ"
             />
             <button
