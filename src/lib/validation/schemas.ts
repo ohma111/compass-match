@@ -19,6 +19,7 @@ import {
   STANCES,
 } from '../constants';
 import { LIST_SORTS } from '../list-filter';
+import { parseAccountLevel } from '../account-level';
 import { containsUrl } from './url';
 import { BANNED_MESSAGE, CONTACT_MESSAGE, containsBanned, containsContact } from '../moderation/banned';
 import { sanitizeSrc } from '../src-param';
@@ -97,6 +98,15 @@ export const profileSchema = z.object({
     .transform((s) => (s ?? '').trim())
     .pipe(z.string().max(20, 'プレイヤー名は20文字以内で入力してください').refine((s) => !containsUrl(s), NO_URL))
     .transform((s) => (s === '' ? null : s)),
+  /** 垢レベル (任意、1〜999)。空は消す */
+  accountLevel: z
+    .unknown()
+    .optional()
+    .transform((v, ctx) => {
+      const n = parseAccountLevel(v);
+      if (n === undefined) ctx.addIssue({ code: 'custom', message: '垢レベルは1〜999の数字で入力してください' });
+      return n ?? null;
+    }),
   agreeTerms: z.boolean(),
   src: z.unknown().transform(sanitizeSrc),
 });

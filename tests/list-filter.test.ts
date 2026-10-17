@@ -41,6 +41,7 @@ describe('applyListView', () => {
     expect(applyListView(items, { ...DEFAULT_VIEW, eligible: true, hideFull: true }, null)).toHaveLength(2);
   });
   it('VC・遊び方', () => {
+    const items = [a, b, c].map((r) => (r.id === 'b' ? r : { ...r, vc: 'off' as const }));
     expect(applyListView(items, { ...DEFAULT_VIEW, vc: 'on' }, null).map((r) => r.id)).toEqual(['b']);
     expect(applyListView(items, { ...DEFAULT_VIEW, stance: 'win', hideFull: true }, null).map((r) => r.id)).toEqual(['c']);
   });

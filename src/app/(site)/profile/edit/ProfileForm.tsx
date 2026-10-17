@@ -113,6 +113,21 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
         </div>
       </fieldset>
       <div>
+        <label className="label" htmlFor="accountLevel">垢レベル <span className="text-xs font-normal text-muted">(任意・1〜999)</span></label>
+        <input
+          id="accountLevel"
+          name="accountLevel"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={3}
+          defaultValue={profile.account_level ?? ''}
+          className="input w-32"
+          autoComplete="off"
+          placeholder="例: 120"
+        />
+      </div>
+      <div>
         <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(100文字まで・URLは使えません)</span></label>
         <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile.bio} className="input" />
       </div>

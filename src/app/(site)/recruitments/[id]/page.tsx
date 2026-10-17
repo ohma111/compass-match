@@ -51,7 +51,7 @@ export default async function RecruitmentDetailPage({
     signedIn
       ? supabase
           .from('participations')
-          .select('id, recruitment_id, user_id, status, created_at, deck_level, collab, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags, avatar, is_staff)')
+          .select('id, recruitment_id, user_id, status, created_at, deck_level, collab, profile:profiles!participations_user_id_fkey(id, display_name, rank_band, play_roles, vc, tags, avatar, is_staff, account_level, account_level_updated_at)')
           .eq('recruitment_id', id)
           .order('created_at', { ascending: true })
       : null,
