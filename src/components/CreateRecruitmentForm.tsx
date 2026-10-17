@@ -7,6 +7,8 @@ import {
   JOIN_MODES,
   LIMITS,
   MOOD_TAGS,
+  PICKABLE_MOOD_TAGS,
+  vcNeedsDiscord,
   MOOD_TAG_LABELS,
   PURPOSES,
   PURPOSE_LABELS,
@@ -47,10 +49,10 @@ import { useEnsureProfile } from '@/components/ProfileSheet';
 import { useEnsureRank } from '@/components/RankSheet';
 
 const PURPOSE_ICON: Record<Purpose, LucideIcon> = { rank: Trophy, enjoy: Sparkles, tournament: Swords, custom: Gamepad2, challenge: Medal };
-const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', any: 'どちらでも', off: 'なし' };
+const VC_SHORT: Record<RecruitVc, string> = { on: 'あり', listen: '聞き専OK', any: 'どちらでも', off: 'なし' };
 const STANCE_ICON: Record<Stance, LucideIcon> = { win: Flame, fun: Smile };
 /** 遊び方 (本気 / 楽しく) と重なるタグは選ばせない */
-const PICK_TAGS = MOOD_TAGS.filter((t) => t !== 'serious' && t !== 'relaxed');
+const PICK_TAGS = PICKABLE_MOOD_TAGS.filter((t) => t !== 'serious' && t !== 'relaxed');
 
 const LAST_KEY = 'cm_last_recruit';
 const DRAFT_KEY = 'cm_recruit_draft';
@@ -250,7 +252,7 @@ export function CreateRecruitmentForm({
       document.getElementById('owner-deck')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return;
     }
-    if (c.vc === 'on' && !discordOk) {
+    if (vcNeedsDiscord(c.vc) && !discordOk) {
       e.preventDefault();
       document.getElementById('vc-discord')?.focus();
       return;
@@ -571,7 +573,7 @@ export function CreateRecruitmentForm({
                   </label>
                 ))}
               </div>
-              {c.vc === 'on' ? (
+              {vcNeedsDiscord(c.vc) ? (
                 <div className="mt-3">
                   <label className="label" htmlFor="vc-discord">
                     あなたの Discord のユーザー名

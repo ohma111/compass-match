@@ -24,7 +24,7 @@ export function InlineConfirm({
         <button type={submit ? 'submit' : 'button'} className={`${danger ? 'btn-danger' : 'btn-primary'} w-full`} onClick={onConfirm} autoFocus>
           {confirmLabel}
         </button>
-        <button type="button" className="btn-outline w-full" onClick={onCancel}>
+        <button type="button" className="min-h-11 self-center px-4 text-sm font-bold text-slate underline underline-offset-4" onClick={onCancel}>
           やめる
         </button>
       </div>

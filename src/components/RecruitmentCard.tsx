@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import type { Recruitment } from '@/lib/types';
 import { canRequestJoin, effectiveStatus, leftLabel, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
-import { PLAY_ROLE_LABELS, STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel } from '@/lib/constants';
+import { PLAY_ROLE_LABELS, STANCE_LABELS, JOIN_MODE_LABELS, PURPOSE_LABELS, RANK_MIN_LABELS, RECRUIT_VC_LABELS, rankLabel, vcNeedsDiscord } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { DeckInfo, DuoAndRoles, MoodTags, PurposeMark } from './Tags';
 import { TimeRail } from './TimeRail';
@@ -129,7 +129,7 @@ export function RecruitmentCard({
                 joined={myState === 'approved'}
                 warnBlocked={blockedHere}
                 minRank={r.min_rank}
-                vcOn={r.vc === 'on'}
+                vcOn={vcNeedsDiscord(r.vc)}
                 extra={joinExtraOf(r, busyElsewhere)}
                 compact
               />

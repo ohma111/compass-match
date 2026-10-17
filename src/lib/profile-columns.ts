@@ -24,6 +24,9 @@ export const PROFILE_COLUMNS = [
   'avatar',
   // v14 (20261009000018_v14_security.sql): 運営バッジ
   'is_staff',
+  // v18 (20261017000026_free_feedback.sql): 垢レベル (自己申告)
+  'account_level',
+  'account_level_updated_at',
 ] as const;
 
 export const PROFILE_SELECT = PROFILE_COLUMNS.join(', ');

@@ -23,6 +23,8 @@ export function ChatRoom({
   open,
   muted: initialMuted = false,
   member = true,
+  endsAt,
+  thanks = false,
 }: {
   recruitmentId: string;
   viewerId: string;
@@ -37,7 +39,12 @@ export function ChatRoom({
   muted?: boolean;
   /** 参加が確定したメンバー (通知の切り替えはメンバーだけ) */
   member?: boolean;
+  /** 部屋が閉じる時刻 (残り10分を切ったら帯を出す) */
+  endsAt?: string;
+  /** 終わったあとの10分の猶予 (メンバーだけ送れる) */
+  thanks?: boolean;
 }) {
+  const minutesLeft = useMinutesLeft(open && !thanks ? endsAt : undefined);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   // ページが更新されたら (15秒ごとのロビーの更新など)、サーバーから来たメッセージも取り込む
   useEffect(() => {
@@ -187,7 +194,17 @@ export function ChatRoom({
           {muted ? '通知・音: オフ' : '通知・音: オン'}
         </button>}
       </div>
-      <p className="text-xs text-slate">募集終了の90分後に消えます{muteError ? ` / ${muteError}` : ''}</p>
+      {minutesLeft !== null && minutesLeft <= 10 && (
+        <p className="border-2 border-signal-deep px-3 py-1.5 text-[13px] font-black text-signal-deep" role="status">
+          あと{minutesLeft}分で閉じます
+        </p>
+      )}
+      {thanks && (
+        <p className="border-2 border-ink px-3 py-1.5 text-[13px] font-black" role="status">
+          終了後10分の猶予があります
+        </p>
+      )}
+      <p className="text-xs text-slate">発言は90分で消えます{muteError ? ` / ${muteError}` : ''}</p>
       <div ref={listRef} className="max-h-96 space-y-3 overflow-y-auto border-y-2 border-ink bg-sheet px-3 py-4" aria-live="polite">
         {messages.length === 0 && <p className="py-4 text-center text-sm text-slate">まだメッセージはありません</p>}
         {messages.map((m) => {
@@ -267,4 +284,24 @@ function ReportButtonOpen({ id }: { id: string }) {
       <ReportButton targetType="message" targetId={id} initiallyOpen />
     </div>
   );
+}
+
+/** 閉じるまでの残り分 (切り上げ)。終了時刻が分からない・過ぎたときは null。ハイドレーションを崩さないよう描画後に計算する */
+function useMinutesLeft(endsAt?: string): number | null {
+  const [left, setLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (!endsAt) {
+      setLeft(null);
+      return;
+    }
+    const end = new Date(endsAt).getTime();
+    const tick = () => {
+      const ms = end - Date.now();
+      setLeft(ms > 0 ? Math.ceil(ms / 60_000) : null);
+    };
+    tick();
+    const t = window.setInterval(tick, 15_000);
+    return () => window.clearInterval(t);
+  }, [endsAt]);
+  return left;
 }

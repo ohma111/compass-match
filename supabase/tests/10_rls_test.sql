@@ -810,5 +810,173 @@ select public.create_recruitment('コラボ0', 'rank', now() + interval '20 minu
 reset role;
 select pg_temp.assert((select owner_collab = 0 and owner_roles = array['gunner'] from public.recruitments where title = 'コラボ0'), 'v16: collab 0 and owner roles');
 
+-- v18: VC 聞き専OK・垢レベル・募集者の交代・終了10分前の予告・お礼の10分
+\set V1 '''00000000-0000-4000-8000-000000000071'''
+\set V2 '''00000000-0000-4000-8000-000000000072'''
+\set VA '''00000000-0000-4000-8000-000000000073'''
+\set VB '''00000000-0000-4000-8000-000000000074'''
+\set VC '''00000000-0000-4000-8000-000000000075'''
+insert into auth.users (id) values (:V1), (:V2), (:VA), (:VB), (:VC);
+insert into public.profiles (id, display_name, rank_band, terms_agreed_at, terms_version) values
+  (:V1, '交代主1', 's5', now(), 't'), (:V2, '交代主2', 's5', now(), 't'),
+  (:VA, '交代A', 's5', now(), 't'), (:VB, '交代B', 's5', now(), 't'), (:VC, '交代C', 's5', now(), 't');
+create or replace function pg_temp.expect_msg(sql text, pat text, msg text) returns void language plpgsql as $$
+begin
+  begin execute sql; exception when others then
+    if sqlerrm like pat then return; end if;
+    raise exception 'ASSERT FAILED (wrong error "%"): %', sqlerrm, msg;
+  end;
+  raise exception 'ASSERT FAILED (expected error): %', msg;
+end $$;
+
+-- A) VC 聞き専OK
+select pg_temp.as_user(:V1);
+select public.create_recruitment('v18聞き専', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'listen', '{}', '', null, null, 'instant', 'fun');
+select pg_temp.expect_error($$select public.create_recruitment('v18不正VC', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'bogus', '{}', '', null, null, 'instant', 'fun')$$, 'v18: unknown vc rejected');
+reset role;
+select pg_temp.assert((select vc = 'listen' from public.recruitments where title = 'v18聞き専'), 'v18: listen recruitment saved');
+
+-- B) 垢レベル
+select pg_temp.as_user(:VA);
+select public.set_my_account_level(120);
+reset role;
+select pg_temp.assert((select account_level = 120 and account_level_updated_at is not null from public.profiles where id = :VA), 'v18: account level saved');
+update public.profiles set account_level_updated_at = now() - interval '3 days' where id = :VA;
+select pg_temp.as_user(:VA);
+select public.set_my_account_level(120);
+reset role;
+select pg_temp.assert((select account_level_updated_at < now() - interval '2 days' from public.profiles where id = :VA), 'v18: same level keeps the update time');
+select pg_temp.as_user(:VA);
+select public.set_my_account_level(121);
+select pg_temp.expect_error($$select public.set_my_account_level(0)$$, 'v18: level 0 rejected');
+select pg_temp.expect_error($$select public.set_my_account_level(1000)$$, 'v18: level 1000 rejected');
+select pg_temp.assert((select account_level = 121 and account_level_updated_at > now() - interval '1 minute' from public.profiles where id = :VA), 'v18: changed level moves the update time (readable by column grant)');
+select pg_temp.assert((select count(*) from public.profiles where id = :VA and account_level is not null) = 1, 'v18: account level column readable');
+reset role;
+select pg_temp.as_user(null);
+select pg_temp.expect_error($$select account_level from public.profiles$$, 'v18: account level hidden from anon');
+select pg_temp.expect_error($$select public.set_my_account_level(5)$$, 'v18: anon cannot set level');
+reset role;
+select pg_temp.as_user(:VA);
+select public.set_my_account_level(null);
+reset role;
+select pg_temp.assert((select account_level is null and account_level_updated_at is null from public.profiles where id = :VA), 'v18: level can be cleared');
+
+-- D) 募集者の交代 (参加者あり: 一番早く確定した方に譲る)
+select pg_temp.as_user(:V1);
+select public.create_recruitment('v18交代', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun', false, '{}', null, null, null, null, array['tank']);
+reset role;
+select pg_temp.as_user(:VA);
+select public.request_join((select id from public.recruitments where title = 'v18交代'));
+reset role;
+select pg_temp.as_user(:VB);
+select public.request_join((select id from public.recruitments where title = 'v18交代'));
+reset role;
+update public.participations set decided_at = now() - interval '5 minutes' where user_id = :VA and recruitment_id = (select id from public.recruitments where title = 'v18交代');
+update public.participations set decided_at = now() - interval '1 minutes' where user_id = :VB and recruitment_id = (select id from public.recruitments where title = 'v18交代');
+select pg_temp.assert((select status = 'full' and approved_count = 2 from public.recruitments where title = 'v18交代'), 'v18: full before the owner leaves');
+select pg_temp.as_user(:VC);
+select pg_temp.expect_error($$select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18交代'))$$, 'v18: only the owner can leave');
+reset role;
+select pg_temp.as_user(:V1);
+select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18交代'));
+reset role;
+select pg_temp.assert((select owner_id = :VA and status = 'open' and approved_count = 1 and filled_at is null and owner_roles = '{}' from public.recruitments where title = 'v18交代'), 'v18: earliest member becomes owner, seat freed, owner columns cleared');
+select pg_temp.assert((select status = 'cancelled' from public.participations where user_id = :VA and recruitment_id = (select id from public.recruitments where title = 'v18交代')), 'v18: new owner participation closed');
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18交代' and n.kind = 'became_owner' and n.user_id = :VA) = 1, 'v18: new owner notified');
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18交代' and n.kind = 'owner_changed' and n.user_id = :VB) = 1, 'v18: other member notified');
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18交代' and n.user_id = :V1 and n.kind in ('became_owner', 'owner_changed', 'recruitment_cancelled')) = 0, 'v18: old owner not notified');
+select pg_temp.as_user(:V1);
+select pg_temp.expect_error($$select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18交代'))$$, 'v18: old owner cannot leave again');
+select pg_temp.expect_error($$select public.dissolve_recruitment((select id from public.recruitments where title = 'v18交代'))$$, 'v18: old owner cannot dissolve');
+reset role;
+select pg_temp.as_user(:VA);
+select public.set_room_code((select id from public.recruitments where title = 'v18交代'), '1234');
+reset role;
+select pg_temp.assert((select room_code = '1234' from public.recruitment_secrets where recruitment_id = (select id from public.recruitments where title = 'v18交代')), 'v18: new owner can set the room code');
+-- 交代後に募集者が承認できる (承認制)
+select pg_temp.as_user(:V2);
+select public.create_recruitment('v18承認交代', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'approval', 'fun');
+reset role;
+select pg_temp.as_user(:VA);
+select public.request_join((select id from public.recruitments where title = 'v18承認交代'));
+reset role;
+select pg_temp.as_user(:VC);
+select public.request_join((select id from public.recruitments where title = 'v18承認交代'));
+reset role;
+select pg_temp.as_user(:V2);
+select public.decide_participation((select id from public.participations where user_id = :VA and recruitment_id = (select id from public.recruitments where title = 'v18承認交代')), 'approved');
+select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18承認交代'));
+select pg_temp.expect_error($$select public.decide_participation((select id from public.participations where user_id = '00000000-0000-4000-8000-000000000075' and recruitment_id = (select id from public.recruitments where title = 'v18承認交代')), 'approved')$$, 'v18: old owner cannot approve');
+reset role;
+select pg_temp.assert((select owner_id = :VA and approved_count = 0 from public.recruitments where title = 'v18承認交代'), 'v18: approval recruitment handed over');
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18承認交代' and n.kind = 'owner_changed' and n.user_id = :VC) = 1, 'v18: pending applicant told of the change');
+select pg_temp.as_user(:VA);
+select public.decide_participation((select id from public.participations where user_id = :VC and recruitment_id = (select id from public.recruitments where title = 'v18承認交代')), 'approved');
+reset role;
+select pg_temp.assert((select approved_count = 1 from public.recruitments where title = 'v18承認交代'), 'v18: new owner can approve');
+-- 参加者なし: 取り消しと同じ
+select pg_temp.as_user(:V1);
+select public.create_recruitment('v18交代なし', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun');
+select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18交代なし'));
+reset role;
+select pg_temp.assert((select status = 'cancelled' and owner_id = :V1 from public.recruitments where title = 'v18交代なし'), 'v18: no members -> cancelled');
+select pg_temp.as_user(:V1);
+select pg_temp.expect_error($$select public.leave_recruitment_as_owner((select id from public.recruitments where title = 'v18交代なし'))$$, 'v18: cancelled recruitment cannot be left');
+reset role;
+
+-- F) お礼の10分 (終了後はメンバーだけ、ends_at + 10分まで)
+select pg_temp.as_user(:V2);
+select public.create_recruitment('v18お礼', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 3, null, 'any', '{}', '', null, null, 'instant', 'fun');
+reset role;
+select pg_temp.as_user(:VB);
+select public.request_join((select id from public.recruitments where title = 'v18お礼'));
+reset role;
+update public.recruitments set starts_at = now() - interval '60 minutes', ends_at = now() - interval '1 minute' where title = 'v18お礼';
+select pg_temp.as_user(:V2);
+select public.send_message((select id from public.recruitments where title = 'v18お礼'), 'ありがとうございました');
+reset role;
+select pg_temp.as_user(:VB);
+select public.send_message((select id from public.recruitments where title = 'v18お礼'), 'ありがとうございました');
+reset role;
+select pg_temp.as_user(:VC);
+select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = 'v18お礼'), 'おつかれさまです')$$, 'v18: non member cannot send after the end');
+reset role;
+-- 11分後は募集者も送れない
+update public.recruitments set ends_at = now() - interval '11 minutes', starts_at = now() - interval '70 minutes' where title = 'v18お礼';
+delete from public.messages where recruitment_id = (select id from public.recruitments where title = 'v18お礼');
+select pg_temp.as_user(:V2);
+select pg_temp.expect_msg($$select public.send_message((select id from public.recruitments where title = 'v18お礼'), 'おそくなりました')$$, '%終了%', 'v18: owner cannot send after 10 minutes');
+reset role;
+-- 取り消した募集には送れない
+update public.recruitments set ends_at = now() - interval '1 minute', status = 'cancelled' where title = 'v18お礼';
+select pg_temp.as_user(:V2);
+select pg_temp.expect_error($$select public.send_message((select id from public.recruitments where title = 'v18お礼'), 'とりけし')$$, 'v18: cancelled recruitment has no thanks window');
+reset role;
+
+-- E) 終了10分前の予告 (1回だけ。終了時刻が延びたらやり直す)
+select pg_temp.as_user(:V2);
+select public.create_recruitment('v18予告', 'enjoy', now() + interval '20 minutes', now() + interval '80 minutes', 2, null, 'any', '{}', '', null, null, 'instant', 'fun');
+reset role;
+select pg_temp.as_user(:VA);
+select public.request_join((select id from public.recruitments where title = 'v18予告'));
+reset role;
+select pg_temp.assert((select status = 'full' from public.recruitments where title = 'v18予告'), 'v18: warn target is full');
+update public.recruitments set starts_at = now() - interval '85 minutes', ends_at = now() + interval '5 minutes' where title = 'v18予告';
+select private.tick();
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18予告' and n.kind = 'ending_soon') = 2, 'v18: owner and member warned');
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18予告' and n.kind = 'ending_soon' and n.user_id in (:V2, :VA)) = 2, 'v18: warned the right people');
+select private.tick();
+select private.tick();
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18予告' and n.kind = 'ending_soon') = 2, 'v18: warned only once');
+-- 終了時刻が延びたら、もう一度予告する
+update public.recruitments set starts_at = now() - interval '80 minutes', ends_at = now() + interval '9 minutes' where title = 'v18予告';
+select pg_temp.assert((select end_warned_at is null from public.recruitments where title = 'v18予告'), 'v18: extending the end resets the warning');
+select private.tick();
+select pg_temp.assert((select count(*) from public.notifications n join public.recruitments r on r.id = n.recruitment_id where r.title = 'v18予告' and n.kind = 'ending_soon') = 4, 'v18: warned again after extension');
+-- 時刻が変わらない更新 (clamp で戻る場合を含む) では予告をやり直さない
+update public.recruitments set ends_at = ends_at where title = 'v18予告';
+select pg_temp.assert((select end_warned_at is not null from public.recruitments where title = 'v18予告'), 'v18: no reset when the end does not move');
+
 select 'ALL RLS TESTS PASSED' as result;
 

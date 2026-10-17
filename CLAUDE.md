@@ -197,6 +197,15 @@
 - 募集者の「固定を解散する」(dissolve_recruitment): status ended にして部屋を閉じる。
 - migration 25。**本番は未適用。SQL Editor で流すこと** (流すまで「固定を解散する」はエラーになる)。
 
+## 2026-10-17 (v18 無料の改修)
+- VC に「VC聞き専OK」(listen)。`RECRUIT_VC` = on / listen / any / off。on と listen は Discord のユーザー名が要る (`vcNeedsDiscord`)。一覧の絞り込みは「VCあり (on・listen・any)」「聞き専OK (listen・any)」「VCなし (off・any)」の3つ (`vcMatchesFilter`、?vc=any は絞り込みなし)。雰囲気タグ quiet_ok は作成画面・プロフィールの選択肢から外した (`PICKABLE_MOOD_TAGS`。前に付けた方のプロフィール編集にだけ残る)。DB の create_recruitment には VC の検査がなく、制約 recruitments_vc_chk だけ。
+- 垢レベル (自己申告): profiles.account_level (1〜999)・account_level_updated_at。RPC set_my_account_level (null で消す、値が変わったときだけ更新日)。プロフィール編集の「垢レベル」、ユーザーページ、承認待ちの申請一覧に表示。参加条件には使わない。列権限は authenticated のみ (anon には付けない)。
+- 使い方のページ /guide。フッターと募集作成画面の上にリンク。sitemap にも追加。
+- 募集者の交代: RPC leave_recruitment_as_owner と詳細の「抜けて募集者を交代する」(参加確定の方がいるときだけ)。一番早く確定した方 (decided_at、BAN・非表示を除く) が募集者になり、その方の participation は cancelled、approved_count を1減らして満員なら open に戻す。参加確定の方がいなければ取り消しと同じ。募集者だけの列 (owner_roles・owner_deck_level・owner_collab・min_deck_level・min_collab) は空にする (デキレを聞く募集は交代後は聞かなくなる)。通知 became_owner / owner_changed。
+- 終了10分前の予告: recruitments.end_warned_at、tick_recruitments が ending_soon を1回だけ送る。終了時刻が延びたらトリガー reset_end_warned で予告をやり直す。チャットの上に「あと N分で閉じます」の帯。
+- お礼の10分: send_message は終了後も ends_at + 10分まで、募集者と参加確定の方だけ送れる (取り消した募集は不可)。「募集終了の90分後に消えます」の誤りを「発言は90分で消えます」に直した (規約・ポリシー・管理画面も)。
+- migration 26 (`20261017000026_free_feedback.sql`) は本番未適用。SQL Editor で流すこと (流すまで「聞き専OK」の募集・垢レベルの保存・募集者の交代はエラーになり、プロフィール編集の保存も垢レベルの RPC がなくて失敗する)。
+
 ## 次にやること (候補)
 - 審査の残り: PC 詳細の右列の下が空く。通知がブロックされたときの案内。
 - 実機 (iPhone Safari) で文字の折り返しを見る。

@@ -41,8 +41,18 @@ describe('applyListView', () => {
     expect(applyListView(items, { ...DEFAULT_VIEW, eligible: true, hideFull: true }, null)).toHaveLength(2);
   });
   it('VC・遊び方', () => {
+    const items = [a, b, c].map((r) => (r.id === 'b' ? r : { ...r, vc: 'off' as const }));
     expect(applyListView(items, { ...DEFAULT_VIEW, vc: 'on' }, null).map((r) => r.id)).toEqual(['b']);
     expect(applyListView(items, { ...DEFAULT_VIEW, stance: 'win', hideFull: true }, null).map((r) => r.id)).toEqual(['c']);
+  });
+  it('VC の絞り込み: on は on・listen・any、listen は listen・any、off は off・any', () => {
+    const mk = (vc: 'on' | 'listen' | 'any' | 'off') => rec({ id: vc, vc });
+    const all = [mk('on'), mk('listen'), mk('any'), mk('off')];
+    const ids = (vc?: 'on' | 'listen' | 'off') => applyListView(all, { ...DEFAULT_VIEW, vc }, null).map((r) => r.id).sort();
+    expect(ids('on')).toEqual(['any', 'listen', 'on']);
+    expect(ids('listen')).toEqual(['any', 'listen']);
+    expect(ids('off')).toEqual(['any', 'off']);
+    expect(ids(undefined)).toEqual(['any', 'listen', 'off', 'on']);
   });
   it('並べ替え: 空きが多い順・募集者のランクが高い順 (同じなら開始順のまま)', () => {
     expect(applyListView(items, { ...DEFAULT_VIEW, sort: 'left', hideFull: true }, null).map((r) => r.id)).toEqual(['c', 'b']);

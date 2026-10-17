@@ -13,6 +13,7 @@ import { ReportButton } from '@/components/ReportButton';
 import { RoleIcon, isAllRounder } from '@/components/RoleIcon';
 import { FollowButton } from '@/components/FollowButton';
 import { blockUserAction } from '@/app/actions';
+import { updatedAgo } from '@/lib/account-level';
 import type { Profile } from '@/lib/types';
 import { StaffBadge } from '@/components/StaffBadge';
 
@@ -65,6 +66,13 @@ export default async function UserPage({
             <p className="mt-1 text-sm font-bold">
               <span className="font-medium text-slate">現在のランク </span>
               {rankLabel(p.rank_band)}
+            </p>
+          )}
+          {p.account_level != null && (
+            <p className="mt-1 text-sm font-bold">
+              <span className="font-medium text-slate">垢レベル </span>
+              {p.account_level}
+              {p.account_level_updated_at && <span className="ml-2 text-[11px] font-medium text-slate">{updatedAgo(p.account_level_updated_at)}</span>}
             </p>
           )}
         </div>

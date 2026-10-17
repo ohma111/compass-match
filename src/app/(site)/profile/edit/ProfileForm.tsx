@@ -9,7 +9,7 @@ import { RoleIcon } from '@/components/RoleIcon';
 import {
   DISCORD_HINT,
   LIMITS,
-  MOOD_TAGS,
+  PICKABLE_MOOD_TAGS,
   MOOD_TAG_LABELS,
   PLAY_ROLES,
   PLAY_ROLE_LABELS,
@@ -20,6 +20,7 @@ import {
   RANK_BANDS, RANK_BANDS_DESC,
   RANK_LABELS,
 } from '@/lib/constants';
+import type { MoodTag } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
 import { keepForm } from '@/lib/use-keep-form';
 
@@ -31,6 +32,8 @@ interface Contacts {
 
 /** マイページのプロフィール編集 (全項目。初回登録で聞かなかった項目もここで追加する) */
 export function ProfileForm({ profile, contacts }: { profile: Profile; contacts: Contacts | null }) {
+  // 聞き専OK のタグは選択肢から外した。前に付けた方にだけ残して外せるようにする
+  const tagChoices: readonly MoodTag[] = profile.tags.includes('quiet_ok') ? [...PICKABLE_MOOD_TAGS, 'quiet_ok'] : PICKABLE_MOOD_TAGS;
   // 「連絡先を追加」から来たときは、連絡先の欄まで移動して最初の入力欄にカーソルを置く
   useEffect(() => {
     if (window.location.hash !== '#contacts') return;
@@ -102,13 +105,28 @@ export function ProfileForm({ profile, contacts }: { profile: Profile; contacts:
       <fieldset>
         <legend className="label">雰囲気タグ <span className="text-xs font-normal text-muted">(複数可)</span></legend>
         <div className="flex flex-wrap gap-2">
-          {MOOD_TAGS.map((t) => (
+          {tagChoices.map((t) => (
             <label key={t} className="pick">
               <input type="checkbox" name="tags" value={t} defaultChecked={profile.tags.includes(t)} className="sr-only" />#{MOOD_TAG_LABELS[t]}
             </label>
           ))}
         </div>
       </fieldset>
+      <div>
+        <label className="label" htmlFor="accountLevel">垢レベル <span className="text-xs font-normal text-muted">(任意・1〜999)</span></label>
+        <input
+          id="accountLevel"
+          name="accountLevel"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={3}
+          defaultValue={profile.account_level ?? ''}
+          className="input w-32"
+          autoComplete="off"
+          placeholder="例: 120"
+        />
+      </div>
       <div>
         <label className="label" htmlFor="bio">自己紹介 <span className="text-xs font-normal text-muted">(100文字まで・URLは使えません)</span></label>
         <textarea id="bio" name="bio" maxLength={LIMITS.bio} rows={4} defaultValue={profile.bio} className="input" />

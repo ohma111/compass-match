@@ -616,7 +616,7 @@ async function UsageTab({ supabase }: { supabase: SB }) {
       <div className="card space-y-3">
         <p className="font-bold">データを減らす</p>
         <p className="text-xs leading-relaxed text-muted">
-          古いデータは5分ごとに自動で削除しています (チャットは募集終了の90分後、募集は15日後、通知は7日後、60日以上操作のないアカウントは削除。運営者の Discord アカウントと管理者は対象外)。今すぐ実行する場合は下のボタンを押してください。
+          古いデータは5分ごとに自動で削除しています (チャットの発言は送信から90分後、募集は15日後、通知は7日後、60日以上操作のないアカウントは削除。運営者の Discord アカウントと管理者は対象外)。今すぐ実行する場合は下のボタンを押してください。
         </p>
         <ActionButton action={adminRunCleanupAction} className="btn-outline btn-sm" confirm="古いデータを今すぐ削除しますか？">
           古いデータを今すぐ削除

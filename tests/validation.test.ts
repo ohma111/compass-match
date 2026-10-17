@@ -30,6 +30,16 @@ const baseProfile = {
   src: 'X',
 };
 
+describe('profileSchema 垢レベル', () => {
+  it('空は消す、1〜999だけ通す、全角数字は半角にする', () => {
+    expect(profileSchema.parse({ ...baseProfile, accountLevel: '' }).accountLevel).toBeNull();
+    expect(profileSchema.parse({ ...baseProfile, accountLevel: '120' }).accountLevel).toBe(120);
+    expect(profileSchema.parse({ ...baseProfile, accountLevel: '１２０' }).accountLevel).toBe(120);
+    expect(profileSchema.parse(baseProfile).accountLevel).toBeNull();
+    for (const bad of ['0', '1000', '-3', '12a', '1.5']) expect(profileSchema.safeParse({ ...baseProfile, accountLevel: bad }).success, bad).toBe(false);
+  });
+});
+
 describe('profileSchema', () => {
   it('accepts and normalizes valid input', () => {
     const r = profileSchema.parse(baseProfile);
@@ -240,6 +250,9 @@ describe('report / feedback / filters', () => {
     expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
     expect(listFilterSchema.parse({ vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, vc: 'on' });
     expect(listFilterSchema.parse({ nofull: '1' }).nofull).toBe(true);
+    expect(listFilterSchema.parse({ vc: 'listen' }).vc).toBe('listen');
+    // any は絞り込みの選択肢ではない (URL に来ても絞り込みなし)
+    expect(listFilterSchema.parse({ vc: 'any' }).vc).toBeUndefined();
   });
 });
 

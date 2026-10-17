@@ -20,6 +20,9 @@ export interface Profile {
   avatar?: Avatar | null;
   /** v14: 運営 (管理者) の印 */
   is_staff?: boolean;
+  /** v18: 垢レベル (自己申告、1〜999) とその更新日時 */
+  account_level?: number | null;
+  account_level_updated_at?: string | null;
 }
 
 export interface Recruitment {
@@ -67,7 +70,7 @@ export interface Participation {
   /** v15: デキレを聞く募集で申告した値 */
   deck_level?: number | null;
   collab?: number | null;
-  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar' | 'is_staff'> | null;
+  profile?: Pick<Profile, 'id' | 'display_name' | 'rank_band' | 'play_roles' | 'vc' | 'tags' | 'avatar' | 'is_staff' | 'account_level' | 'account_level_updated_at'> | null;
 }
 
 export interface Message {

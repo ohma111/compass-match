@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel } from '@/lib/constants';
+import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel, vcNeedsDiscord } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
@@ -102,6 +102,7 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     vc: fd.get('vc') ?? '',
     tags: formStrings(fd, 'tags'),
     bio: fd.get('bio') ?? '',
+    accountLevel: fd.get('accountLevel') ?? '',
     contactDiscord: fd.get('contactDiscord') ?? '',
     contactX: fd.get('contactX') ?? '',
     contactIngame: fd.get('contactIngame') ?? '',
@@ -135,6 +136,10 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
     p_src: null,
   });
   if (error) return fail(toUserMessage(error));
+  // 垢レベル (空なら消す。値が変わったときだけ更新日が動く)
+  const { error: levelError } = await supabase.rpc('set_my_account_level', { p_level: v.accountLevel });
+  // migration 26 がまだない DB では関数がない (PGRST202)。垢レベルを入れていなければほかの保存は止めない
+  if (levelError && !(levelError.code === 'PGRST202' && v.accountLevel == null)) return fail(toUserMessage(levelError));
   // マイページでランクを保存したら「選択済み」にする
   if (v.rankBand) await supabase.rpc('confirm_my_rank', { p_rank_band: v.rankBand });
   revalidatePath('/', 'layout');
@@ -172,7 +177,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
 
   const supabase = await createClient();
   // VC ありの募集は、Discord のユーザー名を連絡先に保存してから出す
-  if (v.vc === 'on') {
+  if (vcNeedsDiscord(v.vc)) {
     const saved = await saveDiscordAction(String(fd.get('discord') ?? ''));
     if (!saved.ok) return saved;
   }
@@ -216,7 +221,19 @@ export async function cancelRecruitmentAction(recruitmentId: string): Promise<Ac
   return { ok: true, message: '募集を取り消しました' };
 }
 
-/** 募集者が募集の時間を延ばす (30分か1時間。開始から6時間まで) */
+/** 募集者が抜けて、一番早く参加が確定した方に募集者を譲る (参加確定の方がいなければ取り消しと同じ) */
+export async function leaveAsOwnerAction(recruitmentId: string): Promise<ActionResult> {
+  const id = uuidSchema.safeParse(recruitmentId);
+  if (!id.success) return fail('操作できませんでした。ページを再読み込みしてください');
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('leave_recruitment_as_owner', { p_recruitment_id: id.data });
+  if (error) return fail(toUserMessage(error));
+  pushLater();
+  revalidatePath(`/recruitments/${id.data}`);
+  revalidatePath('/');
+  return { ok: true, message: '募集者を交代しました' };
+}
+
 /** 募集者が部屋を閉じる (固定を解散する) */
 export async function dissolveRecruitmentAction(recruitmentId: string): Promise<ActionResult> {
   const id = uuidSchema.safeParse(recruitmentId);
