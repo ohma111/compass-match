@@ -38,7 +38,7 @@ describe('proxy matcher (Function Invocations を減らすため、必要なと�
     expect(sources.size).toBe(1);
     const re = regexOf([...sources][0]);
     for (const p of ['/', '/me', '/recruitments/abc', '/recruitments/new', '/notifications']) expect(re.test(p)).toBe(true);
-    for (const p of ['/_next/static/x.js', '/api/live/abc', '/sw.js', '/opengraph-image', '/recruitments/abc/opengraph-image-18nz5w', '/robots.txt'])
+    for (const p of ['/_next/static/x.js', '/api/live/abc', '/sw.js', '/opengraph-image', '/recruitments/abc/opengraph-image-18nz5w', '/robots.txt', '/ads.txt'])
       expect(re.test(p)).toBe(false);
   });
 

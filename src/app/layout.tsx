@@ -4,6 +4,7 @@ import './globals.css';
 import { Suspense } from 'react';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { BootSplash } from '@/components/BootSplash';
+import { ADSENSE_CLIENT } from '@/lib/ads';
 
 // v5「タイムテーブル」: 時刻・数字は Archivo (幅を詰めた太字)、日本語は Zen Kaku Gothic New、札は JetBrains Mono
 const display = Archivo({
@@ -41,6 +42,8 @@ export const metadata: Metadata = {
   // X・Discord・LINE で URL を貼ったときのカード (画像は opengraph-image.tsx)
   openGraph: { siteName: 'JOIN◆COMPASS', title: 'JOIN◆COMPASS | #コンパスの募集掲示板 (非公式)', description: DESCRIPTION, locale: 'ja_JP', type: 'website' },
   twitter: { card: 'summary_large_image' },
+  // AdSense のサイト確認用。広告のスクリプトは読み込まない (広告は審査のあとに別途入れる)
+  other: { 'google-adsense-account': ADSENSE_CLIENT },
 };
 
 // すべてのページはログイン状態に依存するため、動的レンダリングにする
