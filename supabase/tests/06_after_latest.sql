@@ -119,3 +119,18 @@ begin
   delete from auth.users where id = u;
 end $$;
 select 'V17 MIGRATION OK' as result;
+
+-- v18: 新しい列と制約。既存の行は変わらない
+do $$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'profiles' and column_name = 'account_level') then
+    raise exception 'ASSERT FAILED: account_level missing';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'recruitments' and column_name = 'end_warned_at') then
+    raise exception 'ASSERT FAILED: end_warned_at missing';
+  end if;
+  if exists (select 1 from public.profiles where account_level is not null) then
+    raise exception 'ASSERT FAILED: existing profiles got an account level';
+  end if;
+end $$;
+select 'V18 MIGRATION OK' as result;
