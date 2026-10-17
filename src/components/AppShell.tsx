@@ -122,6 +122,7 @@ export function AppShell({
           <nav aria-label="サイト情報">
             <ul className="divide-y divide-ink/15 text-[14px] font-bold text-ink lg:flex lg:gap-x-8 lg:divide-y-0 lg:text-xs">
               {[
+                ['/guide', '使い方'],
                 ['/contact', 'お問い合わせ'],
                 ['/terms', '利用規約'],
                 ['/privacy', 'プライバシーポリシー'],
