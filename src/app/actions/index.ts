@@ -138,7 +138,8 @@ export async function saveProfileAction(_prev: ActionResult | null, fd: FormData
   if (error) return fail(toUserMessage(error));
   // 垢レベル (空なら消す。値が変わったときだけ更新日が動く)
   const { error: levelError } = await supabase.rpc('set_my_account_level', { p_level: v.accountLevel });
-  if (levelError) return fail(toUserMessage(levelError));
+  // migration 26 がまだない DB では関数がない (PGRST202)。垢レベルを入れていなければほかの保存は止めない
+  if (levelError && !(levelError.code === 'PGRST202' && v.accountLevel == null)) return fail(toUserMessage(levelError));
   // マイページでランクを保存したら「選択済み」にする
   if (v.rankBand) await supabase.rpc('confirm_my_rank', { p_rank_band: v.rankBand });
   revalidatePath('/', 'layout');
