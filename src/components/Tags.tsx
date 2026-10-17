@@ -65,7 +65,7 @@ export function JoinModeBadge({ mode }: { mode: JoinMode }) {
   );
 }
 
-const VC_ICON = { on: Mic, any: Headphones, off: MicOff } as const;
+const VC_ICON = { on: Mic, listen: Headphones, any: Headphones, off: MicOff } as const;
 
 /** VC の有無。compact ではスマホのときアイコンだけ (文字は読み上げ用に残す) */
 export function VcBadge({ vc, compact = false }: { vc: RecruitVc; compact?: boolean }) {

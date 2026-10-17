@@ -240,6 +240,9 @@ describe('report / feedback / filters', () => {
     expect(listFilterSchema.parse({})).toEqual({ ...base, purpose: 'all', soon: false });
     expect(listFilterSchema.parse({ vc: 'on', stance: 'x', sort: 'evil' })).toEqual({ ...base, purpose: 'all', soon: false, vc: 'on' });
     expect(listFilterSchema.parse({ nofull: '1' }).nofull).toBe(true);
+    expect(listFilterSchema.parse({ vc: 'listen' }).vc).toBe('listen');
+    // any は絞り込みの選択肢ではない (URL に来ても絞り込みなし)
+    expect(listFilterSchema.parse({ vc: 'any' }).vc).toBeUndefined();
   });
 });
 

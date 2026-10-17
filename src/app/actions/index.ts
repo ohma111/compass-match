@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { toUserMessage } from '@/lib/db-error';
 import { SRC_COOKIE, sanitizeSrc } from '@/lib/src-param';
-import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel } from '@/lib/constants';
+import { AVATARS, COLLAB_MAX, TERMS_VERSION, isDeckLevel, vcNeedsDiscord } from '@/lib/constants';
 import { safeNext } from '@/lib/safe-next';
 import type { ActionResult } from '@/lib/types';
 import { isAuthCookie, persistentCookieOptions } from '@/lib/auth-cookies';
@@ -172,7 +172,7 @@ export async function createRecruitmentAction(_prev: ActionResult | null, fd: Fo
 
   const supabase = await createClient();
   // VC ありの募集は、Discord のユーザー名を連絡先に保存してから出す
-  if (v.vc === 'on') {
+  if (vcNeedsDiscord(v.vc)) {
     const saved = await saveDiscordAction(String(fd.get('discord') ?? ''));
     if (!saved.ok) return saved;
   }

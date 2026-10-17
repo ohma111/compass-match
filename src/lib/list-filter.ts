@@ -2,7 +2,7 @@
 // DB には目的と「30分以内」だけを渡し (未ログインの方の一覧は全員で共有しているため)、
 // それ以外の条件はここで取り出した一覧に当てる。
 import { isFull, remainingSlots } from './capacity';
-import { meetsMinRank, rankValue, type Purpose, type RankBand, type RecruitVc, type Stance } from './constants';
+import { meetsMinRank, rankValue, type Purpose, type RankBand, type VcFilter, type Stance, vcMatchesFilter } from './constants';
 import type { Recruitment } from './types';
 
 export const LIST_SORTS = ['start', 'left', 'rank'] as const;
@@ -17,7 +17,7 @@ export interface ListView {
   purpose: Purpose | 'all';
   soon: boolean;
   eligible: boolean;
-  vc?: RecruitVc;
+  vc?: VcFilter;
   stance?: Stance;
   sort: ListSort;
   /** 満員の募集を出さない (既定は出す。一覧の一番下にまとめる) */
@@ -60,7 +60,7 @@ export function applyListView(items: Recruitment[], v: ListView, myRank: RankBan
     // 満員の募集は切り替えで隠せる (出すときは一番下にまとめる)
     if (v.hideFull && isFullRecruitment(r)) return false;
     if (v.eligible && myRank && !meetsMinRank(myRank, r.min_rank)) return false;
-    if (v.vc && r.vc !== v.vc) return false;
+    if (v.vc && !vcMatchesFilter(r.vc, v.vc)) return false;
     if (v.stance && r.stance !== v.stance) return false;
     return true;
   });

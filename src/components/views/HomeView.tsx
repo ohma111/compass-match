@@ -4,7 +4,7 @@ import { Plus, Radio } from 'lucide-react';
 import { RecruitmentCard } from '@/components/RecruitmentCard';
 import { PurposeMark } from '@/components/Tags';
 import { NowLine } from '@/components/NowLine';
-import { PURPOSES, PURPOSE_LABELS, RECRUIT_VC_LABELS, RECRUIT_VC, STANCES, STANCE_LABELS } from '@/lib/constants';
+import { PURPOSES, PURPOSE_LABELS, RECRUIT_VC_LABELS, VC_FILTERS, STANCES, STANCE_LABELS } from '@/lib/constants';
 import { LIST_SORTS, LIST_SORT_LABELS, hasExtraFilter, isFullRecruitment, listHref, type ListView } from '@/lib/list-filter';
 import type { Recruitment } from '@/lib/types';
 import type { JoinState } from '@/lib/capacity';
@@ -120,7 +120,7 @@ export function HomeView({ items, openCount, total, myRooms = [], canEligible = 
           <p className="mb-1 text-[12px] font-bold text-slate">VC</p>
           <div className="flex flex-wrap gap-1.5">
             {option(!filter.vc, listHref(filter, { vc: undefined }), 'すべて')}
-            {RECRUIT_VC.map((v) => option(filter.vc === v, listHref(filter, { vc: v }), RECRUIT_VC_LABELS[v]))}
+            {VC_FILTERS.map((v) => option(filter.vc === v, listHref(filter, { vc: v }), RECRUIT_VC_LABELS[v]))}
           </div>
         </div>
         <div>

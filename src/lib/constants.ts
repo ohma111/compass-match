@@ -88,6 +88,8 @@ export const JOIN_MODE_LABELS: Record<JoinMode, string> = {
 // 雰囲気タグ (性別による募集・絞り込みの代替)
 export const MOOD_TAGS = ['beginner_welcome', 'relaxed', 'serious', 'considerate', 'quiet_ok', 'practice'] as const;
 export type MoodTag = (typeof MOOD_TAGS)[number];
+/** 選べるタグ。quiet_ok (聞き専OK) は VC の「VC聞き専OK」に移したので選択肢から外す (前に付いた値は表示・保存できる) */
+export const PICKABLE_MOOD_TAGS: readonly MoodTag[] = MOOD_TAGS.filter((t) => t !== 'quiet_ok');
 export const MOOD_TAG_LABELS: Record<MoodTag, string> = {
   beginner_welcome: '初心者歓迎',
   relaxed: 'まったり',
@@ -105,13 +107,27 @@ export const PROFILE_VC_LABELS: Record<ProfileVc, string> = {
   no: 'VC不可',
 };
 
-export const RECRUIT_VC = ['on', 'any', 'off'] as const;
+export const RECRUIT_VC = ['on', 'listen', 'any', 'off'] as const;
 export type RecruitVc = (typeof RECRUIT_VC)[number];
 export const RECRUIT_VC_LABELS: Record<RecruitVc, string> = {
   on: 'VCあり',
+  listen: 'VC聞き専OK',
   any: 'VCどちらでも',
   off: 'VCなし',
 };
+/** 一覧の絞り込みで選べる VC (any は募集側の値で、絞り込みの選択肢にはしない) */
+export const VC_FILTERS = ['on', 'listen', 'off'] as const;
+export type VcFilter = (typeof VC_FILTERS)[number];
+/** Discord の通話に入る募集 (聞くだけでも入る) は、Discord のユーザー名を聞く */
+export function vcNeedsDiscord(vc: RecruitVc): boolean {
+  return vc === 'on' || vc === 'listen';
+}
+/** 絞り込み: on は on・listen・any、listen は listen・any、off は off・any */
+export function vcMatchesFilter(vc: RecruitVc, filter: VcFilter): boolean {
+  if (vc === 'any') return true;
+  if (filter === 'on') return vc === 'on' || vc === 'listen';
+  return vc === filter;
+}
 
 export const RECRUIT_STATUS_LABELS = {
   open: '募集中',

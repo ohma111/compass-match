@@ -2,7 +2,7 @@ import Link from '@/components/Link';
 import { ChevronLeft } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { formatJst, formatJstRange, formatJstTime } from '@/lib/time';
-import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
+import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS, vcNeedsDiscord } from '@/lib/constants';
 import { seatsFor } from '@/lib/seats';
 import { DeckInfo, DuoAndRoles, JoinModeBadge, MoodTags, PurposeBadge, VcBadge } from '@/components/Tags';
 import { TimeRail } from '@/components/TimeRail';
@@ -182,7 +182,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               hideWhenJoined
               warnBlocked={Boolean(props.blockedHere)}
               minRank={r.min_rank}
-              vcOn={r.vc === 'on'}
+              vcOn={vcNeedsDiscord(r.vc)}
               extra={joinExtraOf(r, Boolean(props.busyElsewhere))}
             />
           )}
@@ -220,7 +220,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             live={active && !r.hidden_at}
             warnBlocked={Boolean(props.blockedHere)}
             minRank={r.min_rank}
-              vcOn={r.vc === 'on'}
+              vcOn={vcNeedsDiscord(r.vc)}
               extra={joinExtraOf(r, Boolean(props.busyElsewhere))}
           />
           {!isOwner && (

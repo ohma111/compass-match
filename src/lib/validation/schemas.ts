@@ -15,6 +15,7 @@ import {
   RANK_BANDS,
   MIN_RANKS,
   RECRUIT_VC,
+  VC_FILTERS,
   STANCES,
 } from '../constants';
 import { LIST_SORTS } from '../list-filter';
@@ -311,7 +312,7 @@ export const listFilterSchema = z.object({
   soon: flag,
   /** 自分のランクで参加できる募集だけ */
   eligible: flag,
-  vc: z.enum(RECRUIT_VC).optional().catch(undefined),
+  vc: z.enum(VC_FILTERS).optional().catch(undefined),
   stance: z.enum(STANCES).optional().catch(undefined),
   sort: z.enum(LIST_SORTS).catch('start'),
   /** 満員の募集を出さない (?nofull=1) */
