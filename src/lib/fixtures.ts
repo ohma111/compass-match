@@ -105,7 +105,6 @@ export function detail(now: Date, joined: boolean) {
     r,
     participations,
     myState: (joined ? 'approved' : 'none') as JoinState,
-    roomCode: joined ? '4821' : null,
     messages,
     contacts,
   };

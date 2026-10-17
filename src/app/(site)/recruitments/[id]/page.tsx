@@ -10,15 +10,7 @@ import { siteUrl } from '@/lib/env';
 import { authStateOf, getSessionClaims } from '@/lib/auth';
 import { sanitizeSrc } from '@/lib/src-param';
 import { RecruitmentDetailView } from '@/components/views/RecruitmentDetailView';
-import type { MemberContact, Message, Participation, RoomInfo } from '@/lib/types';
-
-/** 部屋番号と、最後に変えた方・時刻。migration 22 の get_room_info がなければ番号だけ読む */
-async function readRoomInfo(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<RoomInfo | null> {
-  const info = await supabase.rpc('get_room_info', { p_recruitment_id: id });
-  if (!info.error) return (info.data as RoomInfo | null) ?? null;
-  const rc = await supabase.rpc('get_room_code', { p_recruitment_id: id });
-  return rc.data ? { code: rc.data as string, updated_at: null, updated_by: null } : null;
-}
+import type { MemberContact, Message, Participation } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,13 +39,13 @@ export default async function RecruitmentDetailPage({
   const sp = await searchParams;
   if (!uuidSchema.safeParse(id).success) notFound();
   // 募集・ログイン情報・参加者は互いに依存しないので同時に取る。
-  // 部屋番号・連絡先・チャットは「主催者か参加確定者」だけが見られる (DB 側で拒否される) が、
+  // 連絡先は「主催者か参加確定者」だけが見られる (DB 側で拒否される) が、
   // 往復を1回減らすため、ログインしていれば先に問い合わせておき、見せてよい場合だけ使う。
   const supabase = await createClient();
   const claims = await getSessionClaims();
   const signedIn = Boolean(claims);
   const nowIso = new Date().toISOString();
-  const [r, viewer, partsRes, rc, ct, ms, blocked, myBlocks, mute, myOwn, myJoins] = await Promise.all([
+  const [r, viewer, partsRes, ct, ms, blocked, myBlocks, mute, myOwn, myJoins] = await Promise.all([
     (signedIn ? getRecruitment(id) : getRecruitmentPublic(id)).catch(() => null),
     getViewerSafe(),
     signedIn
@@ -63,7 +55,6 @@ export default async function RecruitmentDetailPage({
           .eq('recruitment_id', id)
           .order('created_at', { ascending: true })
       : null,
-    signedIn ? readRoomInfo(supabase, id).catch(() => null) : null,
     signedIn ? supabase.rpc('get_member_contacts', { p_recruitment_id: id }) : null,
     signedIn
       ? supabase
@@ -98,7 +89,6 @@ export default async function RecruitmentDetailPage({
 
   let participations: Participation[] = [];
   let myState: JoinState = 'none';
-  let room: RoomInfo | null = null;
   let contacts: MemberContact[] = [];
   let messages: Message[] = [];
 
@@ -108,7 +98,6 @@ export default async function RecruitmentDetailPage({
   }
 
   if (viewer && (isOwner || myState === 'approved')) {
-    room = rc ?? null;
     contacts = (ct?.data as MemberContact[] | null) ?? [];
   }
   // チャットはプロフィールのある方なら読める (見てよいかは DB の RLS が決める)
@@ -122,7 +111,6 @@ export default async function RecruitmentDetailPage({
       viewerId={viewer?.userId ?? null}
       participations={participations}
       myState={myState}
-      room={room}
       chatMuted={Boolean(mute?.data)}
       busyElsewhere={Boolean(myOwn?.data?.length || myJoins?.data?.length)}
       anonymous={Boolean(claims?.isAnonymous)}

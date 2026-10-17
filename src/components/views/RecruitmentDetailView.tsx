@@ -1,5 +1,5 @@
 import Link from '@/components/Link';
-import { ChevronLeft, Lock } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { canApprove, canRequestJoin, effectiveStatus, remainingSlots, seatLabel, type JoinState } from '@/lib/capacity';
 import { formatJst, formatJstRange, formatJstTime } from '@/lib/time';
 import { STANCE_LABELS, PURPOSE_LABELS, rankLabel, RANK_MIN_LABELS, RECRUIT_STATUS_LABELS } from '@/lib/constants';
@@ -14,11 +14,10 @@ import { ActionButton } from '@/components/ActionButton';
 import { ReportButton } from '@/components/ReportButton';
 import type { AuthState } from '@/components/JoinButton';
 import { ChatRoom } from '@/components/ChatRoom';
-import { RoomCodePanel } from '@/components/RoomCodePanel';
 import { IntentRunner } from '@/components/IntentRunner';
 import { cancelParticipationAction, cancelRecruitmentAction, decideParticipationAction, dissolveRecruitmentAction, keepRecruitmentAction, setDuoPlayingAction } from '@/app/actions';
 import { CopyButton } from '@/components/CopyButton';
-import type { MemberContact, Message, Participation, Recruitment, RoomInfo } from '@/lib/types';
+import type { MemberContact, Message, Participation, Recruitment } from '@/lib/types';
 
 export interface RecruitmentDetailViewProps {
   r: Recruitment;
@@ -27,7 +26,6 @@ export interface RecruitmentDetailViewProps {
   viewerId: string | null;
   participations: Participation[];
   myState: JoinState;
-  room: RoomInfo | null;
   /** この募集のチャットの通知を止めている */
   chatMuted?: boolean;
   /** 匿名のアカウント (引き継ぎコードをまだ作っていない) */
@@ -55,8 +53,7 @@ function shareData(r: Recruitment, base: string): { text: string; url: string } 
 }
 
 export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
-  const { r, now, auth, viewerId, participations, myState, room, contacts, messages, src } = props;
-  const roomCode = room?.code ?? null;
+  const { r, now, auth, viewerId, participations, myState, contacts, messages, src } = props;
   const id = r.id;
   const status = effectiveStatus(r.status, r.ends_at, now);
   const isOwner = viewerId === r.owner_id;
@@ -83,7 +80,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
   );
   const active = status === 'open' || status === 'full';
   const chatOpen = active && !r.hidden_at;
-  // チャットは参加が確定していなくても、プロフィールのある方なら使える (部屋番号はメンバーだけ)
+  // チャットは参加が確定していなくても、プロフィールのある方なら使える
   const chatVisible = isMember || (auth === 'ready' && active && !r.hidden_at);
   const left = remainingSlots(r.capacity, r.approved_count);
   // 開始から6時間までは延ばせる (DB の制約と同じ)
@@ -98,29 +95,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
     enterUserId: justJoined ? viewerId : null,
   });
   const stamp = justJoined ? (left === 0 ? '満員' : '参加確定') : null;
-  const roomPanel = (floating: boolean) => (
-    <RoomCodePanel
-      key={floating ? 'm' : 'd'}
-      recruitmentId={id}
-      code={roomCode}
-      isOwner={isOwner}
-      canEdit={active && !r.hidden_at}
-      updatedAt={room?.updated_at ?? null}
-      updatedByName={room?.updated_by ? (nameOf.get(room.updated_by) ?? null) : null}
-      updatedByMe={Boolean(room?.updated_by && room.updated_by === viewerId)}
-      floating={floating}
-    />
-  );
-
-  const LOCKED = (
-    <section className="border-2 border-dashed border-ink/50 p-5 text-ink-2" aria-label="メンバー限定">
-      <p className="flex items-center gap-2 font-bold">
-        <Lock className="size-4" aria-hidden />
-        {myState === 'pending' ? '承認されると、部屋番号が表示されます' : '参加すると、部屋番号が表示されます'}
-      </p>
-    </section>
-  );
-
   return (
     <div>
       <Link href="/" className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-sm font-bold text-slate hover:text-ink">
@@ -153,9 +127,9 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
       </div>
 
       {/*
-        PC の構成: 上段 = 募集の内容 (左) と、部屋番号 / 参加すると見られるもの (右)。
+        PC の構成: 上段 = 募集の内容 (左) と、参加ボタン・共有 (右)。
         中段 = 席の並びを横いっぱいに (この画面の主役)。下段 = 連絡先・申請 (左) とチャット (右)。
-        スマホは上から順に1列 (部屋番号は時刻のすぐ下)。
+        スマホは上から順に1列。
       */}
       <div className="mt-4 grid gap-y-8 lg:grid-cols-12 lg:gap-x-12 lg:gap-y-12">
         <section aria-labelledby="r-title" className="lg:col-span-7 lg:col-start-1 lg:row-start-1">
@@ -177,12 +151,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               <p className="type-poster text-[72px] text-ink/25 sm:text-[96px]">{RECRUIT_STATUS_LABELS[status]}</p>
             )}
           </div>
-          {/* 参加が確定した人がいちばん欲しいのは部屋番号なので、スマホでは時刻のすぐ下に出す */}
-          {isMember && (
-            <div className="mt-6 lg:hidden">
-              {roomPanel(true)}
-            </div>
-          )}
           <h1 id="r-title" className="mt-5 border-t-2 border-ink pt-4 text-[22px] leading-snug font-black break-words lg:text-[28px]">
             {r.title}
           </h1>
@@ -218,7 +186,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
               extra={joinExtraOf(r, Boolean(props.busyElsewhere))}
             />
           )}
-          {isMember ? roomPanel(false) : active && LOCKED}
           {active && !r.hidden_at && (
             <ShareButton {...shareData(r, props.siteUrl)} className="btn-outline w-full" />
           )}
@@ -263,7 +230,7 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
                 <ActionButton
                   action={cancelParticipationAction.bind(null, id)}
                   className="btn-outline w-full"
-                  confirm={myState === 'pending' ? '申請を取り消しますか？' : 'この募集から抜けますか？ 部屋番号とチャットが見られなくなります。'}
+                  confirm={myState === 'pending' ? '申請を取り消しますか？' : 'この募集から抜けますか？'}
                 >
                   {myState === 'pending' ? '申請を取り消す' : '参加をやめて抜ける'}
                 </ActionButton>
@@ -289,8 +256,6 @@ export function RecruitmentDetailView(props: RecruitmentDetailViewProps) {
             </div>
           )}
         </section>
-
-        {!isMember && active && <div className="lg:hidden">{LOCKED}</div>}
 
         <div className={`space-y-8 ${isMember ? 'lg:col-span-5' : 'lg:col-span-7'}`}>
           {isOwner && (pending.length > 0 || r.join_mode === 'approval') && (

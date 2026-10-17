@@ -161,22 +161,7 @@ try {
     const still = await p.evaluate(() => window.__noReload === true);
     if (!still) throw new Error('page was reloaded during join');
     await p.getByText('満員').first().waitFor({ timeout: 15_000 });
-    await p.getByRole('heading', { name: '部屋番号' }).waitFor({ timeout: 15_000 });
     await snap(p, 'B-joined');
-  });
-
-  await step('A: 部屋番号 2580 → B に表示とコピー', async () => {
-    const a = A.page;
-    await a.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-    const input = a.locator('input[aria-label^="部屋番号"]').locator('visible=true');
-    await input.first().fill('2580');
-    await a.getByRole('button', { name: '保存' }).locator('visible=true').first().click();
-    await a.getByText('2580').first().waitFor({ timeout: 15_000 });
-    await snap(a, 'A-roomcode');
-    const b = B.page;
-    await eventually(b, () => b.getByText('2580', { exact: true }).locator('visible=true'));
-    await b.getByRole('button', { name: /コピー/ }).locator('visible=true').first().waitFor();
-    await snap(b, 'B-roomcode');
   });
 
   await step('A・B がチャットを1件ずつ → 両方に両方が見える', async () => {
@@ -194,6 +179,9 @@ try {
     await send(B.page, 'テストBです よろしく');
     await eventually(A.page, () => bubble(A.page, 'テストBです よろしく'));
     await eventually(B.page, () => bubble(B.page, 'テストAです よろしく'));
+    // 部屋番号の欄はなくしたので、番号はチャットで伝える (4桁だけの発言は通る)
+    await send(A.page, '2580');
+    await eventually(B.page, () => bubble(B.page, '2580'));
     await snap(A.page, 'A-chat');
     await snap(B.page, 'B-chat');
     // 禁止語は送る前に止まる
@@ -206,7 +194,7 @@ try {
   await step('A: 同じコンテキストの新しいタブでもログインしたまま (シートなし)', async () => {
     const p2 = await A.ctx.newPage();
     await p2.goto(recruitmentUrl, { waitUntil: 'networkidle' });
-    await p2.getByText('2580').locator('visible=true').first().waitFor({ timeout: 15_000 });
+    await bubble(p2, '2580').first().waitFor({ timeout: 15_000 });
     if (await p2.getByRole('dialog').count()) throw new Error('sheet shown on reload');
     await snap(p2, 'A-newtab');
     await p2.close();

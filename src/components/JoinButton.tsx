@@ -123,7 +123,7 @@ export function JoinButton(props: {
   if (isOwner || joined) {
     return (
       <Link href={detail} className={`btn-outline ${sizing}`}>
-        {props.compact ? (isOwner ? '管理する' : '参加中') : isOwner ? '自分の募集を開く' : '参加中・部屋番号を見る'}
+        {props.compact ? (isOwner ? '管理する' : '参加中') : isOwner ? '自分の募集を開く' : '参加中の募集を開く'}
         <ChevronRight className="size-4" aria-hidden />
       </Link>
     );

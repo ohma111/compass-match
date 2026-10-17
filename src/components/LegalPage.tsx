@@ -1,3 +1,18 @@
+import type { ReactNode } from 'react';
+import Link from '@/components/Link';
+
+/** 文中の [文字](/path) と [文字](https://...) をリンクにする。それ以外は文字のまま */
+function withLinks(text: string): ReactNode[] {
+  return text.split(/(\[[^\]]+\]\([^)\s]+\))/).map((part, i) => {
+    const m = part.match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+    if (!m) return part;
+    const [, label, href] = m;
+    const cls = 'underline underline-offset-4 decoration-ink/40 hover:decoration-ink';
+    if (href.startsWith('/')) return <Link key={i} href={href} className={cls}>{label}</Link>;
+    return <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={cls}>{label}</a>;
+  });
+}
+
 /** 利用規約・プライバシーポリシーの共通の形: 番号付きの項目を太い罫で区切る */
 export function LegalPage({
   title,
@@ -18,11 +33,11 @@ export function LegalPage({
             <span className="type-time block text-[18px] text-slate lg:text-[34px] lg:text-ink/30" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
             <div className="mt-1 space-y-2 lg:mt-0">
               <h2 className="text-[17px] leading-snug font-black">{it.h}</h2>
-              {it.body?.map((p) => <p key={p}>{p}</p>)}
+              {it.body?.map((p) => <p key={p}>{withLinks(p)}</p>)}
               {it.list && (
                 <ul className="list-disc space-y-2 pl-5 marker:text-ink/40">
                   {it.list.map((l) => (
-                    <li key={l}>{l}</li>
+                    <li key={l}>{withLinks(l)}</li>
                   ))}
                 </ul>
               )}
